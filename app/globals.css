@@ -1,26 +1,473 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+  ODDESSI — "Verdigris"
+
+  A cold night sky with oxidised bronze instruments in it.
+  Ancient = the patina, the inscription letterforms, the real glyphs.
+  Futuristic = the cool near-black, the hairlines, the tabular data.
+
+  Rules of the system:
+  - No shadows and no glows. Light comes from pigment, not from blur.
+  - No border radius above 2px. Edges are cut.
+  - No emoji. Symbols are real Unicode glyphs (♄ ♃ ♇ 丙 …).
+  - Two accents only: patina for the present, ember for exactitude.
+    If something needs a third colour, it needs a different design.
+*/
+
+@theme {
+  /* Ground — cool near-black, faint blue cast */
+  --color-void: #07080b;
+  /* page */
+  --color-surface: #0c0e13;
+  /* panel */
+  --color-surface-alt: #12151c;
+  /* raised / hover */
+
+  /* Rules */
+  --color-rule: #232833;
+  --color-rule-faint: #171b23;
+
+  /* Text — cool bone, never pure white */
+  --color-bone: #e2e6ee;
+  --color-bone-soft: #a8afbd;
+  --color-bone-faint: #6c7383;
+
+  /* Patina — oxidised bronze. The present, the active, the primary. */
+  --color-patina: #6baf9a;
+  --color-patina-dim: #3e6b5c;
+  --color-patina-deep: #1e3a32;
+
+  /* Ember — the warm counterpoint. Exactitude, peaks, warnings. */
+  --color-ember: #c2664b;
+  --color-ember-dim: #7a3f2e;
+
+  /* Type */
+  --font-display: var(--font-cinzel);
+  --font-body: var(--font-cormorant);
+  --font-mono: var(--font-plex-mono);
 }
 
+/*
+  ─── Council palette ──────────────────────────────────────────────────────────
+
+  The council's markup is vendored from poesis and names colours in that app's
+  vocabulary (gold / parchment / muted). Rather than rewrite every class, the
+  names are re-pointed here at Verdigris values, so the council obeys this
+  system: patina is still the accent, bone is still the text, ember is still
+  the warning, and void / surface / surface-alt are untouched.
+
+  `--color-gold-muted` is the one that looks odd written out. It is only ever
+  used through an opacity modifier (`border-gold-muted/20` and friends), so its
+  value is chosen for what those blends land on over the void: /10 ≈ rule-faint,
+  /20 ≈ rule. Never use it at full strength.
+*/
+@theme {
+  --color-gold: #7fc0aa;
+  /* brightest accent — modal titles, submit affordances */
+  --color-gold-accent: #6baf9a;
+  /* patina. interactive accent, active state, emphasis */
+  --color-gold-dim: #4e8574;
+  /* labels, tags, hover target from muted */
+  --color-gold-muted: #93a8d3;
+  /* borders and dividers — ONLY via opacity modifiers (see above) */
+
+  --color-parchment: #e2e6ee;
+  /* bone. primary text */
+  --color-parchment-2: #eef1f6;
+  /* hover text */
+  --color-parchment-3: #c8cfdb;
+  /* body / assistant text */
+  --color-parchment-4: #a8afbd;
+  /* bone-soft. user message text */
+  --color-stone: #a8afbd;
+  /* secondary body text */
+  --color-muted: #6c7383;
+  /* bone-faint. placeholder, captions */
+}
+
+/* Inline so `font-cinzel` / `font-cormorant` / `font-plex` resolve straight to
+   the next/font variables — a non-inline @theme would emit a self-referential
+   `--font-cinzel: var(--font-cinzel)` in :root. `font-plex` is the council's
+   micro-label face; it points at the mono, like `datum` and `eyebrow` do. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-cinzel: var(--font-cinzel);
+  --font-cormorant: var(--font-cormorant);
+  --font-plex: var(--font-plex-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    background: var(--color-void);
+    color: var(--color-bone);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    font-family: var(--font-body);
+    font-size: 1.0625rem;
+    line-height: 1.7;
+  }
+
+  ::selection {
+    background: var(--color-patina-deep);
+    color: var(--color-bone);
+  }
+
+  abbr[title] {
+    text-decoration: none;
+  }
+
+  /* Simple data-tooltip — shown on hover via CSS, no JS needed */
+  [data-tooltip] {
+    position: relative;
+  }
+
+  [data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    background: var(--color-surface-alt);
+    border: 1px solid var(--color-rule);
+    color: var(--color-bone-soft);
+    font-family: var(--font-mono);
+    font-size: 0.5625rem;
+    letter-spacing: 0.08em;
+    padding: 2px 6px;
+    pointer-events: none;
+    z-index: 50;
+  }
+
+  :focus-visible {
+    outline: 1px solid var(--color-patina);
+    outline-offset: 3px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+
+  /* Inscription — carved label. Section names, nav, titles. */
+  .inscription {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-weight: 500;
+  }
+
+  /* Datum — anything measured: dates, degrees, orbs, counts. */
+  .datum {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+  }
+
+  /* Micro label above a block. */
+  .eyebrow {
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.28em;
+    font-size: 0.625rem;
+    color: var(--color-patina-dim);
+  }
+
+  /*
+    Glyphs need liga off so sequences aren't substituted, and text presentation
+    forced so the OS emoji font never claims the zodiac range. The U+FE0E in
+    lib/symbols.ts is the load-bearing fix; this is defence in depth for
+    browsers that support it.
+  */
+  .glyph {
+    font-feature-settings: "liga" 0;
+    font-variant-emoji: text;
+    line-height: 1;
+  }
+}
+
+/* ─── Council markdown prose ────────────────────────────────────────── */
+.prose-council p {
+  margin: 0 0 0.75em;
+}
+
+.prose-council p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-council strong {
+  color: #eef1f6;
+  font-weight: 600;
+}
+
+.prose-council em {
+  color: #6baf9a;
+  font-style: italic;
+}
+
+.prose-council h1,
+.prose-council h2,
+.prose-council h3 {
+  font-family: var(--font-cinzel), serif;
+  color: #e2e6ee;
+  letter-spacing: 0.04em;
+  margin: 1em 0 0.4em;
+  font-weight: 400;
+}
+
+.prose-council h1 {
+  font-size: 1.15rem;
+}
+
+.prose-council h2 {
+  font-size: 1.05rem;
+}
+
+.prose-council h3 {
+  font-size: 0.95rem;
+}
+
+.prose-council ul,
+.prose-council ol {
+  margin: 0.5em 0 0.75em 1.25em;
+  padding: 0;
+}
+
+.prose-council li {
+  margin-bottom: 0.25em;
+}
+
+.prose-council ul>li {
+  list-style-type: disc;
+}
+
+.prose-council ol>li {
+  list-style-type: decimal;
+}
+
+.prose-council code {
+  font-family: var(--font-plex), monospace;
+  font-size: 0.82em;
+  background: #12151c;
+  color: #6baf9a;
+  padding: 0.1em 0.35em;
+  border-radius: 2px;
+}
+
+.prose-council pre {
+  background: #12151c;
+  border: 1px solid rgba(147, 168, 211, 0.2);
+  padding: 0.85em 1em;
+  overflow-x: auto;
+  margin: 0.75em 0;
+}
+
+.prose-council pre code {
+  background: transparent;
+  padding: 0;
+  color: #c8cfdb;
+  font-size: 0.82em;
+}
+
+.prose-council blockquote {
+  border-left: 2px solid rgba(147, 168, 211, 0.35);
+  margin: 0.5em 0;
+  padding-left: 1em;
+  color: #a8afbd;
+  font-style: italic;
+}
+
+.prose-council hr {
+  border: none;
+  border-top: 1px solid rgba(147, 168, 211, 0.2);
+  margin: 1em 0;
+}
+
+.prose-council a {
+  color: #6baf9a;
+  text-decoration: underline;
+  text-decoration-color: rgba(107, 175, 154, 0.4);
+}
+
+.prose-council a:hover {
+  color: #8fd0ba;
+}
+
+.prose-council table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75em 0;
+  font-size: 0.92em;
+}
+
+.prose-council th,
+.prose-council td {
+  padding: 0.4em 0.85em;
+  text-align: left;
+  border: 1px solid rgba(147, 168, 211, 0.2);
+}
+
+.prose-council th {
+  font-family: var(--font-plex), sans-serif;
+  font-size: 0.72em;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: rgba(147, 168, 211, 0.6);
+  background: rgba(147, 168, 211, 0.05);
+}
+
+.prose-council td {
+  color: #a8afbd;
+}
+
+/* Poesis leaves the council's scroll containers unstyled under this class; kept
+   for parity with the vendored markup, and as the one place to hide the
+   scrollbars if that is ever wanted. */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── Interface chat markdown prose ─────────────────────────────────── */
+.prose-chat {
+  font-size: 1.0625rem;
+  font-weight: 300;
+  line-height: 1.75;
+  color: var(--color-bone-soft);
+}
+
+.prose-chat p {
+  margin: 0 0 0.75em;
+}
+
+.prose-chat p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-chat strong {
+  color: var(--color-bone);
+  font-weight: 500;
+}
+
+.prose-chat em {
+  color: var(--color-patina);
+  font-style: italic;
+}
+
+.prose-chat h1,
+.prose-chat h2,
+.prose-chat h3 {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-bone);
+  margin: 1.1em 0 0.4em;
+  font-weight: 500;
+}
+
+.prose-chat h1 {
+  font-size: 1rem;
+}
+
+.prose-chat h2 {
+  font-size: 0.9rem;
+}
+
+.prose-chat h3 {
+  font-size: 0.825rem;
+}
+
+.prose-chat ul,
+.prose-chat ol {
+  margin: 0.4em 0 0.75em 1.25em;
+  padding: 0;
+}
+
+.prose-chat li {
+  margin-bottom: 0.25em;
+}
+
+.prose-chat ul>li {
+  list-style-type: disc;
+}
+
+.prose-chat ol>li {
+  list-style-type: decimal;
+}
+
+.prose-chat code {
+  font-family: var(--font-mono);
+  font-size: 0.82em;
+  background: var(--color-surface-alt);
+  color: var(--color-patina);
+  padding: 0.1em 0.35em;
+}
+
+.prose-chat pre {
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-rule);
+  padding: 0.85em 1em;
+  overflow-x: auto;
+  margin: 0.75em 0;
+}
+
+.prose-chat pre code {
+  background: transparent;
+  padding: 0;
+  color: var(--color-bone-soft);
+  font-size: 0.82em;
+}
+
+.prose-chat blockquote {
+  border-left: 2px solid var(--color-patina-dim);
+  margin: 0.5em 0;
+  padding-left: 1em;
+  color: var(--color-bone-faint);
+  font-style: italic;
+}
+
+.prose-chat hr {
+  border: none;
+  border-top: 1px solid var(--color-rule);
+  margin: 1em 0;
+}
+
+.prose-chat a {
+  color: var(--color-patina);
+  text-decoration: underline;
+  text-decoration-color: var(--color-patina-dim);
+}
+
+.prose-chat a:hover {
+  color: var(--color-bone);
+}
+
+.prose-chat table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75em 0;
+  font-size: 0.92em;
+}
+
+.prose-chat th,
+.prose-chat td {
+  padding: 0.4em 0.85em;
+  text-align: left;
+  border: 1px solid var(--color-rule);
+}
+
+.prose-chat th {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  color: var(--color-bone-faint);
+  background: var(--color-surface-alt);
+}
+
+.prose-chat td {
+  color: var(--color-bone-soft);
 }

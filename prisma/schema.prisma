@@ -1,0 +1,180 @@
+// Oddessi's own database. These models are the canonical source of truth for
+// this project. Running `prisma migrate dev` here is safe.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id      String                      @id @default(cuid())
+  email   String                      @unique
+  name    String?
+  profile PersonalDevelopmentProfile?
+
+  @@map("users")
+}
+
+model PersonalDevelopmentProfile {
+  id          String           @id @default(cuid())
+  userId      String           @unique
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  birthCharts BirthChartData[]
+
+  @@map("personal_development_profiles")
+}
+
+model BirthChartData {
+  id              String                     @id @default(cuid())
+  profileId       String
+  name            String?
+  description     String?
+  birthDate       DateTime
+  birthTime       String
+  birthLocation   String?
+  birthLatitude   Float
+  birthLongitude  Float
+  birthTimezone   String
+  gender          String?
+  sunSign         String?
+  moonSign        String?
+  risingSign      String?
+  planetPositions Json?
+  housePositions  Json?
+  angles          Json?
+  aspects         Json?
+  isDefault       Boolean                    @default(false)
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  profile         PersonalDevelopmentProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@index([profileId, isDefault])
+  @@map("birth_chart_data")
+}
+
+/// Cycles arc already computed with Swiss Ephemeris. Oddessi reads them rather
+/// than recalculating. `interpretation` carries { initialEnd, retrogradePeriods }
+/// which is what the timeline uses to draw the gaps.
+model LifeCycleCache {
+  id             String    @id @default(cuid())
+  chartId        String
+  cycleId        String
+  type           String
+  planet         String
+  title          String
+  description    String
+  startDate      DateTime
+  endDate        DateTime
+  peakDate       DateTime?
+  status         String
+  significance   String
+  themes         String[]
+  houseNumber    Int?
+  natalPlanet    String?
+  aspectType     String?
+  sign           String?
+  cycleLength    String
+  actualDuration String?
+  interpretation Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([chartId, cycleId])
+  @@index([chartId])
+  @@index([chartId, status])
+  @@index([startDate])
+  @@index([endDate])
+  @@map("life_cycle_cache")
+}
+
+// ─── Council ──────────────────────────────────────────────────────────────────
+// Vendored from poesis, byte-compatible so the two councils stay in step.
+// A session is one conversation; a turn is one question plus every agent reply
+// to it; a message is one agent's reply, carrying the usage OpenRouter reported.
+
+model CouncilSession {
+  id          String        @id @default(uuid())
+  mode        String // 'parallel' | 'cascade' | 'loop'
+  agentModels String[] // model ids for agents [0,1,2]
+  title       String? // optional user-set title
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  turns       CouncilTurn[]
+}
+
+model CouncilTurn {
+  id        String           @id @default(uuid())
+  sessionId String
+  session   CouncilSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  question  String
+  order     Int
+  createdAt DateTime         @default(now())
+  responses CouncilMessage[]
+
+  @@index([sessionId])
+}
+
+model CouncilMessage {
+  id         String      @id @default(uuid())
+  turnId     String
+  turn       CouncilTurn @relation(fields: [turnId], references: [id], onDelete: Cascade)
+  agentIndex Int
+  model      String
+  content    String
+  createdAt  DateTime    @default(now())
+
+  // Usage as reported by OpenRouter on the final stream chunk. Nullable —
+  // responses saved before usage accounting have none, and a provider can
+  // omit it. `cost` is what was charged, in USD.
+  promptTokens     Int?
+  completionTokens Int?
+  cost             Float?
+
+  @@index([turnId])
+}
+
+// Single row keyed by a fixed id ("default") — the user's preferred agent
+// models and system prompts, so they survive across devices/browsers.
+model CouncilPreferences {
+  id           String   @id @default("default")
+  agentModels  String[] // model ids for agents [0,1,2]
+  agentPrompts String[] // system prompts for agents [0,1,2]
+  globalModel  String? // model for utility work (memory distillation) — separate from the agents
+  updatedAt    DateTime @updatedAt
+}
+
+// Interface chat preferences — single row, same singleton pattern.
+model InterfacePreferences {
+  id           String   @id @default("default")
+  model        String
+  systemPrompt String
+  updatedAt    DateTime @updatedAt
+
+  @@map("interface_preferences")
+}
+
+// One row per named category — each a persistent markdown document of lessons
+// distilled from past sessions. Injected into chats by default (per-chat selectable).
+model CouncilMemory {
+  id        String   @id @default(uuid())
+  category  String   @unique
+  content   String   @default("")
+  updatedAt DateTime @updatedAt
+}
+
+// Model price overrides + soft-removals, edited from the model pickers and
+// merged over the code defaults in lib/models.ts.
+model ModelPrice {
+  id         String   @id // model id, e.g. "anthropic/claude-sonnet-5"
+  inputCost  Float
+  outputCost Float
+  hidden     Boolean  @default(false) // soft-removed from the catalogue (hidden from pickers)
+  updatedAt  DateTime @updatedAt
+
+  @@map("model_prices")
+}
