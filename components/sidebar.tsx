@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import ChartSelector from "@/components/chart-selector";
 
 /**
- * Chart-scoped navigation. Everything here is a way of looking at whichever
- * chart the selector above has chosen.
+ * The app rail: chart selector, then ways of looking at whichever chart it has
+ * chosen. Stands down on /council, which brings a sessions rail of its own.
  *
  * Kept deliberately short. The previous incarnation reached thirty links across
  * six collapsible groups because nothing said no; this list is the "no".
@@ -29,9 +30,65 @@ const NAV: NavItem[] = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+
+  // The council brings its own rail — chart selector on top, saved sessions
+  // below — so this one stands down rather than stacking two rails side by side.
+  if (pathname.startsWith("/council")) return null;
+
+  if (collapsed) {
+    return (
+      <aside className="flex w-10 shrink-0 flex-col items-center border-r border-rule py-3 gap-3">
+        <button
+          onClick={() => setCollapsed(false)}
+          aria-label="Expand sidebar"
+          className="text-bone-faint hover:text-bone transition-colors"
+        >
+          {/* chevron-right */}
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+
+        <nav className="flex flex-col items-center gap-1 mt-1">
+          {NAV.map((item) => {
+            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-label={item.label}
+                aria-current={pathname === item.href ? "page" : undefined}
+                className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${active ? "text-patina" : "text-bone-faint hover:text-bone"
+                  }`}
+              >
+                {/* First letter as compact nav hint */}
+                <span className="datum text-[0.5rem] uppercase tracking-widest">
+                  {item.label.slice(0, 2)}
+                </span>
+              </Link>
+            );
+          })}
+        </nav>
+      </aside>
+    );
+  }
 
   return (
     <aside className="flex w-60 shrink-0 flex-col overflow-y-auto border-r border-rule">
+      <div className="flex items-center justify-between border-b border-rule-faint px-4 py-2">
+        <button
+          onClick={() => setCollapsed(true)}
+          aria-label="Collapse sidebar"
+          className="ml-auto text-bone-faint hover:text-bone transition-colors"
+        >
+          {/* chevron-left */}
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M10 4L6 8l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+
       <ChartSelector />
 
       <nav className="flex flex-col py-4">

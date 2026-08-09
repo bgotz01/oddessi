@@ -35,6 +35,7 @@ model BirthChartData {
   description     String?
   birthDate       DateTime
   birthTime       String
+  birthCity       String?
   birthLocation   String?
   birthLatitude   Float
   birthLongitude  Float

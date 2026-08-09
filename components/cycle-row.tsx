@@ -11,8 +11,8 @@ import { HOUSE_NAMES } from "@/lib/astrology/standard-definitions";
  * if they are truly within 2 % of each other (i.e. actually overlapping text).
  */
 
-const TRACK_TOP = 20; // px from top of track to bar centre-line
-const BAR_H = 8; // px — height of the solid segment bars
+const TRACK_TOP = 20; // px from top of track to bar centre-line — leaves room for year labels above
+const BAR_H = 10; // px — height of the solid segment bars
 const MIN_LABEL_GAP = 2; // % — only suppress labels that would literally overlap
 
 function monthLabel(iso: string): string {
@@ -90,25 +90,25 @@ export default function CycleRow({
   const trackH = TRACK_TOP + BAR_H + (labels.length ? 22 : 4);
 
   return (
-    <div className="border-b border-rule-faint py-8">
+    <div className="border-b border-rule-faint py-4">
       {/* Heading */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-1">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-1">
         {/* Left: glyph · planet · house */}
         <div className="flex items-center gap-3">
-          <span className="glyph text-2xl leading-none" style={{ color }}>
+          <span className="glyph text-xl leading-none" style={{ color }}>
             {meta?.glyph}
           </span>
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="inscription text-[0.9375rem]" style={{ color }}>
+              <span className="inscription text-[0.875rem]" style={{ color }}>
                 {cycle.planet}
               </span>
-              <span className="inscription text-[0.9375rem] text-bone">
+              <span className="inscription text-[0.875rem] text-bone">
                 {cycle.house}
               </span>
             </div>
             {subtitle && (
-              <p className="mt-0.5 inscription text-[0.75rem] text-bone-soft leading-tight">
+              <p className="mt-0 inscription text-[0.6875rem] text-bone-soft leading-tight">
                 {subtitle}
               </p>
             )}
@@ -129,14 +129,14 @@ export default function CycleRow({
 
         {/* Year labels — only at the very start and end of the envelope */}
         <div
-          className="datum absolute text-[0.5rem] whitespace-nowrap"
-          style={{ left: "0%", top: "2px", color, opacity: 0.45 }}
+          className="datum absolute text-[0.625rem] whitespace-nowrap"
+          style={{ left: "0%", top: "2px", color, opacity: 0.65 }}
         >
           {new Date(`${band.start}T00:00:00Z`).getUTCFullYear()}
         </div>
         <div
-          className="datum absolute text-[0.5rem] whitespace-nowrap"
-          style={{ right: "0%", top: "2px", color, opacity: 0.45, transform: "translateX(0)" }}
+          className="datum absolute text-[0.625rem] whitespace-nowrap"
+          style={{ right: "0%", top: "2px", color, opacity: 0.65 }}
         >
           {new Date(`${band.end}T00:00:00Z`).getUTCFullYear()}
         </div>
@@ -239,7 +239,7 @@ export default function CycleRow({
                 }}
               />
               <span
-                className="datum block text-[0.5rem] whitespace-nowrap"
+                className="datum block text-[0.625rem] whitespace-nowrap"
                 style={{
                   color,
                   opacity: 0.9,

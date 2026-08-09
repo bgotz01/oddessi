@@ -38,6 +38,14 @@ interface ChatContextValue {
   send: (text: string, pathname?: string) => void;
   busy: boolean;
   clear: () => void;
+  /**
+   * Pages can call this to register the data currently visible on screen.
+   * It is serialized into the system message so the model can reason about
+   * what the user is actually looking at, not just the route name.
+   *
+   * Pass `null` to clear (e.g. on unmount).
+   */
+  setPageContext: (ctx: Record<string, unknown> | null) => void;
 }
 
 const ChatContext = createContext<ChatContextValue | undefined>(undefined);
@@ -49,6 +57,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pageContext, setPageContextState] = useState<Record<string, unknown> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const { chart } = useChart();
@@ -88,6 +97,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     setMessages([]);
   }, []);
 
+  const setPageContext = useCallback((ctx: Record<string, unknown> | null) => {
+    setPageContextState(ctx);
+  }, []);
+
   const send = useCallback(
     async (text: string, pathname?: string) => {
       if (busy || !text.trim()) return;
@@ -117,7 +130,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           signal: ctrl.signal,
-          body: JSON.stringify({ messages: history, model, chart, pathname }),
+          body: JSON.stringify({ messages: history, model, chart, pathname, pageContext }),
         });
 
         if (!res.ok || !res.body) {
@@ -175,7 +188,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         setBusy(false);
       }
     },
-    [busy, messages, model, chart],
+    [busy, messages, model, chart, pageContext],
   );
 
   return (
@@ -186,6 +199,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         systemPrompt, setSystemPrompt,
         savePrefs, saving,
         messages, send, busy, clear,
+        setPageContext,
       }}
     >
       {children}

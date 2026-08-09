@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import OpenAI from 'openai';
 import { PAGE_REFS, buildContextBlock, buildMemoryBlock } from '@/lib/pageContext';
+import { buildChartBlock } from '@/lib/chart-context';
+import type { Chart } from '@/lib/charts';
 import { MODELS } from '@/lib/models';
 import { prisma } from '@/lib/prisma';
 import { CHAT_DEFAULT_SYSTEM } from '@/lib/prompts/chat';
@@ -34,7 +36,7 @@ const DEFAULT_MODEL = 'deepseek/deepseek-v4-flash';
 
 export async function POST(req: NextRequest) {
     try {
-        const { messages, model, systemPrompt, refIds, includeMemory, memoryCategories } = await req.json();
+        const { messages, model, systemPrompt, refIds, chart, includeMemory, memoryCategories } = await req.json();
 
         if (!messages || !Array.isArray(messages)) {
             return new Response(JSON.stringify({ error: 'Invalid request body' }), { status: 400 });
@@ -46,6 +48,12 @@ export async function POST(req: NextRequest) {
         let resolvedPrompt = (typeof systemPrompt === 'string' && systemPrompt.trim())
             ? systemPrompt.trim()
             : CHAT_DEFAULT_SYSTEM;
+
+        // The chart under study, when the client has it attached. First after the
+        // persona, because every other block is read against it.
+        if (chart) {
+            resolvedPrompt = `${resolvedPrompt}\n\n${buildChartBlock(chart as Chart)}`;
+        }
 
         // Resolve ref IDs server-side — content never needs to be sent from the client
         if (Array.isArray(refIds) && refIds.length > 0) {

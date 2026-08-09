@@ -52,6 +52,46 @@ function toBirthDate(date: string): Date {
   return new Date(`${date}T00:00:00.000Z`);
 }
 
+export async function DELETE(request: Request) {
+  try {
+    const { chartId } = (await request.json()) as { chartId?: string };
+    if (!chartId) {
+      return NextResponse.json({ error: "chartId required" }, { status: 400 });
+    }
+
+    const row = await prisma.birthChartData.findUnique({ where: { id: chartId } });
+    if (!row) {
+      return NextResponse.json({ error: "chart not found" }, { status: 404 });
+    }
+
+    // Delete cached cycles first (FK constraint), then the chart itself.
+    await prisma.lifeCycleCache.deleteMany({ where: { chartId } });
+    await prisma.birthChartData.delete({ where: { id: chartId } });
+
+    // If the deleted chart was the default, promote the next-oldest chart.
+    if (row.isDefault) {
+      const next = await prisma.birthChartData.findFirst({
+        orderBy: { createdAt: "asc" },
+        select: { id: true },
+      });
+      if (next) {
+        await prisma.birthChartData.update({
+          where: { id: next.id },
+          data: { isDefault: true },
+        });
+      }
+    }
+
+    return NextResponse.json({ success: true, chartId });
+  } catch (error) {
+    console.error("Chart deletion failed:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 },
+    );
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as CreateChartBody;
@@ -112,6 +152,7 @@ export async function POST(request: Request) {
         birthTimezone: birthData.timezone,
         birthLatitude: birthData.latitude,
         birthLongitude: birthData.longitude,
+        birthCity: birthData.city?.trim() || null,
         birthLocation:
           birthData.location?.trim() ||
           `${birthData.latitude}, ${birthData.longitude}`,

@@ -1,5 +1,13 @@
 import Link from "next/link";
 import { type Band, hasRetrograde, statusOfBand } from "@/lib/band";
+import {
+  LABEL_W,
+  NowLine,
+  YearAxis,
+  YearGrid,
+  pct,
+  type Scale,
+} from "@/components/timeline-scale";
 
 /**
  * The spine of the app: many bands over one axis, with a single line marking
@@ -15,76 +23,11 @@ import { type Band, hasRetrograde, statusOfBand } from "@/lib/band";
  * present-line agree with each other.
  */
 
-const LABEL_W = "15rem";
-
-interface Scale {
-  windowStart: string;
-  windowEnd: string;
-}
-
-function fractionOf(iso: string, scale: Scale): number {
-  const start = Date.parse(scale.windowStart);
-  const span = Date.parse(scale.windowEnd) - start;
-  return (Date.parse(iso) - start) / span;
-}
-
-/** Percentage along the axis, clamped to the visible window. */
-function pct(iso: string, scale: Scale): number {
-  return Math.min(100, Math.max(0, fractionOf(iso, scale) * 100));
-}
-
-function axisYears(scale: Scale): number[] {
-  const first = new Date(scale.windowStart).getUTCFullYear();
-  const last = new Date(scale.windowEnd).getUTCFullYear();
-  const years: number[] = [];
-  const step = last - first > 18 ? 5 : last - first > 10 ? 2 : 1;
-  for (let y = Math.ceil(first / step) * step; y <= last; y += step) {
-    years.push(y);
-  }
-  return years;
-}
-
 function monthOnly(iso: string): string {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", {
     month: "short",
     timeZone: "UTC",
   });
-}
-
-function YearAxis({ scale }: { scale: Scale }) {
-  return (
-    <div className="grid" style={{ gridTemplateColumns: `${LABEL_W} 1fr` }}>
-      <div />
-      <div className="relative h-5">
-        {axisYears(scale).map((y) => (
-          <span
-            key={y}
-            className="datum absolute top-0 block -translate-x-1/2 text-[0.625rem] text-bone-faint"
-            style={{ left: `${pct(`${y}-01-01`, scale)}%` }}
-          >
-            {y}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function YearGrid({ scale }: { scale: Scale }) {
-  return (
-    <div
-      className="pointer-events-none absolute inset-y-0 right-0"
-      style={{ left: LABEL_W }}
-    >
-      {axisYears(scale).map((y) => (
-        <div
-          key={y}
-          className="absolute inset-y-0 w-px bg-rule-faint"
-          style={{ left: `${pct(`${y}-01-01`, scale)}%` }}
-        />
-      ))}
-    </div>
-  );
 }
 
 /** Month labels at each retrograde station edge, min 5% apart to avoid collision. */
@@ -276,8 +219,6 @@ export default function Timeline({
   windowEnd: string;
 }) {
   const scale = { windowStart, windowEnd };
-  const nowFraction = fractionOf(now.toISOString().slice(0, 10), scale);
-  const nowVisible = nowFraction >= 0 && nowFraction <= 1;
 
   return (
     <div className="relative pt-6">
@@ -290,19 +231,7 @@ export default function Timeline({
         ))}
       </div>
 
-      {/* The present — one line, through everything */}
-      {nowVisible ? (
-        <div
-          className="pointer-events-none absolute top-0 bottom-0 border-l border-patina"
-          style={{
-            left: `calc(${LABEL_W} + (100% - ${LABEL_W}) * ${nowFraction})`,
-          }}
-        >
-          <span className="datum absolute top-0 left-2 text-[0.5625rem] uppercase tracking-[0.2em] whitespace-nowrap text-patina">
-            Now
-          </span>
-        </div>
-      ) : null}
+      <NowLine now={now} scale={scale} />
     </div>
   );
 }

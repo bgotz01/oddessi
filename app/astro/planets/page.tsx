@@ -22,7 +22,10 @@ import {
   houseInfo,
   type Dignity,
 } from "@/lib/interpretation";
+import { bodyColor, bodyRole } from "@/lib/bodies";
+import { houseTypeStyle } from "@/lib/house-types";
 import { bodyGlyph, signGlyph } from "@/lib/symbols";
+import { NatalWheel } from "@/components/natal-wheel";
 
 /**
  * Every body in the chart, read one at a time.
@@ -75,6 +78,7 @@ function BodyRow({
   const inHouse = bodyInHouse(body, houseNumber);
   const home = houseNumber !== null ? houseInfo(houseNumber) : null;
   const dignity = dignityOf(body, sign);
+  const color = bodyColor(body);
 
   return (
     <div ref={anchorRef} className="scroll-mt-4 border-b border-rule-faint">
@@ -82,29 +86,63 @@ function BodyRow({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className={`grid w-full grid-cols-[2rem_1fr_auto] items-baseline gap-4 py-4 text-left transition-colors md:grid-cols-[2rem_9rem_1fr_5rem_3rem_7rem_1rem] ${
-          open ? "text-bone" : "hover:bg-surface-alt"
-        }`}
+        className={`grid w-full grid-cols-[0.25rem_2rem_1fr_auto] items-baseline gap-x-4 py-4 text-left transition-colors md:grid-cols-[0.25rem_2rem_9rem_1fr_5rem_3rem_7rem_1rem] ${open ? "bg-surface" : "hover:bg-surface-alt"
+          }`}
       >
-        <span className="glyph text-lg text-patina">{bodyGlyph(body)}</span>
+        {/* Identity bar. Twelve of these down the page is what makes the list
+            scannable by body rather than by position. */}
+        <span
+          aria-hidden
+          className="h-6 w-[3px] self-center"
+          style={{ background: color }}
+        />
 
-        <span className="inscription text-[0.6875rem] text-bone">
-          {body}
-          {retrograde ? (
-            <span className="datum ml-2 text-[0.625rem] text-ember" title="Retrograde">
-              ℞
+        <span className="glyph text-xl" style={{ color }}>
+          {bodyGlyph(body)}
+        </span>
+
+        <span className="block">
+          <span className="inscription text-[0.6875rem] text-bone">
+            {body}
+            {retrograde ? (
+              <span
+                className="datum ml-2 text-[0.625rem] text-ember"
+                title="Retrograde"
+              >
+                ℞
+              </span>
+            ) : null}
+          </span>
+          {/* Narrow screens drop the sign column, so the sign rides along with
+              the name rather than disappearing. */}
+          <span className="mt-1 block text-[1rem] leading-none font-light text-bone-soft md:hidden">
+            <span className="glyph mr-1.5" style={{ color }}>
+              {signGlyph(sign)}
+            </span>
+            {sign}
+            <span className="datum ml-2 text-[0.625rem] text-bone-faint">
+              {house}
+            </span>
+          </span>
+        </span>
+
+        {/* The sign, named. The interpretation's epithet earns its place only
+            after the placement itself is legible. */}
+        <span className="hidden items-baseline gap-2 md:flex">
+          <span className="glyph text-[1.0625rem]" style={{ color }}>
+            {signGlyph(sign)}
+          </span>
+          <span className="text-[1.0625rem] leading-none font-light text-bone">
+            {sign}
+          </span>
+          {inSign ? (
+            <span className="truncate text-[0.9375rem] leading-none font-light text-bone-faint italic">
+              — {inSign.meaning}
             </span>
           ) : null}
         </span>
 
-        <span className="hidden md:block">
-          <span className="glyph mr-2 text-bone-faint">{signGlyph(sign)}</span>
-          <span className="text-[0.9375rem] font-light text-bone-soft italic">
-            {inSign?.meaning ?? sign}
-          </span>
-        </span>
-
-        <span className="datum text-[0.75rem] text-bone-faint md:text-right">
+        <span className="datum text-[0.75rem] text-bone-soft md:text-right">
           {degree}
         </span>
 
@@ -126,18 +164,37 @@ function BodyRow({
 
       {open ? (
         <div className="pb-8">
-          <Panel>
-            {inSign ? (
-              <div>
-                <p className="inscription mb-3 text-[0.8125rem] text-patina">
-                  {inSign.meaning}
-                </p>
-                <Prose>{inSign.shortDescription}</Prose>
-              </div>
-            ) : null}
+          <Panel color={color}>
+            <div>
+              <p className="flex flex-wrap items-baseline gap-x-3">
+                <span className="glyph text-[1.5rem]" style={{ color }}>
+                  {bodyGlyph(body)}
+                </span>
+                <span className="inscription text-[0.9375rem] text-bone">
+                  {body} in {sign}
+                </span>
+                <span className="datum text-[0.6875rem] text-bone-faint">
+                  {degree} · house {houseNumber ?? "—"}
+                </span>
+              </p>
+              {inSign ? (
+                <>
+                  <p
+                    className="inscription mt-4 mb-3 text-[0.8125rem]"
+                    style={{ color }}
+                  >
+                    {inSign.meaning}
+                  </p>
+                  <Prose>{inSign.shortDescription}</Prose>
+                </>
+              ) : null}
+            </div>
 
             {info ? (
-              <Block title="The Body" aside={info.orbitPeriod}>
+              <Block
+                title={bodyRole(body) ?? "The Body"}
+                aside={`${info.element} · ${info.orbitPeriod}`}
+              >
                 <Prose>{info.overview}</Prose>
                 <div className="mt-4">
                   <Terms terms={info.keywords} />
@@ -177,8 +234,14 @@ function BodyRow({
             ) : null}
 
             {inHouse && home ? (
-              <Block title={`House ${houseNumber} — ${home.name}`} aside={home.element}>
-                <p className="inscription mb-3 text-[0.75rem] text-patina">
+              <Block
+                title={`House ${houseNumber} — ${home.name}`}
+                aside={home.element}
+              >
+                <p
+                  className="inscription mb-3 text-[0.75rem]"
+                  style={{ color: houseTypeStyle(home.element).color }}
+                >
                   {inHouse.meaning}
                 </p>
                 <Prose>{inHouse.detailedDescription}</Prose>
@@ -246,10 +309,16 @@ export default function PlanetsPage() {
               claim came from."
       />
 
+      {/* Natal wheel — the full diagram that gives the table below its context */}
+      <section className="mb-12">
+        <SectionHeading>The Wheel</SectionHeading>
+        <div className="mx-auto max-w-[540px]">
+          <NatalWheel chart={chart} />
+        </div>
+      </section>
+
       <section>
-        <SectionHeading
-          aside={`${bodies.length} bodies · ${retrogrades} ℞`}
-        >
+        <SectionHeading aside={`${bodies.length} bodies · ${retrogrades} ℞`}>
           The Bodies
         </SectionHeading>
 
@@ -258,17 +327,31 @@ export default function PlanetsPage() {
             No planetary positions stored for this chart.
           </p>
         ) : (
-          <div className="border-t border-rule">
-            {bodies.map((p) => (
-              <BodyRow
-                key={p.body}
-                placement={p}
-                open={open === p.body}
-                onToggle={() => toggle(p.body)}
-                anchorRef={register(p.body)}
-              />
-            ))}
-          </div>
+          <>
+            {/* Column key. The rows carry five different facts and only the
+                first two are self-evident. */}
+            <div className="mb-3 hidden grid-cols-[0.25rem_2rem_9rem_1fr_5rem_3rem_7rem_1rem] gap-x-4 md:grid">
+              <span />
+              <span />
+              <span className="eyebrow">Body</span>
+              <span className="eyebrow">In sign</span>
+              <span className="eyebrow md:text-right">Degree</span>
+              <span className="eyebrow md:text-right">Hse</span>
+              <span className="eyebrow md:text-right">Dignity</span>
+              <span />
+            </div>
+            <div className="border-t border-rule">
+              {bodies.map((p) => (
+                <BodyRow
+                  key={p.body}
+                  placement={p}
+                  open={open === p.body}
+                  onToggle={() => toggle(p.body)}
+                  anchorRef={register(p.body)}
+                />
+              ))}
+            </div>
+          </>
         )}
       </section>
     </div>

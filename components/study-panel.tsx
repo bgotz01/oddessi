@@ -42,12 +42,25 @@ export function useOneOpen<K extends string | number>() {
 }
 
 /**
- * The expanded body of a row. Indented behind a patina hairline so the eye can
- * always find where the passage begins and where it stops.
+ * The expanded body of a row. Indented behind a hairline so the eye can always
+ * find where the passage begins and where it stops. Pass `color` to draw that
+ * edge in the subject's own colour — the Planets page uses it so an open panel
+ * is still visibly tied to the body it belongs to.
  */
-export function Panel({ children }: { children: ReactNode }) {
+export function Panel({
+  children,
+  color,
+}: {
+  children: ReactNode;
+  color?: string;
+}) {
   return (
-    <div className="border-l-2 border-patina-dim bg-surface px-6 py-8 md:px-10">
+    <div
+      className={`border-l-2 bg-surface px-6 py-8 md:px-10 ${
+        color ? "" : "border-patina-dim"
+      }`}
+      style={color ? { borderColor: color } : undefined}
+    >
       <div className="max-w-3xl space-y-8">{children}</div>
     </div>
   );

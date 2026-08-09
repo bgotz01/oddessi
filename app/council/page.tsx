@@ -9,17 +9,16 @@ import {
     type AgentConfig, type AgentState, type AgentMessage, type AgentResponse,
     type MsgState, type CascadeTurn, type SavedSession, type Usage,
 } from '@/components/council/types';
-import { dbCreateSession, dbSaveTurn, dbDeleteSession, dbLoadSessions, dbRenameSession, streamChat, dbLoadPreferences, dbSavePreferences, dbLoadMemory, dbSaveMemoryCategory, dbCreateMemoryCategory, dbRenameMemoryCategory, dbDeleteMemoryCategory, dbSummarizeMemory, type MemoryCategory, type MemoryRoute } from '@/components/council/db';
+import { dbCreateSession, dbSaveTurn, dbDeleteSession, dbLoadSessions, dbRenameSession, streamChat, dbLoadPreferences, dbSavePreferences, dbLoadMemory, dbSaveMemoryCategory, dbCreateMemoryCategory, dbRenameMemoryCategory, dbDeleteMemoryCategory, dbSummarizeMemory, dbReadChart, type MemoryCategory, type MemoryRoute } from '@/components/council/db';
 import { GLOBAL_DEFAULT_MODEL } from '@/lib/models';
-import ModelSelect from '@/components/ModelSelect';
+import { useChart } from '@/components/chart-context';
 import SessionsSidebar from '@/components/council/SessionsSidebar';
 import ParallelView from '@/components/council/ParallelView';
 import CascadeView from '@/components/council/CascadeView';
 import LoopView from '@/components/council/LoopView';
-import PromptsModal from '@/components/council/PromptsModal';
-import RefsModal from '@/components/council/RefsModal';
-import MemoryModal from '@/components/council/MemoryModal';
-import UsageModal from '@/components/council/UsageModal';
+import ChartReadModal from '@/components/council/ChartReadModal'; import SessionControlsRow from '@/components/council/SessionControlsRow';
+import CouncilInput from '@/components/council/CouncilInput';
+import CouncilModals from '@/components/council/CouncilModals';
 
 // Lightweight ref type — no content, just metadata for the UI
 export interface PageRefMeta {
@@ -34,6 +33,11 @@ export interface PageRefMeta {
 
 export default function CouncilPage() {
     const pathname = usePathname();
+    // The chart under study, shared with the rest of the app — picking one here
+    // picks it everywhere. `chartAttached` only decides whether it is sent, so a
+    // general question can still be asked without it.
+    const { chart, charts, selectChart } = useChart();
+    const [chartAttached, setChartAttached] = useState(true);
 
     // ── ui state ──────────────────────────────────────────────────────────────
     const [mode, setMode] = useState<'parallel' | 'cascade' | 'loop'>('cascade');
@@ -57,6 +61,12 @@ export default function CouncilPage() {
     const [memoryError, setMemoryError] = useState<string | null>(null);
     // Unsaved memory edits, per category — kept here so closing the modal never drops distilled work
     const [memoryDrafts, setMemoryDrafts] = useState<Record<string, string>>({});
+
+    // ── chart reading ─────────────────────────────────────────────────────────
+    const [chartReadOpen, setChartReadOpen] = useState(false);
+    const [chartReadText, setChartReadText] = useState('');
+    const [chartReading, setChartReading] = useState(false);
+    const [chartReadError, setChartReadError] = useState<string | null>(null);
     const [input, setInput] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [sessions, setSessions] = useState<SavedSession[]>([]);
@@ -121,7 +131,6 @@ export default function CouncilPage() {
         : mode === 'loop' ? loopTurns : cascadeTurns;
     const sessionUsage = usageForAgent(usageTurns);
 
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const bottomRefs = useRef<(HTMLDivElement | null)[]>([null, null, null]);
     const userScrolledRef = useRef(false);
 
@@ -183,13 +192,6 @@ export default function CouncilPage() {
         }, 600);
         return () => clearTimeout(t);
     }, [agentConfigs, globalModel]);
-
-    useEffect(() => {
-        const el = textareaRef.current;
-        if (!el) return;
-        el.style.height = 'auto';
-        el.style.height = `${el.scrollHeight}px`;
-    }, [input]);
 
     // Only auto-scroll when the user hasn't scrolled up manually.
     // We detect "near bottom" as within 80px, and reset userScrolled when they scroll back down.
@@ -268,6 +270,7 @@ export default function CouncilPage() {
             parallelTurnOrder.current = 0;
         }
         setInput('');
+        setChartAttached(true); // and back to reading the chart
         setMemoryEnabled(true); // clean chats default back to using memory
         setSelectedMemoryCats(memoryCategories.map((c) => c.category)); // re-attach all categories
         dbLoadSessions().then(setSessions).catch(() => { });
@@ -322,13 +325,6 @@ export default function CouncilPage() {
         else await handleParallelSubmit(trimmed);
     }
 
-    function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSubmit(e as unknown as React.FormEvent);
-        }
-    }
-
     function allRefs() {
         return autoRef && !attachedRefs.some((r) => r.id === autoRef.id)
             ? [autoRef, ...attachedRefs]
@@ -337,6 +333,11 @@ export default function CouncilPage() {
 
     function allRefIds(): string[] {
         return allRefs().map((r) => r.id);
+    }
+
+    /** The chart to send with this call, or null when it has been detached. */
+    function activeChart() {
+        return chartAttached ? chart : null;
     }
 
     const memoryUnsavedCount = Object.entries(memoryDrafts).filter(
@@ -396,6 +397,21 @@ export default function CouncilPage() {
         }
     }
 
+    async function handleReadChart() {
+        if (chartReading || !chart) return;
+        setChartReadOpen(true);
+        setChartReadText('');
+        setChartReadError(null);
+        setChartReading(true);
+        try {
+            await dbReadChart(chart, globalModel, (partial) => setChartReadText(partial));
+        } catch (err) {
+            setChartReadError(err instanceof Error ? err.message : 'Reading failed. Try again.');
+        } finally {
+            setChartReading(false);
+        }
+    }
+
     async function handleSaveCategory(category: string, content: string) {
         // A distilled project category may not exist yet — add it rather than dropping the save.
         setMemoryCategories((prev) => prev.some((c) => c.category === category)
@@ -445,6 +461,7 @@ export default function CouncilPage() {
                     model: agent.model,
                     systemPrompt: agent.systemPrompt,
                     refIds,
+                    chart: activeChart(),
                     includeMemory: memoryEnabled, memoryCategories: selectedMemoryCats,
                 };
                 return streamChat(payload, (partial) => {
@@ -528,7 +545,7 @@ export default function CouncilPage() {
         let usage: Usage | null = null;
         try {
             const result = await streamChat(
-                { messages, model: agents[agentIdx].model, systemPrompt: systemPromptBase(agents[agentIdx], agentIdx), refIds, includeMemory: memoryEnabled, memoryCategories: selectedMemoryCats },
+                { messages, model: agents[agentIdx].model, systemPrompt: systemPromptBase(agents[agentIdx], agentIdx), refIds, chart: activeChart(), includeMemory: memoryEnabled, memoryCategories: selectedMemoryCats },
                 (partial) => {
                     setCascadeTurns((prev) => prev.map((t, idx) => {
                         if (idx !== turnIdx) return t;
@@ -618,7 +635,7 @@ IMPORTANT: The user may address multiple agents in a single message. Only respon
             let usage: Usage | null = null;
             try {
                 const result = await streamChat(
-                    { messages, model: agents[i].model, systemPrompt: systemPromptBase(agents[i], i), refIds, includeMemory: memoryEnabled, memoryCategories: selectedMemoryCats },
+                    { messages, model: agents[i].model, systemPrompt: systemPromptBase(agents[i], i), refIds, chart: activeChart(), includeMemory: memoryEnabled, memoryCategories: selectedMemoryCats },
                     (partial) => {
                         setCascadeTurns((prev) => prev.map((t, idx) => {
                             if (idx !== turnIdx) return t;
@@ -709,7 +726,7 @@ IMPORTANT: The user may address multiple agents in a single message. Only respon
                 let usage: Usage | null = null;
                 try {
                     const result = await streamChat(
-                        { messages, model: agentSnapshot[i].model, systemPrompt: systemPromptForAgent(agentSnapshot[i], i), refIds, includeMemory: memoryEnabled, memoryCategories: selectedMemoryCats },
+                        { messages, model: agentSnapshot[i].model, systemPrompt: systemPromptForAgent(agentSnapshot[i], i), refIds, chart: activeChart(), includeMemory: memoryEnabled, memoryCategories: selectedMemoryCats },
                         (partial) => {
                             setLoopTurns((prev) => prev.map((t, idx) =>
                                 idx !== turnIdx ? t : { ...t, responses: [...responses, { agentIdx: i, content: partial }] }
@@ -784,101 +801,44 @@ IMPORTANT: The user may address multiple agents in a single message. Only respon
                 </div>
 
                 {/* session controls row */}
-                <div className="mt-3 flex items-center justify-center gap-6 border-t border-gold-muted/10 pt-3">
-                    <button
-                        onClick={() => setPromptModalOpen(true)}
-                        className={`font-plex text-[10px] uppercase tracking-[0.4em] transition-colors ${promptModalOpen ? 'text-gold-accent' : 'text-muted hover:text-gold-dim'}`}
-                    >
-                        Prompts
-                    </button>
-                    <span className="w-px h-3 bg-gold-muted/15" />
-                    <button
-                        onClick={() => setRefsOpen(true)}
-                        className={`font-plex text-[10px] uppercase tracking-[0.4em] transition-colors ${attachedRefs.length > 0 || autoRef ? 'text-gold-accent' : 'text-muted hover:text-gold-dim'}`}
-                    >
-                        References{attachedRefs.length > 0 ? ` (${attachedRefs.length})` : autoRef ? ' (auto)' : ''}
-                    </button>
-                    <span className="w-px h-3 bg-gold-muted/15" />
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setMemoryOpen(true)}
-                            className={`font-plex text-[10px] uppercase tracking-[0.4em] transition-colors ${memoryOpen ? 'text-gold-accent' : 'text-muted hover:text-gold-dim'}`}
-                        >
-                            Memory{memoryEnabled && memoryCategories.length > 0 && selectedMemoryCats.length < memoryCategories.length ? ` (${selectedMemoryCats.length}/${memoryCategories.length})` : ''}
-                        </button>
-                        {memoryUnsavedCount > 0 && (
-                            <span
-                                className="h-1.5 w-1.5 rounded-full bg-ember"
-                                title={`${memoryUnsavedCount} memory ${memoryUnsavedCount === 1 ? 'category has' : 'categories have'} unsaved changes`}
-                            />
-                        )}
-                        <button
-                            onClick={() => setMemoryEnabled((v) => !v)}
-                            aria-label={memoryEnabled ? 'Memory on — click for a clean chat' : 'Memory off — click to enable'}
-                            title={memoryEnabled ? 'Memory on — click for a clean chat' : 'Memory off — click to enable'}
-                            className={`transition-colors ${memoryEnabled ? 'text-gold-accent hover:text-gold-dim' : 'text-muted/40 hover:text-muted'}`}
-                        >
-                            <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-                                <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="1" />
-                                {memoryEnabled && <circle cx="5" cy="5" r="2" fill="currentColor" />}
-                            </svg>
-                        </button>
-                    </div>
-                    {hasMessages && (
-                        <>
-                            <span className="w-px h-3 bg-gold-muted/15" />
-                            <button
-                                onClick={handleSummarize}
-                                disabled={anyLoading || memorySummarizing}
-                                className={`flex items-center gap-1.5 font-plex text-[10px] uppercase tracking-[0.4em] transition-colors ${memorySummarizing
-                                    ? 'text-ember'
-                                    : 'text-muted hover:text-gold-dim disabled:opacity-30'}`}
-                            >
-                                {memorySummarizing && <span className="h-1.5 w-1.5 animate-ping rounded-full bg-ember" />}
-                                {memorySummarizing ? 'Distilling…' : 'Summarize'}
-                            </button>
-                            <span className="w-px h-3 bg-gold-muted/15" />
-                            <button
-                                onClick={saveAndNew}
-                                disabled={anyLoading}
-                                className="font-plex text-[10px] uppercase tracking-[0.4em] text-muted hover:text-gold-dim transition-colors disabled:opacity-30"
-                            >
-                                Save &amp; New
-                            </button>
-                        </>
-                    )}
-                    <span className="w-px h-3 bg-gold-muted/15" />
-                    {/* The running total doubles as the way in — one control
-                        rather than a readout beside a button. */}
-                    <button
-                        onClick={() => setUsageOpen(true)}
-                        title="Open the full accounting"
-                        className={`flex items-center gap-2 font-plex text-[10px] uppercase tracking-[0.4em] transition-colors ${usageOpen ? 'text-gold-accent' : 'text-muted hover:text-gold-dim'}`}
-                    >
-                        Usage
-                        {sessionUsage && (
-                            <span className="font-plex text-[9px] tracking-[0.15em] text-muted/60">
-                                {formatTokens(sessionUsage.totalTokens)} ·{' '}
-                                <span className="text-gold-accent/80">{formatSpend(sessionUsage.cost)}</span>
-                            </span>
-                        )}
-                    </button>
-                    <span className="w-px h-3 bg-gold-muted/15" />
-                    <div className="flex items-center gap-2" title="Model used for utility work — memory distillation. Separate from the three agents.">
-                        <span className="font-plex text-[10px] uppercase tracking-[0.4em] text-muted/60">Global</span>
-                        <ModelSelect
-                            value={globalModel}
-                            onChange={setGlobalModel}
-                            ariaLabel="Global utility model"
-                            showCost={false}
-                            className="appearance-none bg-transparent font-plex text-[10px] uppercase tracking-[0.2em] text-gold-accent hover:text-[#8fd0ba] outline-none cursor-pointer transition-colors"
-                        />
-                    </div>
-                </div>
+                <SessionControlsRow
+                    chart={chart}
+                    charts={charts}
+                    chartAttached={chartAttached}
+                    chartReading={chartReading}
+                    onSelectChart={selectChart}
+                    onToggleChartAttached={() => setChartAttached((v) => !v)}
+                    onReadChart={handleReadChart}
+                    promptModalOpen={promptModalOpen}
+                    refsOpen={refsOpen}
+                    memoryOpen={memoryOpen}
+                    usageOpen={usageOpen}
+                    attachedRefsCount={attachedRefs.length}
+                    autoRef={!!autoRef}
+                    memoryEnabled={memoryEnabled}
+                    memoryCategories={memoryCategories}
+                    selectedMemoryCats={selectedMemoryCats}
+                    memoryUnsavedCount={memoryUnsavedCount}
+                    memorySummarizing={memorySummarizing}
+                    hasMessages={hasMessages}
+                    anyLoading={anyLoading}
+                    sessionUsage={sessionUsage ?? null}
+                    formatTokens={formatTokens}
+                    formatSpend={formatSpend}
+                    globalModel={globalModel}
+                    onGlobalModelChange={setGlobalModel}
+                    onOpenPrompts={() => setPromptModalOpen(true)}
+                    onOpenRefs={() => setRefsOpen(true)}
+                    onOpenMemory={() => setMemoryOpen(true)}
+                    onToggleMemoryEnabled={() => setMemoryEnabled((v) => !v)}
+                    onSummarize={handleSummarize}
+                    onSaveAndNew={saveAndNew}
+                    onOpenUsage={() => setUsageOpen(true)}
+                />
             </header>
 
             {/* body */}
-            <div className="relative z-10 flex flex-1 overflow-hidden px-8">
+            <div className="relative z-10 flex flex-1 overflow-hidden">
                 <SessionsSidebar
                     sessions={sessions}
                     open={sidebarOpen}
@@ -935,99 +895,66 @@ IMPORTANT: The user may address multiple agents in a single message. Only respon
             </div>
 
             {/* input */}
-            <div className="relative z-10 shrink-0 border-t border-gold-muted/20 bg-void">
-                <div className="flex px-8">
-                    <div className={`shrink-0 transition-all duration-300 ${sidebarOpen ? 'w-52' : 'w-10'}`} />
-                    <form onSubmit={handleSubmit} className="flex-1 py-5 border-x border-gold-muted/10 px-5">
-                        {mode === 'loop' && loopCurrentRound > 0 && (
-                            <div className="mb-3 flex items-center gap-3">
-                                <div className="flex-1 h-px bg-gold-muted/15 relative overflow-hidden">
-                                    <div
-                                        className="absolute inset-y-0 left-0 bg-gold-muted/40 transition-all duration-500"
-                                        style={{ width: `${(loopCurrentRound / loopRounds) * 100}%` }}
-                                    />
-                                </div>
-                                <span className="shrink-0 font-plex text-[8px] uppercase tracking-[0.4em] text-gold-accent/50">
-                                    Round {loopCurrentRound} / {loopRounds}
-                                </span>
-                            </div>
-                        )}
-                        <div className="flex items-end gap-4">
-                            <textarea
-                                ref={textareaRef}
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={handleKeyDown}
-                                placeholder={mode === 'loop'
-                                    ? `Pose a question — the council will loop ${loopRounds} ${loopRounds === 1 ? 'round' : 'rounds'}…`
-                                    : 'Pose a question to the council…'}
-                                rows={1}
-                                disabled={anyLoading}
-                                className="min-h-[40px] max-h-[140px] flex-1 resize-none bg-transparent font-cormorant text-lg leading-7 text-parchment placeholder-muted/50 outline-none disabled:opacity-40"
-                            />
-                            <button
-                                type="submit"
-                                disabled={anyLoading || !input.trim()}
-                                aria-label="Submit to council"
-                                className="mb-0.5 flex h-8 w-8 shrink-0 items-center justify-center border border-gold-muted/40 bg-surface-alt text-gold transition-colors hover:border-gold-muted/70 hover:text-parchment-2 disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-                                    <path d="M7 1L7 13M7 1L2 6M7 1L12 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+            <CouncilInput
+                input={input}
+                mode={mode}
+                anyLoading={anyLoading}
+                sidebarOpen={sidebarOpen}
+                loopCurrentRound={loopCurrentRound}
+                loopRounds={loopRounds}
+                onChange={setInput}
+                onSubmit={handleSubmit}
+            />
 
             {/* modals */}
-            {refsOpen && (
-                <RefsModal
-                    availableRefs={availableRefs}
-                    attachedRefs={attachedRefs}
-                    autoRef={autoRef}
-                    onClose={() => setRefsOpen(false)}
-                    onToggle={toggleRef}
-                    onSetRefs={setAttachedRefs}
-                    onClearAll={() => setAttachedRefs([])}
-                />
-            )}
-            {memoryOpen && (
-                <MemoryModal
-                    categories={memoryCategories}
-                    selected={selectedMemoryCats}
-                    routes={memoryRoutes}
-                    summarizing={memorySummarizing}
-                    error={memoryError}
-                    drafts={memoryDrafts}
-                    setDrafts={setMemoryDrafts}
-                    canSummarize={hasMessages}
-                    onClose={() => { setMemoryOpen(false); setMemoryRoutes(null); }}
-                    onToggleSelected={toggleMemoryCat}
-                    onSaveCategory={handleSaveCategory}
-                    onCreateCategory={handleCreateCategory}
-                    onRenameCategory={handleRenameCategory}
-                    onDeleteCategory={handleDeleteCategory}
-                    onSummarize={handleSummarize}
-                    onDismissRoutes={() => setMemoryRoutes(null)}
-                />
-            )}
-            {usageOpen && (
-                <UsageModal turns={usageTurns} sessions={sessions} onClose={() => setUsageOpen(false)} />
-            )}
-            {promptModalOpen && (
-                <PromptsModal
-                    agents={agents}
-                    syncPrompts={syncPrompts}
-                    promptTab={promptTab}
-                    promptSaved={promptSaved}
-                    onClose={() => setPromptModalOpen(false)}
-                    onTabChange={setPromptTab}
-                    onPromptChange={setAgentPrompt}
-                    onSyncToggle={handleSyncToggle}
-                    onSave={() => { setPromptSaved(true); setTimeout(() => setPromptSaved(false), 2000); }}
-                />
-            )}
+            <CouncilModals
+                refsOpen={refsOpen}
+                availableRefs={availableRefs}
+                attachedRefs={attachedRefs}
+                autoRef={autoRef}
+                onCloseRefs={() => setRefsOpen(false)}
+                onToggleRef={toggleRef}
+                onSetRefs={setAttachedRefs}
+                onClearRefs={() => setAttachedRefs([])}
+                memoryOpen={memoryOpen}
+                memoryCategories={memoryCategories}
+                selectedMemoryCats={selectedMemoryCats}
+                memoryRoutes={memoryRoutes}
+                memorySummarizing={memorySummarizing}
+                memoryError={memoryError}
+                memoryDrafts={memoryDrafts}
+                hasMessages={hasMessages}
+                setMemoryDrafts={setMemoryDrafts}
+                onCloseMemory={() => { setMemoryOpen(false); setMemoryRoutes(null); }}
+                onToggleMemoryCat={toggleMemoryCat}
+                onSaveCategory={handleSaveCategory}
+                onCreateCategory={handleCreateCategory}
+                onRenameCategory={handleRenameCategory}
+                onDeleteCategory={handleDeleteCategory}
+                onSummarize={handleSummarize}
+                onDismissRoutes={() => setMemoryRoutes(null)}
+                usageOpen={usageOpen}
+                usageTurns={usageTurns}
+                sessions={sessions}
+                onCloseUsage={() => setUsageOpen(false)}
+                promptModalOpen={promptModalOpen}
+                agents={agents}
+                syncPrompts={syncPrompts}
+                promptTab={promptTab}
+                promptSaved={promptSaved}
+                onClosePrompts={() => setPromptModalOpen(false)}
+                onPromptTabChange={setPromptTab}
+                onPromptChange={setAgentPrompt}
+                onSyncToggle={handleSyncToggle}
+                onPromptSave={() => { setPromptSaved(true); setTimeout(() => setPromptSaved(false), 2000); }}
+                chartReadOpen={chartReadOpen}
+                chart={chart}
+                chartReadText={chartReadText}
+                chartReading={chartReading}
+                chartReadError={chartReadError}
+                onCloseChartRead={() => setChartReadOpen(false)}
+                onReread={handleReadChart}
+            />
         </main>
     );
 }

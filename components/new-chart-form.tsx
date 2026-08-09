@@ -6,6 +6,7 @@ import { useChart } from "@/components/chart-context";
 
 interface Place {
   label: string;
+  city: string;
   latitude: number;
   longitude: number;
   timezone: string;
@@ -57,20 +58,23 @@ export default function NewChartForm() {
     if (query.trim().length < 3 || place?.label === query) return;
 
     const controller = new AbortController();
+    let fetchStarted = false;
+
     const timer = setTimeout(() => {
+      fetchStarted = true;
       setSearching(true);
       fetch(`/api/geocode?q=${encodeURIComponent(query)}`, {
         signal: controller.signal,
       })
         .then((r) => (r.ok ? r.json() : { results: [] }))
         .then((json: { results?: Place[] }) => setResults(json.results ?? []))
-        .catch(() => {})
+        .catch(() => { })
         .finally(() => setSearching(false));
     }, 400);
 
     return () => {
       clearTimeout(timer);
-      controller.abort();
+      if (fetchStarted) controller.abort();
     };
   }, [query, place]);
 
@@ -97,6 +101,7 @@ export default function NewChartForm() {
             timezone: place.timezone,
             latitude: place.latitude,
             longitude: place.longitude,
+            city: place.city,
             location: place.label,
           },
         }),
@@ -110,7 +115,7 @@ export default function NewChartForm() {
 
       setDone(
         `${json.name} — ☉ ${json.summary.sunSign} · ☽ ${json.summary.moonSign} · ↑ ${json.summary.risingSign}` +
-          (json.cyclesCached ? "" : " (cycles could not be cached)"),
+        (json.cyclesCached ? "" : " (cycles could not be cached)"),
       );
 
       // Make the new chart the one under study, then re-read the server layout

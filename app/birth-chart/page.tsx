@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import { useChart } from "@/components/chart-context";
 import NewChartForm from "@/components/new-chart-form";
@@ -11,7 +13,36 @@ import { BODY_GLYPH, signGlyph } from "@/lib/symbols";
  * switching in the sidebar re-renders this against the new one.
  */
 export default function BirthChartPage() {
-  const { chart } = useChart();
+  const { chart, charts, selectChart } = useChart();
+  const router = useRouter();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    if (!chart) return;
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/birth-chart", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chartId: chart.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Deletion failed");
+      }
+      // Switch to another chart if available, then reload to refresh the list.
+      const remaining = charts.filter((c) => c.id !== chart.id);
+      if (remaining.length > 0) selectChart(remaining[0].id);
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Deletion failed");
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  }
 
   if (!chart) {
     return (
@@ -39,7 +70,7 @@ export default function BirthChartPage() {
         <dl className="grid gap-px bg-rule sm:grid-cols-3">
           {[
             { label: "Born", value: formatBirth(chart.birth) },
-            { label: "Place", value: chart.birth.location },
+            { label: "City", value: chart.birth.city },
             { label: "Zone", value: chart.birth.timezone },
           ].map((f) => (
             <div key={f.label} className="bg-void p-6">
@@ -50,9 +81,46 @@ export default function BirthChartPage() {
             </div>
           ))}
         </dl>
-        <p className="datum mt-3 text-[0.625rem] text-bone-faint">
-          {chart.birth.latitude.toFixed(4)}, {chart.birth.longitude.toFixed(4)}
-        </p>
+        <div className="mt-3 flex items-center justify-between">
+          <div className="flex flex-col gap-0.5">
+            <p className="datum text-[0.625rem] text-bone-faint">
+              {chart.birth.latitude.toFixed(4)}, {chart.birth.longitude.toFixed(4)}
+            </p>
+            {chart.birth.city && chart.birth.location !== chart.birth.city && !chart.birth.location.startsWith(chart.birth.city) && (
+              <p className="datum text-[0.625rem] text-bone-faint opacity-60">
+                {chart.birth.location}
+              </p>
+            )}
+          </div>
+          {confirmDelete ? (
+            <div className="flex items-center gap-3">
+              <span className="datum text-[0.625rem] text-ember">
+                Delete &ldquo;{chart.name}&rdquo;?
+              </span>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="datum rounded border border-ember px-3 py-1 text-[0.625rem] text-ember transition-colors hover:bg-ember hover:text-void disabled:opacity-50"
+              >
+                {deleting ? "Deleting…" : "Confirm"}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                className="datum rounded border border-rule px-3 py-1 text-[0.625rem] text-bone-faint transition-colors hover:border-rule-faint hover:text-bone disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="datum rounded border border-rule px-3 py-1 text-[0.625rem] text-bone-faint transition-colors hover:border-ember hover:text-ember"
+            >
+              Delete chart
+            </button>
+          )}
+        </div>
       </section>
 
       <section className="mb-16">

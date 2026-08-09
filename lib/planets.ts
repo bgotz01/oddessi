@@ -1,16 +1,13 @@
 /**
- * The five slow planets, in the order arc tracks them.
+ * The five slow planets, in the order arc tracks them. This is the set the
+ * Cycles pages work with — the ones whose transits last long enough to be worth
+ * drawing on a timeline — and it is deliberately not "every body in the chart".
  *
- * Colors follow traditional symbolic associations:
- *   Jupiter  — violet/indigo  expansion, philosophy, kingship
- *   Saturn   — cold grey      limits, structure, time, authority
- *   Uranus   — electric blue  rupture, invention, rebellion
- *   Neptune  — ocean violet   dreams, spirituality, dissolution
- *   Pluto    — burgundy       destruction, hidden power, transformation
- *
- * These sit alongside the app palette rather than inside it — patina still
- * means "now / in effect", and these only ever carry planet identity.
+ * Colour and role come from `lib/bodies.ts`, which covers all thirteen, so a
+ * planet looks the same here as it does on the Planets page.
  */
+
+import { bodyColor, bodyRole } from "@/lib/bodies";
 
 export interface PlanetMeta {
   name: string;
@@ -20,38 +17,22 @@ export interface PlanetMeta {
   description: string;
 }
 
-export const PLANETS: PlanetMeta[] = [
-  {
-    name: "Jupiter",
-    glyph: "♃︎",
-    color: "#7c5cbf",   // violet — expansion, belief, kingship
-    description: "Growth & Expansion",
-  },
-  {
-    name: "Saturn",
-    glyph: "♄︎",
-    color: "#7a8199",   // cold grey — limits, structure, authority
-    description: "Structure & Maturation",
-  },
-  {
-    name: "Uranus",
-    glyph: "♅︎",
-    color: "#3b9de0",   // electric blue — rupture, invention, rebellion
-    description: "Change & Awakening",
-  },
-  {
-    name: "Neptune",
-    glyph: "♆︎",
-    color: "#5b6bbf",   // ocean blue/violet — dreams, spirituality, dissolution
-    description: "Dissolution & Vision",
-  },
-  {
-    name: "Pluto",
-    glyph: "♇︎",
-    color: "#8b2f45",   // burgundy — destruction, hidden power, transformation
-    description: "Transformation & Power",
-  },
-];
+const SLOW = ["Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"] as const;
+
+const GLYPH: Record<string, string> = {
+  Jupiter: "♃︎",
+  Saturn: "♄︎",
+  Uranus: "♅︎",
+  Neptune: "♆︎",
+  Pluto: "♇︎",
+};
+
+export const PLANETS: PlanetMeta[] = SLOW.map((name) => ({
+  name,
+  glyph: GLYPH[name],
+  color: bodyColor(name),
+  description: bodyRole(name) ?? name,
+}));
 
 export const PLANET_NAMES = PLANETS.map((p) => p.name);
 

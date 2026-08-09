@@ -10,7 +10,7 @@ export type Async<T> =
 /**
  * Fetch JSON for a url, with the result tagged by the url it came from.
  *
- * Two deliberate details:
+ * Three deliberate details:
  *
  * 1. No `setState` runs synchronously in the effect body — only inside the
  *    promise callbacks. That avoids the cascading re-render that
@@ -19,6 +19,10 @@ export type Async<T> =
  *    against the url being asked for now, rather than being set imperatively.
  *    Changing url therefore reads as loading on the very same render, with no
  *    flash of the previous chart's data.
+ * 3. Cleanup stops *listening* rather than aborting the request. These are
+ *    small read-only GETs, so letting an obsolete one finish and be discarded
+ *    costs nothing — and no AbortError is created, which is what the dev
+ *    overlay kept surfacing on every remount and navigation.
  */
 export function useJson<T>(url: string | null): Async<T> {
   const [state, setState] = useState<{ url: string; value: Async<T> } | null>(
@@ -27,26 +31,30 @@ export function useJson<T>(url: string | null): Async<T> {
 
   useEffect(() => {
     if (!url) return;
-    const controller = new AbortController();
+    let live = true;
 
-    (async () => {
-      try {
-        const response = await fetch(url, { signal: controller.signal });
+    // Anything that arrives after cleanup belongs to a url nobody is asking
+    // for any more, so it is dropped rather than reported.
+    const settle = (value: Async<T>) => {
+      if (live) setState({ url, value });
+    };
+
+    fetch(url)
+      .then(async (response) => {
         if (!response.ok) {
-          setState({
-            url,
-            value: { status: "error", error: `Request failed (${response.status}).` },
+          settle({
+            status: "error",
+            error: `Request failed (${response.status}).`,
           });
           return;
         }
-        setState({ url, value: { status: "ready", data: (await response.json()) as T } });
-      } catch (error) {
-        if (error instanceof Error && error.name === "AbortError") return;
-        setState({ url, value: { status: "error", error: "Network error." } });
-      }
-    })();
+        settle({ status: "ready", data: (await response.json()) as T });
+      })
+      .catch(() => settle({ status: "error", error: "Network error." }));
 
-    return () => controller.abort();
+    return () => {
+      live = false;
+    };
   }, [url]);
 
   if (!url || state?.url !== url) return { status: "loading" };

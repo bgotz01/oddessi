@@ -56,6 +56,23 @@ function buildChartBlock(chart: Chart): string {
   return lines.join("\n");
 }
 
+function buildPageContextBlock(ctx: Record<string, unknown>): string {
+  // The page supplies a `_description` key for a human-readable label.
+  const description = typeof ctx._description === "string" ? ctx._description : "Current page data";
+  const data = { ...ctx };
+  delete data._description;
+
+  const lines: string[] = [
+    `--- ${description} ---`,
+    "The following data is exactly what the user can see on the current page.",
+    "Use it as the ground truth for any questions about what is displayed.",
+    "",
+    JSON.stringify(data, null, 2),
+    `--- End ${description} ---`,
+  ];
+  return lines.join("\n");
+}
+
 export async function POST(req: NextRequest) {
   const apiKey = process.env.OPENROUTER_API;
   if (!apiKey) {
@@ -66,11 +83,12 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { messages = [], model: requestedModel, chart, pathname } = body as {
+  const { messages = [], model: requestedModel, chart, pathname, pageContext } = body as {
     messages: { role: string; content: string }[];
     model?: string;
     chart?: Chart;
     pathname?: string;
+    pageContext?: Record<string, unknown> | null;
   };
 
   // Load persisted preferences — system prompt and optionally a saved model.
@@ -91,6 +109,7 @@ export async function POST(req: NextRequest) {
   const parts: string[] = [savedPrompt];
   if (chart) parts.push("\n\n" + buildChartBlock(chart));
   if (pathname) parts.push(`\nThe user is currently viewing: ${pathname}`);
+  if (pageContext) parts.push("\n\n" + buildPageContextBlock(pageContext));
 
   const openRouterMessages = [
     { role: "system", content: parts.join("") },

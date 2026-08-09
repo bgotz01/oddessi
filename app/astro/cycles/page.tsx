@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import CycleRow, { type CycleRowData } from "@/components/cycle-row";
 import { useChart } from "@/components/chart-context";
+import { useChat } from "@/components/chat-provider";
 import { useJson } from "@/lib/use-json";
 
 interface ActiveResponse {
@@ -14,30 +16,43 @@ interface ActiveResponse {
 
 export default function CyclesPage() {
   const { chart } = useChart();
+  const { setPageContext } = useChat();
   const state = useJson<ActiveResponse>(
     chart ? `/api/cycles?chartId=${encodeURIComponent(chart.id)}` : null,
   );
   const now = new Date();
+
+  // Push visible transit data into the chat context so the model can
+  // answer questions about what is actually on screen.
+  useEffect(() => {
+    if (state.status !== "ready") return;
+
+    setPageContext({
+      _description: "Active House Transits (Cycles Page)",
+      asOf: now.toISOString(),
+      cycles: state.data.cycles.map((c) => ({
+        planet: c.planet,
+        house: c.house,
+        houseNumber: c.houseNumber,
+        significance: c.significance,
+        transitStart: c.start,
+        transitEnd: c.end,
+      })),
+    });
+
+    return () => setPageContext(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.status, state.status === "ready" ? state.data : null]);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-8 pb-24">
       <PageTitle
         eyebrow={chart ? chart.name : "No chart"}
         title="Cycles"
-        lede="The house each slow planet is currently moving through — one long
-              season per planet. Each row runs on its own scale, so every
-              retrograde pass is legible: solid where the transit is in effect,
-              gapped where the planet stations and backs off."
+
       />
 
-      <p className="mb-10">
-        <Link
-          href="/astro/cycles/explorer"
-          className="datum text-[0.6875rem] tracking-[0.18em] text-bone-soft uppercase transition-colors hover:text-patina"
-        >
-          Explore all cycles →
-        </Link>
-      </p>
+
 
       {!chart ? (
         <p className="font-light text-bone-soft">No chart selected.</p>
@@ -61,6 +76,16 @@ export default function CyclesPage() {
           </div>
         </section>
       )}
+
+      <p className="mb-10">
+        <Link
+          href="/astro/cycles/explorer"
+          className="datum text-[0.6875rem] tracking-[0.18em] text-bone-soft uppercase transition-colors hover:text-patina"
+        >
+          Explore all cycles →
+        </Link>
+      </p>
+
     </div>
   );
 }

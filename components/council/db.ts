@@ -1,5 +1,6 @@
 // ─── DB helpers + streaming for the Council feature ──────────────────────────
 
+import type { Chart } from '@/lib/charts';
 import { type AgentMessage, type AgentState, type CascadeTurn, type SavedSession, type Usage } from './types';
 
 // ─── sessions ─────────────────────────────────────────────────────────────────
@@ -207,6 +208,53 @@ export async function dbSummarizeMemory(
     return data.routes ?? [];
 }
 
+// ─── chart reading ────────────────────────────────────────────────────────────
+
+/**
+ * Ask the LLM to extract the structural character and uniqueness of a chart.
+ * Streams the reading back; `onDelta` receives the accumulated text so far on
+ * every chunk, so the caller can drive a live-updating UI.
+ * Returns the final complete text.
+ */
+export async function dbReadChart(
+    chart: Chart,
+    model: string,
+    onDelta: (text: string) => void,
+): Promise<string> {
+    const res = await fetch('/api/council/chart-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chart, model }),
+    });
+    if (!res.ok || !res.body) throw new Error('Chart read failed');
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let full = '';
+    let buffer = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const raw = line.slice(6).trim();
+            if (raw === '[DONE]') return full;
+            try {
+                const parsed = JSON.parse(raw) as { delta?: string; error?: string };
+                if (parsed.error) throw new Error(parsed.error);
+                if (parsed.delta) { full += parsed.delta; onDelta(full); }
+            } catch (e) {
+                if (e instanceof Error && e.message !== 'Unexpected end of JSON input') throw e;
+            }
+        }
+    }
+    return full;
+}
+
 // ─── streaming ────────────────────────────────────────────────────────────────
 
 export interface StreamResult {
@@ -216,7 +264,13 @@ export interface StreamResult {
 }
 
 export async function streamChat(
-    payload: { messages: AgentMessage[]; model: string; systemPrompt: string; refIds?: string[]; includeMemory?: boolean; memoryCategories?: string[] },
+    payload: {
+        messages: AgentMessage[]; model: string; systemPrompt: string;
+        refIds?: string[];
+        /** The chart under study. Omitted when the user has detached it for this chat. */
+        chart?: Chart | null;
+        includeMemory?: boolean; memoryCategories?: string[];
+    },
     onDelta: (delta: string) => void,
 ): Promise<StreamResult> {
     const res = await fetch('/api/council/chat', {

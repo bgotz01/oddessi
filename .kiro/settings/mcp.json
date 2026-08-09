@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "postgres-oddessi": {
+      "command": "toolbox",
+      "args": [
+        "--prebuilt",
+        "postgres",
+        "--stdio"
+      ],
+      "env": {
+        "POSTGRES_HOST": "localhost",
+        "POSTGRES_PORT": "5432",
+        "POSTGRES_DATABASE": "oddessi",
+        "POSTGRES_USER": "postgres",
+        "POSTGRES_PASSWORD": "koinare"
+      },
+      "disabled": false
+    }
+  }
+}

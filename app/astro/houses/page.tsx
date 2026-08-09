@@ -73,9 +73,8 @@ function HouseReading({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className={`grid w-full grid-cols-[2.5rem_1fr_auto] items-baseline gap-4 py-4 text-left transition-colors md:grid-cols-[2.5rem_11rem_1fr_7rem_4rem_1rem] ${
-          open ? "text-bone" : "hover:bg-surface-alt"
-        }`}
+        className={`grid w-full grid-cols-[2.5rem_1fr_auto] items-baseline gap-4 py-4 text-left transition-colors md:grid-cols-[2.5rem_11rem_1fr_7rem_4rem_1rem] ${open ? "text-bone" : "hover:bg-surface-alt"
+          }`}
       >
         {/* Same type hue as the grid above, so a house is recognisable in both. */}
         <span
@@ -85,7 +84,7 @@ function HouseReading({
           {cusp.roman}
         </span>
 
-        <span className="inscription text-[0.6875rem] text-bone">
+        <span className="inscription text-[0.8125rem] text-bone">
           {getHouseTitle(cusp.number as House)}
         </span>
 
@@ -106,18 +105,22 @@ function HouseReading({
               <span
                 key={t.body}
                 title={`${t.body} in ${t.sign}`}
-                className="glyph text-[0.9375rem] text-patina"
+                className="flex items-baseline gap-1"
               >
-                {bodyGlyph(t.body)}
+                <span className="glyph text-[0.9375rem] text-patina">
+                  {bodyGlyph(t.body)}
+                </span>
+                <span className="datum text-[0.5625rem] tracking-[0.1em] text-bone-soft uppercase hidden sm:inline">
+                  {t.body}
+                </span>
               </span>
             ))
           )}
         </span>
 
         <span
-          className={`datum hidden text-[0.75rem] md:block md:text-right ${
-            dominance && dominance.rank <= 3 ? "text-ember" : "text-bone-faint"
-          }`}
+          className={`datum hidden text-[0.75rem] md:block md:text-right ${dominance && dominance.rank <= 3 ? "text-ember" : "text-bone-faint"
+            }`}
           title="Dominance"
         >
           {dominance ? dominance.score.toFixed(1) : "—"}
@@ -283,6 +286,7 @@ function HouseReading({
 
 function Houses({ chart }: { chart: Chart }) {
   const [open, setOpen] = useState<number | null>(null);
+  const [gridGuideOpen, setGridGuideOpen] = useState(false);
   const anchors = useRef(new Map<number, HTMLDivElement | null>());
 
   const dominance = useMemo(() => houseDominance(chart), [chart]);
@@ -324,13 +328,6 @@ function Houses({ chart }: { chart: Chart }) {
       />
 
       <section className="mb-16">
-        <SectionHeading aside={formatBirth(chart.birth)}>
-          How Bodies Act On A House
-        </SectionHeading>
-        <PlanetaryInfluences />
-      </section>
-
-      <section className="mb-16">
         <SectionHeading
           aside={
             loudest.length
@@ -346,18 +343,45 @@ function Houses({ chart }: { chart: Chart }) {
           selected={open}
           onSelect={select}
         />
+
+        {/* Reading The Grid — collapsible, lives close to the grid it explains */}
+        <div className="mt-6 border-t border-rule-faint">
+          <button
+            type="button"
+            onClick={() => setGridGuideOpen((v) => !v)}
+            aria-expanded={gridGuideOpen}
+            className="flex w-full items-baseline justify-between py-4 text-left transition-colors hover:text-bone"
+          >
+            <span className="datum text-[0.6875rem] tracking-[0.18em] text-bone-soft uppercase">
+              Reading The Grid
+            </span>
+            <span className="flex items-center gap-3">
+              <span className="datum text-[0.625rem] tracking-[0.14em] text-bone-faint uppercase">
+                angular · succedent · cadent
+              </span>
+              <span className={`datum text-[0.875rem] text-bone-faint transition-transform ${gridGuideOpen ? "rotate-90" : ""}`}>
+                ›
+              </span>
+            </span>
+          </button>
+          {gridGuideOpen && (
+            <div className="pb-8">
+              <HouseTypeGuide />
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="mb-16">
+        <SectionHeading aside={formatBirth(chart.birth)}>
+          How Bodies Act On A House
+        </SectionHeading>
+        <PlanetaryInfluences />
       </section>
 
       <section className="mb-16">
         <SectionHeading aside="mutual reception">House Circuits</SectionHeading>
         <HouseCircuits chart={chart} />
-      </section>
-
-      <section className="mb-16">
-        <SectionHeading aside="angular · succedent · cadent">
-          Reading The Grid
-        </SectionHeading>
-        <HouseTypeGuide />
       </section>
 
       <section>
@@ -367,6 +391,15 @@ function Houses({ chart }: { chart: Chart }) {
           The Twelve
         </SectionHeading>
         <div className="border-t border-rule">
+          {/* Column headers — mirror the row grid exactly */}
+          <div className="grid grid-cols-[2.5rem_1fr_auto] items-baseline gap-4 border-b border-rule-faint py-2 md:grid-cols-[2.5rem_11rem_1fr_7rem_4rem_1rem]">
+            <span className="datum text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase">House</span>
+            <span className="datum text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase">Domain</span>
+            <span className="datum hidden text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase md:block">Sign</span>
+            <span className="datum text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase text-right">Tenants</span>
+            <span className="datum hidden text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase text-right md:block">Weight</span>
+            <span className="hidden md:block" />
+          </div>
           {chart.houses.map((cusp) => (
             <HouseReading
               key={cusp.number}

@@ -131,8 +131,8 @@ export default function ChatModal() {
               <button
                 onClick={() => setPanel("chat")}
                 className={`datum text-[0.6rem] uppercase tracking-[0.18em] px-3 py-1.5 transition-colors ${panel === "chat"
-                    ? "bg-surface-alt text-bone"
-                    : "text-bone-faint hover:text-bone"
+                  ? "bg-surface-alt text-bone"
+                  : "text-bone-faint hover:text-bone"
                   }`}
               >
                 Chat
@@ -141,8 +141,8 @@ export default function ChatModal() {
               <button
                 onClick={() => setPanel("prompt")}
                 className={`datum text-[0.6rem] uppercase tracking-[0.18em] px-3 py-1.5 transition-colors ${panel === "prompt"
-                    ? "bg-surface-alt text-bone"
-                    : "text-bone-faint hover:text-bone"
+                  ? "bg-surface-alt text-bone"
+                  : "text-bone-faint hover:text-bone"
                   }`}
               >
                 Prompt
@@ -152,7 +152,15 @@ export default function ChatModal() {
             {/* Model selector (always visible) */}
             <select
               value={model}
-              onChange={(e) => setModel(e.target.value)}
+              onChange={(e) => {
+                setModel(e.target.value);
+                // Persist immediately — no need to visit the Prompt panel.
+                fetch("/api/interface-prefs", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ model: e.target.value }),
+                }).catch(() => {/* silently ignore — in-memory state is still updated */ });
+              }}
               className="datum bg-void border border-rule text-[0.625rem] text-bone-faint uppercase tracking-[0.14em] px-2 py-1 focus:border-patina focus:outline-none"
               aria-label="Model"
             >
@@ -210,8 +218,8 @@ export default function ChatModal() {
                   ) : (
                     <div
                       className={`prose-chat max-w-[80%] ${msg.streaming
-                          ? "after:content-['▋'] after:animate-pulse after:text-patina after:ml-0.5"
-                          : ""
+                        ? "after:content-['▋'] after:animate-pulse after:text-patina after:ml-0.5"
+                        : ""
                         }`}
                     >
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>

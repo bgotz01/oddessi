@@ -1,22 +1,59 @@
 import type { ReactNode } from "react";
 import type { BandStatus } from "@/lib/band";
 
-/** A carved section heading with a rule beneath it. */
+/**
+ * A carved section heading with a rule beneath it.
+ *
+ * Pass `onToggle` to make it the handle of a collapsible section: the whole
+ * row becomes the control, and the marker turns to face the open body. The
+ * aside stays visible either way, so a closed section still reports what is
+ * inside it.
+ */
 export function SectionHeading({
   children,
   aside,
+  open,
+  onToggle,
 }: {
   children: ReactNode;
   aside?: ReactNode;
+  open?: boolean;
+  onToggle?: () => void;
 }) {
+  const row = (
+    <div className="flex items-baseline justify-between gap-6 pb-3">
+      <h2 className="inscription flex items-baseline gap-3 text-[0.8125rem] text-bone">
+        {onToggle ? (
+          <span
+            aria-hidden
+            className="glyph inline-block text-[0.625rem] text-patina-dim transition-transform group-hover:text-patina"
+            style={open ? { transform: "rotate(90deg)" } : undefined}
+          >
+            ▸
+          </span>
+        ) : null}
+        {children}
+      </h2>
+      {aside ? (
+        <span className="datum text-[0.6875rem] text-bone-faint">{aside}</span>
+      ) : null}
+    </div>
+  );
+
   return (
     <div className="mb-8">
-      <div className="flex items-baseline justify-between gap-6 pb-3">
-        <h2 className="inscription text-[0.8125rem] text-bone">{children}</h2>
-        {aside ? (
-          <span className="datum text-[0.6875rem] text-bone-faint">{aside}</span>
-        ) : null}
-      </div>
+      {onToggle ? (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="group block w-full cursor-pointer text-left"
+        >
+          {row}
+        </button>
+      ) : (
+        row
+      )}
       <div className="h-px bg-rule" />
     </div>
   );

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Link from 'next/link';
 import { type SavedSession } from './types';
 
 interface Props {
@@ -42,7 +43,10 @@ export default function SessionsSidebar({
     }
 
     return (
-        <div className={`shrink-0 border-r border-gold-muted/20 bg-surface flex flex-col overflow-hidden transition-all duration-300 ${open ? 'w-52' : 'w-10'}`}>
+        // The rail on /council — the app's own stands down (see
+        // components/sidebar.tsx). Saved sessions and nothing else: the chart is
+        // switched from the header, and the one link out is at the foot.
+        <aside className={`shrink-0 border-r border-rule bg-surface flex flex-col overflow-hidden transition-all duration-300 ${open ? 'w-52' : 'w-10'}`}>
 
             {/* collapsed rail */}
             {!open && (
@@ -168,8 +172,17 @@ export default function SessionsSidebar({
                             </div>
                         )}
                     </div>
+
+                    {/* The way out. This rail replaces the app's, so without it
+                        the council is a dead end but for the logo. */}
+                    <Link
+                        href="/"
+                        className="datum shrink-0 border-t border-rule px-4 py-3 text-[0.5625rem] uppercase tracking-[0.22em] text-bone-faint transition-colors hover:text-bone"
+                    >
+                        ← Oddessi
+                    </Link>
                 </>
             )}
-        </div>
+        </aside>
     );
 }

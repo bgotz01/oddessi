@@ -6,7 +6,8 @@ export interface BirthData {
     timezone: string; // IANA timezone (e.g., "America/New_York")
     latitude: number;
     longitude: number;
-    location?: string; // Optional location name
+    city?: string;    // Clean city name (e.g., "Sofia")
+    location?: string; // Full display name from geocoder
 }
 
 export interface PlanetPosition {

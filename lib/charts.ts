@@ -17,6 +17,7 @@ export interface BirthData {
   timezone: string;
   latitude: number;
   longitude: number;
+  city: string;
   location: string;
 }
 
@@ -279,6 +280,14 @@ function buildPlacements(
   });
 }
 
+/** Returns a clean city name from birthLocation, or empty string if it looks like raw coordinates. */
+function cityFromLocation(location: string | null): string {
+  if (!location) return "";
+  // Looks like "28.4249771, -81.2843554" — raw coords, not a city name.
+  if (/^-?\d+\.\d+\s*,\s*-?\d+\.\d+$/.test(location.trim())) return "";
+  return location.split(",")[0].trim();
+}
+
 export async function fetchCharts(): Promise<Chart[]> {
   const rows = await prisma.birthChartData.findMany({
     orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
@@ -296,6 +305,7 @@ export async function fetchCharts(): Promise<Chart[]> {
         timezone: row.birthTimezone,
         latitude: row.birthLatitude,
         longitude: row.birthLongitude,
+        city: row.birthCity?.trim() || cityFromLocation(row.birthLocation),
         location: row.birthLocation?.trim() || "Unknown location",
       },
       big3: {

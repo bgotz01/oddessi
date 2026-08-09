@@ -34,14 +34,14 @@ export function PlanetaryInfluences() {
   return (
     <div className="grid grid-cols-2 gap-px bg-rule-faint sm:grid-cols-3 lg:grid-cols-5">
       {VERBS.map(([body, verb]) => (
-        <div key={body} className="bg-surface px-4 py-3">
+        <div key={body} className="bg-surface px-4 py-3 flex flex-col items-center text-center">
           <div className="flex items-baseline gap-2">
-            <span className="glyph text-[1.0625rem] text-patina">
+            <span className="glyph text-[1.25rem] text-patina">
               {bodyGlyph(body)}
             </span>
-            <span className="inscription text-[0.625rem] text-bone">{body}</span>
+            <span className="inscription text-[0.75rem] text-bone">{body}</span>
           </div>
-          <p className="mt-1 text-[0.9375rem] font-light text-bone-faint italic">
+          <p className="mt-1 text-[1.0625rem] font-light text-bone-faint italic">
             {verb}
           </p>
         </div>
@@ -61,59 +61,73 @@ export function HouseCircuits({ chart }: { chart: Chart }) {
         not move independently — pull on one and the others follow.
       </p>
 
-      {circuits.map((circuit) => (
-        <div
-          key={circuit.houses.join("-")}
-          className="border-t border-rule-faint py-6"
-        >
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-4">
-            <span className="datum border border-rule px-2 py-0.5 text-[0.625rem] tracking-[0.16em] text-bone-faint uppercase">
-              {circuit.houses.length}-house
-            </span>
+      <div className="flex flex-col gap-6">
+        {circuits.map((circuit) => (
+          <div
+            key={circuit.houses.join("-")}
+            className="border border-rule bg-surface px-8 py-8"
+          >
+            {/* Badge */}
+            <div className="mb-6 flex justify-center">
+              <span className="datum border border-rule px-3 py-1 text-[0.5625rem] tracking-[0.2em] text-bone-faint uppercase">
+                {circuit.houses.length}-house circuit
+              </span>
+            </div>
 
-            {circuit.houses.map((house, i) => (
-              <span key={house} className="flex items-center gap-3">
-                <span className="flex flex-col items-center">
-                  <span className="inscription text-[1.0625rem] text-patina">
-                    {house}
-                  </span>
-                  <span className="datum mt-0.5 flex items-baseline gap-1 text-[0.5625rem] tracking-[0.12em] text-bone-faint uppercase">
-                    <span className="glyph text-[0.75rem]">
-                      {bodyGlyph(circuit.rulers[i])}
+            {/* Circuit diagram — centered */}
+            <div className="flex flex-wrap items-center justify-center gap-y-6">
+              {circuit.houses.map((house, i) => (
+                <span key={house} className="flex items-center">
+                  {/* House node */}
+                  <span className="flex flex-col items-center gap-1.5 px-2">
+                    <span className="inscription text-[2rem] leading-none text-patina">
+                      {house}
                     </span>
-                    {circuit.rulers[i]}
+                    <span className="flex items-center gap-1.5">
+                      <span className="glyph text-[1rem] text-bone-soft">
+                        {bodyGlyph(circuit.rulers[i])}
+                      </span>
+                      <span className="datum text-[0.625rem] tracking-[0.14em] text-bone-soft uppercase">
+                        {circuit.rulers[i]}
+                      </span>
+                    </span>
+                  </span>
+
+                  {/* Arrow */}
+                  <span className="datum mx-3 text-[0.75rem] tracking-tight text-rule select-none">
+                    →
                   </span>
                 </span>
-                <span className="datum text-[0.75rem] text-rule">──→</span>
-              </span>
-            ))}
+              ))}
 
-            {/* The ring closing back on where it started. */}
-            <span className="flex flex-col items-center">
-              <span className="inscription text-[1.0625rem] text-bone-faint">
-                {circuit.houses[0]}
+              {/* Closing node — back to start */}
+              <span className="flex flex-col items-center gap-1.5 px-2 opacity-40">
+                <span className="inscription text-[2rem] leading-none text-patina">
+                  {circuit.houses[0]}
+                </span>
+                <span className="datum text-[0.625rem] tracking-[0.14em] text-bone-faint uppercase">
+                  closes
+                </span>
               </span>
-              <span className="datum mt-0.5 text-[0.5625rem] tracking-[0.12em] text-bone-faint uppercase">
-                closes
-              </span>
-            </span>
+            </div>
+
+            {/* Description */}
+            <p className="mx-auto mt-8 max-w-2xl text-center text-[1.0625rem] leading-relaxed font-light text-bone-soft">
+              {circuit.houses.length === 2
+                ? `${circuit.rulers[0]} runs house ${circuit.houses[0]} but lives in
+                   house ${circuit.houses[1]}, and ${circuit.rulers[1]} runs house
+                   ${circuit.houses[1]} but lives in house ${circuit.houses[0]}.
+                   Each is a guest in the other's rooms, so neither area can be
+                   settled without settling both.`
+                : `${circuit.rulers[0]} runs house ${circuit.houses[0]} from house
+                   ${circuit.houses[1]}, whose ruler ${circuit.rulers[1]} sits in
+                   house ${circuit.houses[2]}, whose ruler ${circuit.rulers[2]}
+                   sits back in house ${circuit.houses[0]}. A closed three-step
+                   circuit.`}
+            </p>
           </div>
-
-          <p className="mt-4 max-w-3xl text-[1.0625rem] leading-relaxed font-light text-bone-soft">
-            {circuit.houses.length === 2
-              ? `${circuit.rulers[0]} runs house ${circuit.houses[0]} but lives in
-                 house ${circuit.houses[1]}, and ${circuit.rulers[1]} runs house
-                 ${circuit.houses[1]} but lives in house ${circuit.houses[0]}.
-                 Each is a guest in the other's rooms, so neither area can be
-                 settled without settling both.`
-              : `${circuit.rulers[0]} runs house ${circuit.houses[0]} from house
-                 ${circuit.houses[1]}, whose ruler ${circuit.rulers[1]} sits in
-                 house ${circuit.houses[2]}, whose ruler ${circuit.rulers[2]}
-                 sits back in house ${circuit.houses[0]}. A closed three-step
-                 circuit.`}
-          </p>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

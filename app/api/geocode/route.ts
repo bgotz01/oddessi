@@ -30,6 +30,7 @@ export async function GET(request: Request) {
         }
         return {
           label: r.displayName,
+          city: r.name ?? r.displayName.split(",")[0].trim(),
           latitude: r.latitude,
           longitude: r.longitude,
           timezone,

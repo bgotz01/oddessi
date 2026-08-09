@@ -81,13 +81,12 @@ function HouseBox({
 
   return (
     <div
-      className={`relative flex flex-col bg-surface transition-colors ${
-        top3
-          ? "border border-ember-dim"
-          : selected
-            ? "border border-patina-dim"
-            : "border border-rule"
-      }`}
+      className={`relative flex flex-col bg-surface transition-colors ${top3
+        ? "border border-ember-dim"
+        : selected
+          ? "border border-patina-dim"
+          : "border border-rule"
+        }`}
     >
       {/* Type bar. Runs the full width so the four cards of a type line up as a
           set even when they are scattered across the grid. */}
@@ -120,7 +119,7 @@ function HouseBox({
             here now starts on the same line in all twelve cards. */}
         <span className="flex min-h-[6.75rem] flex-col">
           <span
-            className="inscription text-[2.25rem] leading-none"
+            className="inscription text-[1.5rem] leading-none"
             style={{ color: tone.color }}
           >
             {cusp.roman}
@@ -148,12 +147,12 @@ function HouseBox({
         </span>
 
         {/* Zone 2 — the sign on the cusp. Patina marks the symbolic layer. */}
-        <span className="mt-4 flex min-h-[4.25rem] flex-col justify-center border-t border-rule pt-4">
+        <span className="mt-5 flex min-h-[4.25rem] flex-col justify-center border-t border-rule pt-5">
           <span className="flex items-center justify-center gap-2">
-            <span className="glyph text-[1.375rem] text-patina">
+            <span className="glyph text-[1.625rem] text-patina">
               {signGlyph(cusp.sign)}
             </span>
-            <span className="text-[1.0625rem] leading-none font-light text-bone">
+            <span className="text-[1.1875rem] leading-none font-light text-bone">
               {cusp.sign}
             </span>
           </span>
@@ -164,7 +163,7 @@ function HouseBox({
 
         {/* Zone 3 — tenants, as filled chips so the zone reads as a group. */}
         {tenants.length > 0 ? (
-          <span className="mt-4 flex flex-wrap justify-center gap-1.5 border-t border-rule pt-4">
+          <span className="mt-5 flex flex-wrap justify-center gap-1.5 border-t border-rule pt-5">
             {tenants.map((t) => (
               <span
                 key={t.body}
@@ -184,11 +183,10 @@ function HouseBox({
 
         {/* Zone 4 — the score, stacked so the numeral carries alone. */}
         {showScores && dominance ? (
-          <span className="mt-auto block border-t border-rule pt-4">
+          <span className="mt-auto block border-t border-rule pt-5">
             <span
-              className={`datum block text-[1.25rem] leading-none ${
-                top3 ? "text-ember" : "text-bone-soft"
-              }`}
+              className={`datum block text-[1.25rem] leading-none ${top3 ? "text-ember" : "text-bone-soft"
+                }`}
             >
               {dominance.score.toFixed(1)}
             </span>
@@ -224,9 +222,8 @@ function HouseBox({
             </span>
             {ruler ? (
               <span
-                className={`datum text-[0.6875rem] text-bone-faint transition-transform ${
-                  openRuler ? "rotate-90 text-patina" : ""
-                }`}
+                className={`datum text-[0.6875rem] text-bone-faint transition-transform ${openRuler ? "rotate-90 text-patina" : ""
+                  }`}
               >
                 ›
               </span>
@@ -317,9 +314,8 @@ export default function HousePositions({
             }
             aria-pressed={allOpen}
             disabled={expandable.length === 0}
-            className={`${button} ${
-              allOpen ? "text-patina" : "text-bone-faint"
-            } disabled:cursor-default disabled:opacity-50`}
+            className={`${button} ${allOpen ? "text-patina" : "text-bone-faint"
+              } disabled:cursor-default disabled:opacity-50`}
           >
             {allOpen ? "Collapse rulers" : "Expand rulers"}
           </button>

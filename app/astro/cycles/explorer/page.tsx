@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import Timeline from "@/components/timeline";
+import HousePassage from "@/components/house-passage";
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import { useChart } from "@/components/chart-context";
 import { useJson } from "@/lib/use-json";
@@ -26,7 +27,17 @@ const TYPES = [
   { key: "planetary-return", label: "Returns" },
 ] as const;
 
-const STATUSES: BandStatus[] = ["active", "upcoming", "completed"];
+/** Status tints match StatusMark, so a filter reads as the thing it filters. */
+const STATUSES: { key: BandStatus; label: string; tint: string }[] = [
+  { key: "active", label: "Active", tint: "var(--color-patina)" },
+  { key: "upcoming", label: "Ahead", tint: "var(--color-ember)" },
+  { key: "completed", label: "Closed", tint: "var(--color-bone-faint)" },
+];
+
+/** The decade a year belongs to: 2027 → 2020. */
+function decadeOf(year: number): number {
+  return Math.floor(year / 10) * 10;
+}
 
 /** Recovered from the subtitle, which is how a band encodes its kind. */
 function typeOf(band: Band): string {
@@ -35,33 +46,99 @@ function typeOf(band: Band): string {
   return "aspect-cycle";
 }
 
+/**
+ * A filter cell. Selection is carried three ways at once — a filled marker, a
+ * tinted edge and fill, and full-brightness text — so it survives being read
+ * quickly, in the dark, or by someone who cannot separate the planet colours.
+ */
 function Toggle({
   on,
   onClick,
-  children,
-  color,
+  label,
+  glyph,
+  tint,
 }: {
   on: boolean;
   onClick: () => void;
-  children: React.ReactNode;
-  color?: string;
+  label: string;
+  glyph?: string;
+  tint?: string;
 }) {
+  const accent = tint ?? "var(--color-patina)";
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={on}
-      className={`px-4 py-2.5 transition-colors ${
+      style={{ "--tint": accent } as React.CSSProperties}
+      className={`group flex items-center gap-2.5 border px-3.5 py-2 transition-colors ${
         on
-          ? "bg-surface text-bone"
-          : "bg-void text-bone-faint hover:bg-surface-alt"
+          ? "border-[var(--tint)] bg-[color-mix(in_srgb,var(--tint)_16%,transparent)] text-bone hover:bg-[color-mix(in_srgb,var(--tint)_26%,transparent)]"
+          : "border-rule-faint text-bone-faint hover:border-rule hover:bg-surface hover:text-bone-soft"
       }`}
-      style={on && color ? { color } : undefined}
     >
+      <span
+        aria-hidden
+        className={`h-[7px] w-[7px] shrink-0 border transition-colors ${
+          on
+            ? "border-[var(--tint)] bg-[var(--tint)]"
+            : "border-rule bg-transparent group-hover:border-bone-faint"
+        }`}
+      />
+      {glyph ? (
+        <span
+          className="glyph shrink-0 text-[0.9375rem]"
+          style={on ? { color: accent } : undefined}
+        >
+          {glyph}
+        </span>
+      ) : null}
       <span className="datum text-[0.6875rem] tracking-[0.18em] uppercase">
-        {children}
+        {label}
       </span>
     </button>
+  );
+}
+
+/**
+ * One line of the filter panel: label and tally on the left, cells on the
+ * right. The row is only as wide as its cells — nothing fills the gutter.
+ */
+function FilterRow({
+  label,
+  count,
+  total,
+  tally,
+  onToggleAll,
+  children,
+}: {
+  label: string;
+  count: number;
+  total: number;
+  /** Overrides the `n of m` line when the row measures something else. */
+  tally?: string;
+  onToggleAll: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="grid gap-x-8 gap-y-3 border-b border-rule-faint py-4 sm:grid-cols-[8rem_1fr] sm:items-center">
+      <div className="flex items-baseline gap-3 sm:flex-col sm:items-start sm:gap-1.5">
+        <p className="eyebrow">{label}</p>
+        <p className="datum text-[0.625rem] text-bone-faint">
+          {tally ?? `${count} of ${total}`}
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {children}
+        <button
+          type="button"
+          onClick={onToggleAll}
+          className="datum ml-1 px-2 py-2 text-[0.625rem] tracking-[0.18em] text-bone-faint uppercase transition-colors hover:text-patina"
+        >
+          {count === total ? "None" : "All"}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -76,27 +153,77 @@ export default function CyclesExplorerPage() {
   const [planets, setPlanets] = useState(
     () => new Set(PLANETS.map((p) => p.name)),
   );
+  // House transits alone, because they are what both charts are built around;
+  // aspects and returns are a deliberate second question.
   const [types, setTypes] = useState<Set<string>>(
-    () => new Set(TYPES.map((t) => t.key)),
+    () => new Set<string>(["house-transit"]),
   );
   const [statuses, setStatuses] = useState<Set<BandStatus>>(
-    () => new Set<BandStatus>(["active", "upcoming"]),
+    () => new Set<BandStatus>(STATUSES.map((s) => s.key)),
   );
+  // Forty-five years at once is a smear. Open on the decade you are in; the
+  // rest of the cache is one click away.
+  const [decades, setDecades] = useState<Set<number>>(
+    () => new Set([decadeOf(new Date().getUTCFullYear())]),
+  );
+  // Every band on its own row: the full reading, but a dense one. Closed until
+  // asked for, so the page opens on the Passage.
+  const [axisOpen, setAxisOpen] = useState(false);
+
+  /** All-or-nothing for a whole row. */
+  function toggleAll<T>(set: Set<T>, all: T[], apply: (next: Set<T>) => void) {
+    apply(set.size === all.length ? new Set<T>() : new Set(all));
+  }
 
   const now = new Date();
   const nowMs = now.getTime();
 
+  /** The decades the cache actually reaches, which is what can be offered. */
+  const allDecades = useMemo(() => {
+    if (state.status !== "ready") return [];
+    const first = decadeOf(new Date(state.data.windowStart).getUTCFullYear());
+    const last = decadeOf(new Date(state.data.windowEnd).getUTCFullYear());
+    const out: number[] = [];
+    for (let d = first; d <= last; d += 10) out.push(d);
+    return out;
+  }, [state]);
+
+  /**
+   * The visible window: the hull of the selected decades, clipped to the data.
+   * A gap in the selection is spanned rather than cut out — both charts read a
+   * single continuous axis, and punching holes in it would make every date
+   * left of the hole land at the wrong pixel.
+   */
+  const span = useMemo(() => {
+    if (state.status !== "ready") return null;
+    const picked = allDecades.filter((d) => decades.has(d));
+    if (picked.length === 0) return null;
+    const start = `${picked[0]}-01-01`;
+    const end = `${picked[picked.length - 1] + 10}-01-01`;
+    return {
+      windowStart:
+        start > state.data.windowStart ? start : state.data.windowStart,
+      windowEnd: end < state.data.windowEnd ? end : state.data.windowEnd,
+    };
+  }, [state, allDecades, decades]);
+
   // Fetched once unfiltered; narrowing from here is instant and client-side.
   const bands = useMemo(() => {
-    if (state.status !== "ready") return [];
+    if (state.status !== "ready" || !span) return [];
     const at = new Date(nowMs);
     return state.data.bands.filter(
       (b) =>
         planets.has(b.title) &&
         types.has(typeOf(b)) &&
-        statuses.has(statusOfBand(b, at)),
+        statuses.has(statusOfBand(b, at)) &&
+        b.end > span.windowStart &&
+        b.start < span.windowEnd,
     );
-  }, [state, planets, types, statuses, nowMs]);
+  }, [state, planets, types, statuses, span, nowMs]);
+
+  // The Passage is house transits by definition, so the kind filter has
+  // nothing to say about it. Planet, status and span all apply.
+  const shownPlanets = PLANETS.filter((p) => planets.has(p.name));
 
   function toggle<T>(set: Set<T>, value: T, apply: (next: Set<T>) => void) {
     const next = new Set(set);
@@ -124,52 +251,104 @@ export default function CyclesExplorerPage() {
         </Link>
       </p>
 
-      <div className="mb-10 space-y-4">
-        <div>
-          <p className="eyebrow mb-2">Planet</p>
-          <div className="flex flex-wrap gap-px bg-rule">
-            {PLANETS.map((p) => (
-              <Toggle
-                key={p.name}
-                on={planets.has(p.name)}
-                color={p.color}
-                onClick={() => toggle(planets, p.name, setPlanets)}
-              >
-                {p.glyph} {p.name}
-              </Toggle>
-            ))}
-          </div>
-        </div>
+      <div className="mb-12 border-t border-rule">
+        <FilterRow
+          label="Planet"
+          count={planets.size}
+          total={PLANETS.length}
+          onToggleAll={() =>
+            toggleAll(
+              planets,
+              PLANETS.map((p) => p.name),
+              setPlanets,
+            )
+          }
+        >
+          {PLANETS.map((p) => (
+            <Toggle
+              key={p.name}
+              on={planets.has(p.name)}
+              tint={p.color}
+              glyph={p.glyph}
+              label={p.name}
+              onClick={() => toggle(planets, p.name, setPlanets)}
+            />
+          ))}
+        </FilterRow>
 
-        <div>
-          <p className="eyebrow mb-2">Kind</p>
-          <div className="flex flex-wrap gap-px bg-rule">
-            {TYPES.map((t) => (
-              <Toggle
-                key={t.key}
-                on={types.has(t.key)}
-                onClick={() => toggle(types, t.key, setTypes)}
-              >
-                {t.label}
-              </Toggle>
-            ))}
-          </div>
-        </div>
+        <FilterRow
+          label="Kind"
+          count={types.size}
+          total={TYPES.length}
+          onToggleAll={() =>
+            toggleAll(
+              types,
+              TYPES.map((t) => t.key as string),
+              setTypes,
+            )
+          }
+        >
+          {TYPES.map((t) => (
+            <Toggle
+              key={t.key}
+              on={types.has(t.key)}
+              label={t.label}
+              onClick={() => toggle(types, t.key, setTypes)}
+            />
+          ))}
+        </FilterRow>
 
-        <div>
-          <p className="eyebrow mb-2">Status</p>
-          <div className="flex flex-wrap gap-px bg-rule">
-            {STATUSES.map((s) => (
+        <FilterRow
+          label="Status"
+          count={statuses.size}
+          total={STATUSES.length}
+          onToggleAll={() =>
+            toggleAll(
+              statuses,
+              STATUSES.map((s) => s.key),
+              setStatuses,
+            )
+          }
+        >
+          {STATUSES.map((s) => (
+            <Toggle
+              key={s.key}
+              on={statuses.has(s.key)}
+              tint={s.tint}
+              label={s.label}
+              onClick={() => toggle(statuses, s.key, setStatuses)}
+            />
+          ))}
+        </FilterRow>
+
+        {allDecades.length > 0 ? (
+          <FilterRow
+            label="Span"
+            count={allDecades.filter((d) => decades.has(d)).length}
+            total={allDecades.length}
+            tally={
+              span
+                ? `${span.windowStart.slice(0, 4)} – ${span.windowEnd.slice(0, 4)}`
+                : "no span"
+            }
+            onToggleAll={() =>
+              setDecades(
+                allDecades.every((d) => decades.has(d))
+                  ? new Set()
+                  : new Set(allDecades),
+              )
+            }
+          >
+            {allDecades.map((d) => (
               <Toggle
-                key={s}
-                on={statuses.has(s)}
-                onClick={() => toggle(statuses, s, setStatuses)}
-              >
-                {s}
-              </Toggle>
+                key={d}
+                on={decades.has(d)}
+                label={`${d}s`}
+                onClick={() => toggle(decades, d, setDecades)}
+              />
             ))}
-          </div>
-        </div>
+          </FilterRow>
+        ) : null}
       </div>
 
       {!chart ? (
@@ -178,28 +357,58 @@ export default function CyclesExplorerPage() {
         <p className="datum text-[0.75rem] text-bone-faint">Reading cycles…</p>
       ) : state.status === "error" ? (
         <p className="datum text-[0.75rem] text-ember">{state.error}</p>
+      ) : !span ? (
+        <p className="font-light text-bone-soft">
+          No decades selected — pick a span to draw.
+        </p>
       ) : (
-        <section>
-          <SectionHeading
-            aside={`${bands.length} of ${state.data.bands.length} · ${
-              bands.filter(hasRetrograde).length
-            } ℞`}
-          >
-            The Axis
-          </SectionHeading>
-          {bands.length === 0 ? (
-            <p className="font-light text-bone-soft">
-              Nothing matches those filters.
+        <div className="space-y-20">
+          <section>
+            <SectionHeading
+              aside={`${shownPlanets.length} of ${PLANETS.length} planets`}
+            >
+              The Passage
+            </SectionHeading>
+            <p className="-mt-4 max-w-2xl text-[0.9375rem] font-light text-bone-soft">
+              One row per planet — every house it crosses, end to end. The tone
+              alternates at each change and the number is the house. Planet,
+              status and span apply; kind does not, since this is house
+              transits by definition.
             </p>
-          ) : (
-            <Timeline
-              bands={bands}
+            <HousePassage
+              bands={state.data.bands}
+              planets={shownPlanets}
+              statuses={statuses}
               now={now}
-              windowStart={state.data.windowStart}
-              windowEnd={state.data.windowEnd}
+              windowStart={span.windowStart}
+              windowEnd={span.windowEnd}
             />
-          )}
-        </section>
+          </section>
+
+          <section>
+            <SectionHeading
+              aside={`${bands.length} of ${state.data.bands.length} · ${
+                bands.filter(hasRetrograde).length
+              } ℞`}
+              open={axisOpen}
+              onToggle={() => setAxisOpen((was) => !was)}
+            >
+              Expanded Axis
+            </SectionHeading>
+            {!axisOpen ? null : bands.length === 0 ? (
+              <p className="font-light text-bone-soft">
+                Nothing matches those filters.
+              </p>
+            ) : (
+              <Timeline
+                bands={bands}
+                now={now}
+                windowStart={span.windowStart}
+                windowEnd={span.windowEnd}
+              />
+            )}
+          </section>
+        </div>
       )}
     </div>
   );

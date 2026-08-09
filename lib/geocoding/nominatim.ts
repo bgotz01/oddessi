@@ -50,6 +50,7 @@ export async function searchLocation(query: string): Promise<GeocodingResult[]> 
         const response = await fetch(`${NOMINATIM_BASE_URL}/search?${params}`, {
             headers: {
                 'User-Agent': USER_AGENT,
+                'Accept-Language': 'en',
             },
         });
 
