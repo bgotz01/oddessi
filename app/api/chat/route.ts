@@ -5,6 +5,13 @@ import { MODELS, DEFAULT_MODEL } from "@/lib/models";
 import { DEFAULT_INTERFACE_PROMPT } from "@/lib/interface-prefs";
 import { buildMemoryBlock } from "@/lib/pageContext";
 import { computeReading, type Gender } from "@/lib/chinese/pillars";
+import {
+  chartPrefix,
+  isLegacy,
+  readableScopes,
+  scopeOf,
+  type ActiveSystems,
+} from "@/lib/memory-scope";
 import { BRANCHES, STEMS, generatedBy } from "@/lib/chinese/almanac";
 
 /**
@@ -95,17 +102,21 @@ async function buildChineseBlock(chart: Chart): Promise<string> {
 /**
  * Lessons distilled from past sessions about *this* chart, and nothing else.
  *
- * `/api/chat/summarize` writes every row namespaced "<chart name> — <Category>",
- * and this reads back only that prefix. The strictness is the point: several
- * people's charts live in one `council_memory` table, and a reading assembled
- * from the wrong person's lessons would be wrong in a way that is very hard to
- * notice — it would simply sound confidently off. No chart name, no memory.
+ * `/api/chat/summarize` writes every row namespaced
+ * "<chart name> — <Category>", and this reads back only that chart's
+ * prefix. The strictness is the point: several people's charts live in one
+ * `council_memory` table, and a reading assembled from the wrong person's
+ * lessons would be wrong in a way that is very hard to notice — it would simply
+ * sound confidently off. No chart name, no memory.
  *
- * The prefix is stripped on the way out so the model sees the five canonical
- * category names, which is also how the summarizer presents them.
+ * Then a second cut by scope, so a conversation narrowed to one system is only
+ * handed that system's lessons plus the shared ones. See `lib/memory-scope.ts`.
  */
-async function loadChartMemory(chartName: string | undefined) {
-  const prefix = chartName?.trim() ? `${chartName.trim()} — ` : null;
+async function loadChartMemory(
+  chartName: string | undefined,
+  systems: ActiveSystems,
+) {
+  const prefix = chartName?.trim() ? chartPrefix(chartName) : null;
   if (!prefix) return [];
 
   const rows = await prisma.councilMemory.findMany({
@@ -113,11 +124,28 @@ async function loadChartMemory(chartName: string | undefined) {
     orderBy: { category: "asc" },
   });
 
+  // Second filter, and the point of this whole scheme: a conversation narrowed
+  // to one system must not be handed the other system's lessons. Otherwise a
+  // West-only reading quietly arrives carrying everything the Day Master taught
+  // us, which is exactly the cross-contamination the switch exists to prevent.
+  const readable = readableScopes(systems);
+
   return rows
     .filter((row) => row.content.trim())
-    .map((row) => ({
-      category: row.category.slice(prefix.length),
-      content: row.content,
+    .map((row) => {
+      const category = row.category.slice(prefix.length);
+      return { category, scope: scopeOf(category), content: row.content };
+    })
+    .filter((entry) => readable.includes(entry.scope))
+    .map((entry) => ({
+      // The category name already says which system it belongs to
+      // ("Eastern Chart"), so the heading needs no further marking — except for
+      // rows written before the split, which are flagged so the model does not
+      // read an unlabelled mixture as authoritative about either system.
+      category: isLegacy(entry.category)
+        ? `${entry.category} (unsorted — may mix both systems)`
+        : entry.category,
+      content: entry.content,
     }));
 }
 
@@ -238,12 +266,12 @@ export async function POST(req: NextRequest) {
   // whether long answers are allowed to finish.
   const maxTokens = MODELS.find((m) => m.id === model)?.maxTokens ?? 4000;
 
-  const memory = includeMemory ? await loadChartMemory(chart?.name) : [];
-
   // Which systems are on the table. Anything unrecognised falls back to both,
   // so an older client that sends nothing keeps the behaviour it had.
   const active: Systems =
     systems === "western" || systems === "chinese" ? systems : "both";
+
+  const memory = includeMemory ? await loadChartMemory(chart?.name, active) : [];
   const wantsWestern = active !== "chinese";
   const wantsChinese = active !== "western";
 

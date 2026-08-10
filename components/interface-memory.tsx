@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useChat } from "@/components/chat-provider";
 import { useChart } from "@/components/chart-context";
+import type { MemoryScope } from "@/lib/memory-scope";
 
 /**
  * The memory control for the Interface: one button that owns everything to do
@@ -22,13 +23,27 @@ import { useChart } from "@/components/chart-context";
 
 interface MemoryCategory {
   category: string;
+  scope: MemoryScope;
+  legacy: boolean;
   content: string;
   lessons: string[];
 }
 
+/**
+ * The heading colour carries the scope, because the name already carries it in
+ * words — "Eastern Chart" does not also need an EAST tag beside it. Patina for
+ * Western and ember for Chinese matches the two column rules on the Comparison
+ * page, so the pairing is already learned. Shared categories stay bone: they
+ * belong to the person rather than to either system.
+ */
+const SCOPE_COLOR: Record<MemoryScope, string> = {
+  West: "text-patina",
+  East: "text-ember",
+  Shared: "text-bone",
+};
+
 export function MemoryControl() {
-  const { memoryEnabled, setMemoryEnabled, distil, summarizing, messages, busy } =
-    useChat();
+  const { memoryEnabled, setMemoryEnabled, summarizing } = useChat();
   const { chart } = useChart();
 
   const [open, setOpen] = useState(false);
@@ -82,7 +97,6 @@ export function MemoryControl() {
   }, [open]);
 
   const attached = memoryEnabled && !!chart;
-  const canDistil = messages.filter((m) => m.content.trim()).length >= 2;
 
   return (
     <div ref={wrapRef} className="relative shrink-0">
@@ -155,11 +169,34 @@ export function MemoryControl() {
             ) : (
               <div className="space-y-4">
                 {categories.map((cat) => (
-                  <section key={cat.category}>
+                  <section key={`${cat.scope}-${cat.category}`}>
                     <div className="mb-1.5 flex items-baseline justify-between gap-3 border-b border-rule-faint pb-1">
-                      <h4 className="eyebrow">{cat.category}</h4>
-                      <span className="datum text-[0.5625rem] text-bone-faint">
-                        {cat.lessons.length}
+                      <h4
+                        className={`eyebrow ${SCOPE_COLOR[cat.scope]}`}
+                        title={
+                          cat.scope === "Shared"
+                            ? "About the person rather than either system — read in every conversation"
+                            : `Only read when ${cat.scope === "West" ? "West" : "East"} or Both is selected`
+                        }
+                      >
+                        {cat.category}
+                      </h4>
+                      <span className="flex items-baseline gap-3">
+                        {/* Rows distilled before the split. Flagged rather than
+                            hidden: they hold real content, they are just filed
+                            under a name that does not say which system it came
+                            from, so they are read in every conversation. */}
+                        {cat.legacy && (
+                          <span
+                            title="Distilled before East and West were separated — may mix both systems"
+                            className="datum text-[0.5625rem] uppercase tracking-[0.16em] text-bone-faint"
+                          >
+                            unsorted
+                          </span>
+                        )}
+                        <span className="datum text-[0.5625rem] text-bone-faint">
+                          {cat.lessons.length}
+                        </span>
                       </span>
                     </div>
                     <ul className="space-y-1">
@@ -180,21 +217,14 @@ export function MemoryControl() {
             )}
           </div>
 
-          {/* Write to it */}
-          <div className="flex items-center justify-between gap-3 border-t border-rule px-4 py-3">
-            <button
-              type="button"
-              onClick={distil}
-              disabled={!canDistil || summarizing || busy || !chart}
-              title={
-                canDistil
-                  ? "Distil this conversation into memory and carry on"
-                  : "Needs a question and an answer first"
-              }
-              className="datum text-[0.625rem] uppercase tracking-[0.18em] text-bone-faint transition-colors hover:text-patina disabled:cursor-not-allowed disabled:opacity-30"
-            >
-              {summarizing ? "distilling…" : "distil this conversation"}
-            </button>
+          {/* Distilling lives under the composer now, not here — it is an act
+              on the conversation, and nobody thought to look for it inside a
+              panel. This panel shows what memory holds and whether it is
+              attached; writing to it happens where the writing happened. */}
+          <div className="flex items-center justify-between gap-3 border-t border-rule px-4 py-2">
+            <span className="datum text-[0.5625rem] uppercase tracking-[0.18em] text-bone-faint">
+              distil below the composer
+            </span>
             <a
               href="/council"
               className="datum shrink-0 text-[0.5625rem] uppercase tracking-[0.18em] text-bone-faint transition-colors hover:text-patina"

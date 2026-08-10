@@ -69,9 +69,13 @@ export interface CycleRowData {
 export default function CycleRow({
   cycle,
   now,
+  onClick,
+  selected,
 }: {
   cycle: CycleRowData;
   now: Date;
+  onClick?: () => void;
+  selected?: boolean;
 }) {
   const { band } = cycle;
   const meta = planetMeta(cycle.planet);
@@ -99,9 +103,20 @@ export default function CycleRow({
   const trackH = TRACK_TOP + BAR_H + (labels.length ? 22 : 4);
 
   return (
-    <div className="border-b border-rule-faint py-4">
-      {/* Heading */}
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-1">
+    <div
+      className={`border-b border-rule-faint py-4 transition-colors ${selected ? "bg-surface" : ""}`}
+    >
+      {/* Heading — clickable if onClick provided */}
+      <div
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onClick={onClick}
+        onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") onClick(); } : undefined}
+        className={`mb-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 ${onClick
+            ? "cursor-pointer rounded-sm outline-none hover:opacity-80 focus-visible:ring-1 focus-visible:ring-[var(--color-patina)]"
+            : ""
+          }`}
+      >
         {/* Left: glyph · planet · house */}
         <div className="flex items-center gap-3">
           <span className="glyph text-xl leading-none" style={{ color }}>
@@ -124,12 +139,22 @@ export default function CycleRow({
           </div>
         </div>
 
-        {/* Right: elapsed */}
-        <div>
-          <span className="datum text-[1rem]" style={{ color }}>
-            {Math.round(elapsed * 100)}%
-          </span>
-          <span className="datum text-[0.6875rem] text-bone-faint ml-1">elapsed</span>
+        {/* Right: elapsed + info affordance */}
+        <div className="flex items-center gap-3">
+          <div>
+            <span className="datum text-[1rem]" style={{ color }}>
+              {Math.round(elapsed * 100)}%
+            </span>
+            <span className="datum text-[0.6875rem] text-bone-faint ml-1">elapsed</span>
+          </div>
+          {onClick && (
+            <span
+              className={`datum text-[0.625rem] tracking-[0.18em] uppercase transition-colors ${selected ? "text-patina" : "text-bone-faint"
+                }`}
+            >
+              {selected ? "open ›" : "read ›"}
+            </span>
+          )}
         </div>
       </div>
 

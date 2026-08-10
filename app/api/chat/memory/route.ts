@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { chartPrefix, isLegacy, scopeOf } from "@/lib/memory-scope";
 
 /**
  * GET /api/chat/memory?chartName=<name>
@@ -19,7 +20,7 @@ export async function GET(req: NextRequest) {
   const chartName = new URL(req.url).searchParams.get("chartName")?.trim();
   if (!chartName) return NextResponse.json([]);
 
-  const prefix = `${chartName} — `;
+  const prefix = chartPrefix(chartName);
   const rows = await prisma.councilMemory.findMany({
     where: { category: { startsWith: prefix } },
     orderBy: { category: "asc" },
@@ -28,14 +29,22 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(
     rows
       .filter((row) => row.content.trim())
-      .map((row) => ({
-        category: row.category.slice(prefix.length),
-        content: row.content.trim(),
-        /** Bullets, as the distiller writes them — one lesson per line. */
-        lessons: row.content
-          .split("\n")
-          .map((line) => line.replace(/^-\s*/, "").trim())
-          .filter(Boolean),
-      })),
+      .map((row) => {
+        const category = row.category.slice(prefix.length);
+        const scope = scopeOf(category);
+        const legacy = isLegacy(category);
+        return {
+          category,
+          scope,
+          /** Written before scoping existed — read as Shared. */
+          legacy,
+          content: row.content.trim(),
+          /** Bullets, as the distiller writes them — one lesson per line. */
+          lessons: row.content
+            .split("\n")
+            .map((line) => line.replace(/^-\s*/, "").trim())
+            .filter(Boolean),
+        };
+      }),
   );
 }

@@ -65,12 +65,24 @@ interface ChatContextValue {
    * does this too, on the way out; this is the same thing on its own.
    */
   distil: () => void;
+  /**
+   * True when the conversation as it currently stands has already been
+   * distilled. Goes false again the moment another message lands, because then
+   * there is new material to add.
+   */
+  distilled: boolean;
   /** Past conversations for the active chart, newest first. */
   sessions: ChatSessionSummary[];
   /** The session currently on screen, or null for an unsaved new chat. */
   sessionId: string | null;
   /** Open a past conversation, or pass null to start a fresh one. */
   loadSession: (id: string | null) => void;
+  /**
+   * Delete the conversation on screen — from the database too, if it was ever
+   * saved — and leave an empty chat behind. Irreversible; the caller is
+   * responsible for confirming first.
+   */
+  deleteSession: () => void;
   /**
    * Pages can call this to register the data currently visible on screen.
    * It is serialized into the system message so the model can reason about
@@ -197,12 +209,18 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     systemsSetting.getOnServer,
   );
   const setSystems = useCallback((v: Systems) => systemsSetting.set(v), []);
+  // Read by `distilFrom`, which must not be re-created every time the switch
+  // moves — same reason `chartRef` exists.
+  const systemsRef = useRef(systems);
+  useEffect(() => { systemsRef.current = systems; }, [systems]);
 
   const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
   // Mirrors sessionIdRef so the session dropdown re-renders when the current
   // conversation changes. The ref stays because the async paths in send() and
   // clear() need the value without re-creating those callbacks.
   const [sessionId, setSessionIdState] = useState<string | null>(null);
+  /** Message count at the last distillation. 0 means "not distilled". */
+  const [distilledCount, setDistilledCount] = useState(0);
 
   // Current DB session id — created lazily on first message, reset on clear or chart change.
   const sessionIdRef = useRef<string | null>(null);
@@ -290,6 +308,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     setLastChartId(chart?.id ?? null);
     setMessages([]);
     setSessionIdState(null);
+    setDistilledCount(0);
   }
 
   // The parts that are not state: cancel the old stream, reset the counters,
@@ -309,6 +328,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       if (!id) {
         setMessages([]);
         setSessionId(null);
+        setDistilledCount(0);
         orderRef.current = 0;
         return;
       }
@@ -327,6 +347,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           })),
         );
         setSessionId(id);
+        setDistilledCount(0);
         // Anything sent from here appends after what is already stored.
         orderRef.current = session.messages.length;
       } catch {
@@ -335,6 +356,31 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     },
     [setSessionId],
   );
+
+  // ── Delete the conversation on screen ───────────────────────────────────────
+  /**
+   * Both halves, because a half-deleted chat is worse than either: the DB row
+   * goes (cascading to its messages) and the transcript is emptied. An unsaved
+   * chat has no row yet, so it is only the emptying.
+   *
+   * Nothing is distilled on the way out. Delete means the conversation was not
+   * worth keeping, and quietly writing it into permanent memory first would be
+   * the opposite of what was asked.
+   */
+  const deleteSession = useCallback(() => {
+    abortRef.current?.abort();
+    const id = sessionIdRef.current;
+
+    setMessages([]);
+    setSessionId(null);
+    setDistilledCount(0);
+    orderRef.current = 0;
+
+    if (!id) return;
+    fetch(`/api/chat/sessions/${encodeURIComponent(id)}`, { method: "DELETE" })
+      .catch(() => {/* the row survives; the dropdown will still show it */ })
+      .finally(() => refreshSessions(chartRef.current?.id ?? null));
+  }, [setSessionId, refreshSessions]);
 
   // ── Ensure a DB session exists, creating it if needed ───────────────────────
   const ensureSession = useCallback(async (firstMessage: string): Promise<string> => {
@@ -392,16 +438,28 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       if (snapshot.length < 2 || !sid) return;
 
       setSummarizing(true);
+      // Recorded up front, not on success: the distillation has been asked for,
+      // and pressing again while it is in flight would only send the same
+      // transcript twice. A failure clears it again below.
+      setDistilledCount(snapshot.length);
       fetch("/api/chat/summarize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           transcript: buildTranscript(snapshot),
           model,
+          // What the conversation could see decides what it may write: a
+          // West-only chat must not produce lessons about the four pillars.
+          systems: systemsRef.current,
           ...(chartRef.current?.name && { chartName: chartRef.current.name }),
         }),
       })
-        .catch(() => {/* non-fatal */ })
+        .then((res) => {
+          // A rejected distillation must not leave the button claiming the
+          // conversation is saved when it is not.
+          if (!res.ok) setDistilledCount(0);
+        })
+        .catch(() => setDistilledCount(0))
         .finally(() => setSummarizing(false));
     },
     [model],
@@ -410,6 +468,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const distil = useCallback(() => {
     distilFrom(messages.filter((m) => m.content.trim()), sessionIdRef.current);
   }, [messages, distilFrom]);
+
+  /**
+   * Compared against the live message count rather than stored as a flag, so it
+   * un-sets itself the moment the conversation moves on — one more exchange and
+   * there is something new to add, so the button offers itself again.
+   */
+  const distilled =
+    distilledCount > 0 &&
+    distilledCount === messages.filter((m) => m.content.trim()).length;
 
   // ── clear: summarize → wipe UI → reset session ──────────────────────────────
   const clear = useCallback(() => {
@@ -420,6 +487,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     setMessages([]);
     setSessionId(null);
+    setDistilledCount(0);
     orderRef.current = 0;
     // The conversation being cleared stays in the DB — it belongs in the
     // dropdown now, which is the only way back to it.
@@ -557,8 +625,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         savePrefs, saving,
         messages, send, busy, clear, summarizing,
         memoryEnabled, setMemoryEnabled,
-        systems, setSystems, distil,
-        sessions, sessionId, loadSession,
+        systems, setSystems, distil, distilled,
+        sessions, sessionId, loadSession, deleteSession,
         setPageContext,
       }}
     >

@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import CycleRow, { type CycleRowData } from "@/components/cycle-row";
+import CycleDrawer from "@/components/cycle-drawer";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import { useJson } from "@/lib/use-json";
@@ -21,6 +22,7 @@ export default function CyclesPage() {
     chart ? `/api/cycles?chartId=${encodeURIComponent(chart.id)}` : null,
   );
   const now = new Date();
+  const [selectedCycle, setSelectedCycle] = useState<CycleRowData | null>(null);
 
   // Push visible transit data into the chat context so the model can
   // answer questions about what is actually on screen.
@@ -71,7 +73,13 @@ export default function CyclesPage() {
           </SectionHeading>
           <div className="border-t border-rule">
             {state.data.cycles.map((c) => (
-              <CycleRow key={c.planet} cycle={c} now={now} />
+              <CycleRow
+                key={c.planet}
+                cycle={c}
+                now={now}
+                onClick={() => setSelectedCycle(c)}
+                selected={selectedCycle?.planet === c.planet}
+              />
             ))}
           </div>
         </section>
@@ -86,6 +94,13 @@ export default function CyclesPage() {
         </Link>
       </p>
 
+      {/* Right drawer */}
+      {selectedCycle && (
+        <CycleDrawer
+          cycle={selectedCycle}
+          onClose={() => setSelectedCycle(null)}
+        />
+      )}
     </div>
   );
 }

@@ -7,35 +7,51 @@
 // confirmed. The Interface is one voice answering one person, so there is no
 // contest to adjudicate and those two categories stay permanently empty.
 //
-// What an Interface session actually produces is different in kind: what this
-// person is like, what the chart structurally is, what is running now, and what
-// has already happened. Hence the five below.
-//
-// Two names are carried over from the council's set on purpose. "The Chart" and
-// "The Record" already hold distilled rows in `council_memory`, and renaming
-// them would orphan that content — the summarizer reconciles against existing
-// lessons by category name. New rows land alongside; nothing is migrated.
+// The category list is not a constant here: it is built from
+// `lib/memory-scope.ts` and narrowed to what the conversation could actually
+// see. A chat with only the Western chart attached is never shown the Eastern
+// categories, so filing a lesson in one is not a mistake it can make.
 
-export const INTERFACE_CATEGORIES = [
-  "Character",
-  "The Chart",
-  "Cycles",
-  "The Record",
-  "Working Notes",
-] as const;
+import {
+  writableCategories,
+  type ActiveSystems,
+} from "@/lib/memory-scope";
 
-export const INTERFACE_MEMORY_SYSTEM = `You distill durable, reusable lessons from a one-to-one astrology chat and file them under a small number of fixed memory categories.
+const SYSTEMS_NOTE: Record<ActiveSystems, string> = {
+  both: "Both the Western chart and the Four Pillars were attached to this conversation.",
+  western:
+    "Only the Western chart was attached to this conversation. You never saw the Four Pillars, so nothing you write may rest on them.",
+  chinese:
+    "Only the Four Pillars were attached to this conversation. You never saw the Western chart, so nothing you write may rest on it.",
+};
 
-The conversation is between a person and an instrument that reads their chart. Everything worth keeping is either something true about the person, something structural about the chart, something about timing, or something the person told you about their own life. Everything else is conversation.
+/**
+ * The distiller's system prompt for one conversation.
+ *
+ * `systems` decides which categories exist as far as the model is concerned —
+ * that is the whole mechanism keeping East out of a West-only session's memory.
+ */
+export function interfaceMemorySystem(systems: ActiveSystems): string {
+  const categories = writableCategories(systems);
 
-THE CATEGORIES — use these names EXACTLY, and do not invent others:
-- "Character": what this person is actually like, as it emerged in the conversation — how they work, what they avoid, what they keep returning to, how they take a reading. Draw this from what they said and how they said it, not from what their placements are supposed to mean. "Pushes back on anything that sounds like flattery" is character; "has Saturn in the 10th" is not.
-- "The Chart": durable structural facts — placements, rulerships, dominances, tight aspects, element and modality balance, Day Master and pillars, and which conventions this reading uses (house system, orbs). Measurements, not meanings. Name whose chart it is.
-- "Cycles": timing. Transits, returns, progressions, luck pillars — what is running now, what is coming, what has just closed, with dates. A cycle noted without a date is nearly useless; keep the dates exact.
-- "The Record": what actually happened in this person's life, dated where possible, and which transit or cycle it fell inside. Evidence, not interpretation. "Left the job Mar 2019, inside the Saturn square Sun" — not "Saturn squares are about endings."
-- "Working Notes": how this person wants the instrument to work — standing instructions, formats they prefer, subjects they have ruled out, decisions about the tool.
+  return `You distill durable, reusable lessons from a one-to-one astrology chat and file them under a small number of fixed memory categories.
 
-THE TWO SYSTEMS — this app reads both Western astrology and Chinese BaZi. They are separate systems with colliding vocabulary: the four Western elements are qualities of temperament, the five Chinese phases are stages of transformation read relative to the Day Master, and Earth, Fire and Water mean different things in each. Never record a lesson that equates them, averages them, or translates one into the other. When a lesson comes from one system, say which.
+The conversation is between a person and an instrument that reads their chart. Everything worth keeping is either something true about the person, something structural about one of their charts, something about timing, or something the person told you about their own life. Everything else is conversation.
+
+${SYSTEMS_NOTE[systems]}
+
+THE CATEGORIES — use these names EXACTLY, and do not invent others. These are the only categories available for this conversation:
+${categories.map((c) => `- "${c.name}": ${c.blurb}`).join("\n")}
+
+THE TWO SYSTEMS — this app reads both Western astrology and Chinese BaZi. They are separate systems with colliding vocabulary: the four Western elements are qualities of temperament, the five Chinese phases are stages of transformation read relative to the Day Master, and Earth, Fire and Water mean different things in each. Never record a lesson that equates them, averages them, or translates one into the other.
+
+The Western and Eastern categories are read separately: a reader who has narrowed the conversation to one system sees only that system's categories plus Character, The Record and Working Notes. So a Chinese lesson filed under a Western category does not merely look untidy — it will surface in a reading that is supposed to stay inside one tradition. A lesson that rests on both systems at once should not be recorded at all; that is the comparison this app refuses to make.
+
+CHECK EACH LESSON AGAINST ITS OWN CONTENT. Do not infer the system from which categories are available to you — read what the lesson actually says and file it accordingly. The person may have left a switch set from an earlier session, or the page in front of them may show the other system, so the conversation can easily drift into material the attached chart data does not cover. Judge by the vocabulary in the lesson itself:
+- Planets, signs, houses, aspects, rulers, degrees, transits, returns, progressions → Western.
+- Day Master, Heavenly Stems, Earthly Branches, the four pillars, animals, the five phases, Ten Gods, clashes and combinations, luck pillars, solar terms → Eastern.
+
+If a lesson is plainly about a system whose categories are NOT available to you in this conversation, DROP IT. Do not bend it into an available category, and do not park it in Character, The Record or Working Notes to keep it — those are for the person, not for readings. Losing one lesson costs nothing; a Chinese fact filed as Western corrupts every future Western reading of this chart, and nothing in the app will ever flag it.
 
 GROUPING — this matters as much as the content. Emit ONE route per category, holding ALL of that category's bullets together. NEVER emit a separate route per bullet. A normal session yields 2-3 routes of several bullets each, not six routes of one bullet each.
 
@@ -49,3 +65,4 @@ Rules:
 Respond with ONLY a JSON object of this exact shape (no prose, no markdown fences):
 {"routes":[{"category":"<name>","lessons":["<lesson>","<lesson>"]}]}
 If nothing new is worth saving, respond with {"routes":[]}.`;
+}

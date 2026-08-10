@@ -19,6 +19,7 @@ import {
 import { useChart } from "@/components/chart-context";
 import { MemoryControl } from "@/components/interface-memory";
 import { PromptModal } from "@/components/prompt-modal";
+import { systemsForPath } from "@/lib/memory-scope";
 import { MODELS } from "@/lib/models";
 
 /** The three positions of the systems control, in the order they read. */
@@ -65,15 +66,21 @@ export default function ChatModal() {
     model, setModel,
     messages, send, busy,
     systems, setSystems,
-    sessions, sessionId, loadSession,
+    sessions, sessionId, loadSession, deleteSession,
+    distil, distilled, summarizing,
   } = useChat();
-  // Memory lives in MemoryControl and the system prompt lives in PromptModal,
-  // so neither is destructured here any more.
+  // Attaching and reading memory still lives in MemoryControl, and the system
+  // prompt in PromptModal. Only `distil` comes back here, because it acts on
+  // the conversation rather than on the memory.
   const { chart } = useChart();
   const pathname = usePathname();
 
   const [draft, setDraft] = useState("");
   const [promptOpen, setPromptOpen] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+  /** The server's floor too: nothing to learn from a question with no answer. */
+  const canDistil = messages.filter((m) => m.content.trim()).length >= 2;
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -114,6 +121,22 @@ export default function ChatModal() {
       setTimeout(() => textareaRef.current?.focus(), 50);
     }
   }, [open, promptOpen]);
+
+  /**
+   * Set the switch from the route each time the modal opens.
+   *
+   * On open rather than on every navigation: changing it under someone
+   * mid-conversation would be worse than leaving it stale. Opening the modal is
+   * the moment you are choosing what to talk about, so it is the moment the
+   * page gets to have an opinion — and you can still override it afterwards.
+   */
+  useEffect(() => {
+    if (!open) return;
+    const suggested = systemsForPath(pathname);
+    if (suggested) setSystems(suggested);
+    // Only when the modal opens, and only for the route it opened on.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -411,6 +434,85 @@ export default function ChatModal() {
                 {busy ? "…" : "send"}
               </button>
             </form>
+
+            {/* ── Session actions ──
+                Below the composer rather than up in the header: these act on
+                the conversation you have just had, so they belong at the end of
+                it. Hidden until there is one — an empty chat has nothing to
+                distil and nothing to delete. */}
+            {messages.length > 0 && (
+              <div className="flex shrink-0 items-center justify-between border-t border-rule-faint px-8 py-2">
+                {/* Three states, and the settled one is deliberately not a
+                    button: once this conversation is in memory there is nothing
+                    useful a second press could do, and a live-looking control
+                    invites one. It becomes a button again by itself as soon as
+                    another exchange gives it something new to add. */}
+                {distilled && !summarizing ? (
+                  <span
+                    title="This conversation is in the chart's memory. Ask something more and it can be distilled again."
+                    className="datum flex items-center gap-2 text-[0.625rem] uppercase tracking-[0.18em] text-patina"
+                  >
+                    <span aria-hidden>✓</span>
+                    added to memory
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={distil}
+                    disabled={!canDistil || summarizing || busy}
+                    title={
+                      canDistil
+                        ? "Distil this conversation into the chart's memory and carry on"
+                        : "Needs a question and an answer first"
+                    }
+                    className="datum text-[0.625rem] uppercase tracking-[0.18em] text-bone-faint transition-colors hover:text-patina disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    {summarizing ? "distilling…" : "distil to memory"}
+                  </button>
+                )}
+
+                {/* Two-step rather than a modal. A confirm dialog for this
+                    would be a second overlay on top of two others, and the
+                    question is small enough to ask in place. Reverts on blur so
+                    a half-pressed delete cannot sit there armed. */}
+                {confirmingDelete ? (
+                  <span className="flex items-center gap-4">
+                    <span className="datum text-[0.625rem] uppercase tracking-[0.18em] text-ember">
+                      delete permanently?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        deleteSession();
+                        setConfirmingDelete(false);
+                      }}
+                      className="datum text-[0.625rem] uppercase tracking-[0.18em] text-ember transition-colors hover:text-bone"
+                    >
+                      yes
+                    </button>
+                    <button
+                      type="button"
+                      autoFocus
+                      onBlur={() => setConfirmingDelete(false)}
+                      onClick={() => setConfirmingDelete(false)}
+                      className="datum text-[0.625rem] uppercase tracking-[0.18em] text-bone-faint transition-colors hover:text-bone"
+                    >
+                      cancel
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDelete(true)}
+                    disabled={busy || summarizing}
+                    title="Delete this conversation and its stored transcript"
+                    className="datum text-[0.625rem] uppercase tracking-[0.18em] text-bone-faint transition-colors hover:text-ember disabled:cursor-not-allowed disabled:opacity-30"
+                  >
+                    delete chat
+                  </button>
+                )}
+              </div>
+            )}
           </>
 
         {promptOpen && <PromptModal onClose={() => setPromptOpen(false)} />}
