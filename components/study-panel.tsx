@@ -89,12 +89,17 @@ export function Block({
   );
 }
 
-/** Body copy. The long descriptions in the tables are all prose. */
+/**
+ * Body copy. The long descriptions in the tables are all prose.
+ *
+ * Size only — the weight and the colour come from `body`, so there is one place
+ * to argue about how running text is set. See the note there: Cormorant is a
+ * display face and light-on-dark thins it further, which is why the answer was
+ * 19px at 500 in full bone rather than the 17px at 300 this started as.
+ */
 export function Prose({ children }: { children: ReactNode }) {
   return (
-    <p className="text-[1.0625rem] leading-relaxed font-light text-bone-soft">
-      {children}
-    </p>
+    <p className="text-[1.1875rem] leading-relaxed text-bone">{children}</p>
   );
 }
 
@@ -123,7 +128,7 @@ export function ListColumn({
         {items.map((item) => (
           <li key={item} className="flex gap-3">
             <span className={`datum text-[0.625rem] leading-6 ${mark}`}>—</span>
-            <span className="text-[0.9375rem] leading-relaxed font-light text-bone-soft">
+            <span className="text-[1.0625rem] leading-relaxed text-bone">
               {item}
             </span>
           </li>

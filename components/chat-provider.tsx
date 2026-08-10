@@ -7,11 +7,21 @@ import {
   useEffect,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { DEFAULT_MODEL } from "@/lib/models";
 import { DEFAULT_INTERFACE_PROMPT } from "@/lib/interface-prefs";
 import { useChart } from "@/components/chart-context";
+
+/** A past conversation, as the session dropdown needs it. No transcript — the
+ *  messages are fetched only when one is actually opened. */
+export interface ChatSessionSummary {
+  id: string;
+  title: string | null;
+  updatedAt: string;
+  messageCount: number;
+}
 
 export interface ChatMessage {
   id: string;
@@ -37,7 +47,30 @@ interface ChatContextValue {
   messages: ChatMessage[];
   send: (text: string, pathname?: string) => void;
   busy: boolean;
+  /** Clear the conversation, distilling it into memory first. */
   clear: () => void;
+  /** True while the post-clear summarization is running. */
+  summarizing: boolean;
+  /**
+   * Whether the active chart's distilled memory travels with each message.
+   * Only ever this chart's — see the scoping in `/api/chat`.
+   */
+  memoryEnabled: boolean;
+  setMemoryEnabled: (v: boolean) => void;
+  /** Which system(s) the model may read from. */
+  systems: Systems;
+  setSystems: (v: Systems) => void;
+  /**
+   * Distil the current conversation into memory without ending it. `clear`
+   * does this too, on the way out; this is the same thing on its own.
+   */
+  distil: () => void;
+  /** Past conversations for the active chart, newest first. */
+  sessions: ChatSessionSummary[];
+  /** The session currently on screen, or null for an unsaved new chat. */
+  sessionId: string | null;
+  /** Open a past conversation, or pass null to start a fresh one. */
+  loadSession: (id: string | null) => void;
   /**
    * Pages can call this to register the data currently visible on screen.
    * It is serialized into the system message so the model can reason about
@@ -50,6 +83,97 @@ interface ChatContextValue {
 
 const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 
+// ─── chart-memory toggle ──────────────────────────────────────────────────────
+/**
+ * Whether the active chart's distilled memory is attached to each message.
+ *
+ * Kept in localStorage rather than component state. The council's equivalent is
+ * a plain `useState(true)` and forgets on every visit, which it can afford —
+ * the council is one long sitting. This modal is opened and closed a dozen
+ * times an hour, and a memory switch that silently flips back on is worse than
+ * no switch at all.
+ *
+ * Same `useSyncExternalStore` shape as the chart selection in
+ * `components/chart-context.tsx`, and for the same reason: it reads the client
+ * value on hydration without a setState-in-an-effect, and keeps other tabs in
+ * step. The server snapshot is `true` because on is the default.
+ */
+const MEMORY_KEY = "oddessi:chartMemory";
+
+let memoryListeners: Array<() => void> = [];
+
+const memorySetting = {
+  subscribe(onChange: () => void) {
+    memoryListeners.push(onChange);
+    window.addEventListener("storage", onChange);
+    return () => {
+      memoryListeners = memoryListeners.filter((l) => l !== onChange);
+      window.removeEventListener("storage", onChange);
+    };
+  },
+  get(): boolean {
+    return window.localStorage.getItem(MEMORY_KEY) !== "off";
+  },
+  getOnServer(): boolean {
+    return true;
+  },
+  set(value: boolean) {
+    window.localStorage.setItem(MEMORY_KEY, value ? "on" : "off");
+    memoryListeners.forEach((l) => l());
+  },
+};
+
+// ─── systems toggle ───────────────────────────────────────────────────────────
+/**
+ * Which system(s) the Interface may read from.
+ *
+ * Narrowing to one is not only about tokens. With both attached the model will
+ * reach across them unprompted — the two element vocabularies share three
+ * names — so "Western only" is the way to get a reading that stays inside one
+ * tradition and can be judged on its own terms. Both is the default because it
+ * is what the app is for.
+ *
+ * Same localStorage store as the memory toggle above.
+ */
+export type Systems = "western" | "chinese" | "both";
+
+const SYSTEMS_KEY = "oddessi:systems";
+
+let systemsListeners: Array<() => void> = [];
+
+const systemsSetting = {
+  subscribe(onChange: () => void) {
+    systemsListeners.push(onChange);
+    window.addEventListener("storage", onChange);
+    return () => {
+      systemsListeners = systemsListeners.filter((l) => l !== onChange);
+      window.removeEventListener("storage", onChange);
+    };
+  },
+  get(): Systems {
+    const stored = window.localStorage.getItem(SYSTEMS_KEY);
+    return stored === "western" || stored === "chinese" ? stored : "both";
+  },
+  getOnServer(): Systems {
+    return "both";
+  },
+  set(value: Systems) {
+    window.localStorage.setItem(SYSTEMS_KEY, value);
+    systemsListeners.forEach((l) => l());
+  },
+};
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+function buildTranscript(msgs: ChatMessage[]): string {
+  return msgs
+    .filter((m) => m.content.trim())
+    .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content.trim()}`)
+    .join("\n\n");
+}
+
+// ─── provider ─────────────────────────────────────────────────────────────────
+
 export function ChatProvider({ children }: { children: ReactNode }) {
   const [open, setOpenState] = useState(false);
   const [model, setModelState] = useState(DEFAULT_MODEL);
@@ -57,12 +181,43 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
   const [pageContext, setPageContextState] = useState<Record<string, unknown> | null>(null);
+
+  const memoryEnabled = useSyncExternalStore(
+    memorySetting.subscribe,
+    memorySetting.get,
+    memorySetting.getOnServer,
+  );
+  const setMemoryEnabled = useCallback((v: boolean) => memorySetting.set(v), []);
+
+  const systems = useSyncExternalStore(
+    systemsSetting.subscribe,
+    systemsSetting.get,
+    systemsSetting.getOnServer,
+  );
+  const setSystems = useCallback((v: Systems) => systemsSetting.set(v), []);
+
+  const [sessions, setSessions] = useState<ChatSessionSummary[]>([]);
+  // Mirrors sessionIdRef so the session dropdown re-renders when the current
+  // conversation changes. The ref stays because the async paths in send() and
+  // clear() need the value without re-creating those callbacks.
+  const [sessionId, setSessionIdState] = useState<string | null>(null);
+
+  // Current DB session id — created lazily on first message, reset on clear or chart change.
+  const sessionIdRef = useRef<string | null>(null);
+  // Monotonically-increasing order counter for messages within the session.
+  const orderRef = useRef(0);
+
   const abortRef = useRef<AbortController | null>(null);
 
   const { chart } = useChart();
+  // Keep a ref so callbacks always see the latest chart without needing it in
+  // their dep arrays (avoids stale-closure issues in ensureSession / clear).
+  const chartRef = useRef(chart);
+  useEffect(() => { chartRef.current = chart; }, [chart]);
 
-  // Load persisted prefs once on mount.
+  // ── Load prefs once ──────────────────────────────────────────────────────────
   useEffect(() => {
     fetch("/api/interface-prefs")
       .then((r) => r.json())
@@ -70,12 +225,141 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         if (data.model) setModelState(data.model);
         if (data.systemPrompt) setSystemPromptState(data.systemPrompt);
       })
-      .catch(() => {/* silently ignore — defaults are fine */ });
+      .catch(() => {/* silently ignore */ });
   }, []);
+
+  /** Set both the ref the async paths read and the state the dropdown renders. */
+  const setSessionId = useCallback((id: string | null) => {
+    sessionIdRef.current = id;
+    setSessionIdState(id);
+  }, []);
+
+  // ── List past conversations for the active chart ────────────────────────────
+  /**
+   * The list only. Nothing is loaded into the transcript.
+   *
+   * This used to restore the most recent session on mount, which meant opening
+   * the modal dropped you into whatever you last said — usually the middle of a
+   * conversation you had finished with. A chat surface that reopens mid-thought
+   * is worse than one that forgets, because you have to notice and clear it
+   * before you can start. Past sessions are now something you go and get.
+   *
+   * Note this is per chart: the endpoint takes chartId, and no chart means the
+   * chartless sessions rather than everyone's.
+   */
+  const refreshSessions = useCallback((chartId: string | null) => {
+    const url = chartId
+      ? `/api/chat/sessions?chartId=${encodeURIComponent(chartId)}`
+      : "/api/chat/sessions";
+
+    // Promise callbacks rather than async/await on purpose: the setState then
+    // lands in a continuation instead of running synchronously inside whatever
+    // effect called this. Same shape as the prefs load above.
+    fetch(url)
+      .then((r) => r.json())
+      .then((rows: Array<{
+        id: string;
+        title: string | null;
+        updatedAt: string;
+        messages: unknown[];
+      }>) => {
+        setSessions(
+          rows
+            .filter((r) => r.messages.length > 0)
+            .map((r) => ({
+              id: r.id,
+              title: r.title,
+              updatedAt: r.updatedAt,
+              messageCount: r.messages.length,
+            })),
+        );
+      })
+      .catch(() => {/* the dropdown simply stays as it was */ });
+  }, []);
+
+  /**
+   * A fresh transcript whenever the chart changes.
+   *
+   * Adjusted during render rather than in an effect. React re-runs the render
+   * before committing, so there is never a frame showing the previous person's
+   * conversation under the new person's name — and no cascading render, which
+   * is what doing this in an effect would cost.
+   */
+  const [lastChartId, setLastChartId] = useState<string | null>(chart?.id ?? null);
+  if ((chart?.id ?? null) !== lastChartId) {
+    setLastChartId(chart?.id ?? null);
+    setMessages([]);
+    setSessionIdState(null);
+  }
+
+  // The parts that are not state: cancel the old stream, reset the counters,
+  // and fetch the new chart's list.
+  useEffect(() => {
+    abortRef.current?.abort();
+    sessionIdRef.current = null;
+    orderRef.current = 0;
+    refreshSessions(chart?.id ?? null);
+  }, [chart?.id, refreshSessions]);
+
+  // ── Open a past conversation ────────────────────────────────────────────────
+  const loadSession = useCallback(
+    async (id: string | null) => {
+      abortRef.current?.abort();
+
+      if (!id) {
+        setMessages([]);
+        setSessionId(null);
+        orderRef.current = 0;
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/chat/sessions/${encodeURIComponent(id)}`);
+        if (!res.ok) return;
+        const session = (await res.json()) as {
+          messages: Array<{ id: string; role: string; content: string }>;
+        };
+        setMessages(
+          session.messages.map((m) => ({
+            id: m.id,
+            role: m.role as "user" | "assistant",
+            content: m.content,
+          })),
+        );
+        setSessionId(id);
+        // Anything sent from here appends after what is already stored.
+        orderRef.current = session.messages.length;
+      } catch {
+        /* leave the current transcript alone */
+      }
+    },
+    [setSessionId],
+  );
+
+  // ── Ensure a DB session exists, creating it if needed ───────────────────────
+  const ensureSession = useCallback(async (firstMessage: string): Promise<string> => {
+    if (sessionIdRef.current) return sessionIdRef.current;
+
+    const c = chartRef.current;
+    const res = await fetch("/api/chat/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: firstMessage.slice(0, 80),
+        chartId: c?.id ?? null,
+        chartName: c?.name ?? null,
+      }),
+    });
+    const { id } = await res.json() as { id: string };
+    setSessionId(id);
+    orderRef.current = 0;
+    // The new conversation should appear in the dropdown without a reload.
+    refreshSessions(c?.id ?? null);
+    return id;
+  }, [setSessionId, refreshSessions]);
 
   const setOpen = useCallback((v: boolean) => setOpenState(v), []);
   const toggle = useCallback(() => setOpenState((p) => !p), []);
-
   const setModel = useCallback((id: string) => setModelState(id), []);
   const setSystemPrompt = useCallback((p: string) => setSystemPromptState(p), []);
 
@@ -92,15 +376,63 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }
   }, [model, systemPrompt]);
 
+  // ── distil: transcript → memory, leaving the conversation alone ─────────────
+  /**
+   * Split out of `clear` so saving what a session taught you is no longer
+   * welded to destroying it. Clearing still distils on the way out — that
+   * behaviour was right, it was just the *only* way to reach it, which meant
+   * closing the modal or switching charts quietly threw the lessons away.
+   *
+   * Needs two messages and a saved session: there is nothing to distil from a
+   * question with no answer, and an unsaved chat has no transcript on the
+   * server to reconcile against.
+   */
+  const distilFrom = useCallback(
+    (snapshot: ChatMessage[], sid: string | null) => {
+      if (snapshot.length < 2 || !sid) return;
+
+      setSummarizing(true);
+      fetch("/api/chat/summarize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transcript: buildTranscript(snapshot),
+          model,
+          ...(chartRef.current?.name && { chartName: chartRef.current.name }),
+        }),
+      })
+        .catch(() => {/* non-fatal */ })
+        .finally(() => setSummarizing(false));
+    },
+    [model],
+  );
+
+  const distil = useCallback(() => {
+    distilFrom(messages.filter((m) => m.content.trim()), sessionIdRef.current);
+  }, [messages, distilFrom]);
+
+  // ── clear: summarize → wipe UI → reset session ──────────────────────────────
   const clear = useCallback(() => {
     abortRef.current?.abort();
+
+    const snapshot = messages.filter((m) => m.content.trim());
+    const sid = sessionIdRef.current;
+
     setMessages([]);
-  }, []);
+    setSessionId(null);
+    orderRef.current = 0;
+    // The conversation being cleared stays in the DB — it belongs in the
+    // dropdown now, which is the only way back to it.
+    refreshSessions(chartRef.current?.id ?? null);
+
+    distilFrom(snapshot, sid);
+  }, [messages, distilFrom, setSessionId, refreshSessions]);
 
   const setPageContext = useCallback((ctx: Record<string, unknown> | null) => {
     setPageContextState(ctx);
   }, []);
 
+  // ── send ────────────────────────────────────────────────────────────────────
   const send = useCallback(
     async (text: string, pathname?: string) => {
       if (busy || !text.trim()) return;
@@ -119,6 +451,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       ]);
       setBusy(true);
 
+      let sid: string | null = null;
+      let msgOrder = 0;
+      try {
+        sid = await ensureSession(text.trim());
+        msgOrder = orderRef.current;
+        orderRef.current += 2; // user + assistant
+      } catch {
+        /* non-fatal — chat continues without persistence */
+      }
+
       const history = [...messages, userMsg].map(({ role, content }) => ({ role, content }));
 
       abortRef.current?.abort();
@@ -130,7 +472,20 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           signal: ctrl.signal,
-          body: JSON.stringify({ messages: history, model, chart, pathname, pageContext }),
+          body: JSON.stringify({
+            messages: history,
+            model,
+            chart,
+            pathname,
+            pageContext,
+            includeMemory: memoryEnabled,
+            systems,
+            ...(sid && {
+              sessionId: sid,
+              userMessage: text.trim(),
+              messageOrder: msgOrder,
+            }),
+          }),
         });
 
         if (!res.ok || !res.body) {
@@ -177,7 +532,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         if (err instanceof Error && err.name !== "AbortError") {
           setMessages((prev) =>
             prev.map((m) =>
-              m.id === assistantId ? { ...m, content: "Request failed.", streaming: false } : m,
+              m.id === assistantId
+                ? { ...m, content: "Request failed.", streaming: false }
+                : m,
             ),
           );
         }
@@ -188,7 +545,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         setBusy(false);
       }
     },
-    [busy, messages, model, chart, pageContext],
+    [busy, messages, model, chart, pageContext, memoryEnabled, systems, ensureSession],
   );
 
   return (
@@ -198,7 +555,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         model, setModel,
         systemPrompt, setSystemPrompt,
         savePrefs, saving,
-        messages, send, busy, clear,
+        messages, send, busy, clear, summarizing,
+        memoryEnabled, setMemoryEnabled,
+        systems, setSystems, distil,
+        sessions, sessionId, loadSession,
         setPageContext,
       }}
     >

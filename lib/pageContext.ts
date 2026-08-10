@@ -120,6 +120,22 @@ export const PAGE_REFS: PageRef[] = [
         content: readLibSource('interpretation.ts'),
     },
     {
+        id: 'method/balance',
+        label: 'Element Balance',
+        group: 'Method',
+        content: readLibSource('balance.ts'),
+    },
+    {
+        // Carries the standing rule about the two element scales. Worth having
+        // in reach even when the council is not on /compare, because the
+        // question ("my Earth is high in one and low in the other") arrives
+        // from the Four Pillars page just as often.
+        id: 'method/comparison',
+        label: 'Comparison',
+        group: 'Method',
+        content: readLibSource('comparison.ts'),
+    },
+    {
         id: 'method/symbols',
         label: 'Symbols',
         group: 'Method',
@@ -187,6 +203,13 @@ export const PAGE_REFS: PageRef[] = [
         group: 'Pages',
         path: '/astro/cycles',
         content: readAppSource('astro/cycles/page.tsx'),
+    },
+    {
+        id: 'pages/compare',
+        label: 'Comparison',
+        group: 'Pages',
+        path: '/compare',
+        content: readAppSource('compare/page.tsx'),
     },
     {
         // Deliberately no `path`. It would auto-attach on /council itself, which

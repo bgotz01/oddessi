@@ -1,0 +1,181 @@
+import { NextRequest, NextResponse } from "next/server";
+import OpenAI from "openai";
+import { prisma } from "@/lib/prisma";
+import { COUNCIL_DEFAULT_MODELS } from "@/lib/models";
+import { INTERFACE_MEMORY_SYSTEM } from "@/lib/prompts/interface";
+
+/**
+ * POST /api/chat/summarize
+ *
+ * Distils an Interface chat transcript into CouncilMemory categories scoped to
+ * the active chart, then automatically persists any new lessons back to the DB.
+ * Called by the client when the user clears the chat (i.e. ends a session).
+ *
+ * When `chartName` is supplied, memory categories are namespaced as
+ * "<chartName> — <Category>", e.g. "Boris — The Chart". This keeps each
+ * person's lessons separate while still living in the same CouncilMemory table
+ * (and appearing in the Council memory panel, labelled by person).
+ *
+ * Body: { transcript: string, chartName?: string, model?: string }
+ *
+ * Returns: { ok: true, categoriesUpdated: string[] }
+ */
+
+const FALLBACK_MODEL = COUNCIL_DEFAULT_MODELS[0];
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENROUTER_API,
+  baseURL: "https://openrouter.ai/api/v1",
+  defaultHeaders: {
+    "HTTP-Referer": process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+    "X-Title": "Oddessi",
+  },
+});
+
+interface Route {
+  category: string;
+  lessons: string[];
+}
+
+function parseRoutes(raw: string): Route[] | null {
+  if (!raw.trim()) return null;
+  const unfenced = raw
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/, "")
+    .trim();
+  const candidates = [unfenced];
+  const firstBrace = unfenced.indexOf("{");
+  const lastBrace = unfenced.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    candidates.push(unfenced.slice(firstBrace, lastBrace + 1));
+  }
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate) as { routes?: Route[] };
+      if (Array.isArray(parsed?.routes)) return parsed.routes;
+    } catch {
+      /* try next */
+    }
+  }
+  return null;
+}
+
+/** Prefix a bare category name with the chart name, e.g. "Boris — The Chart". */
+function scopeCategory(category: string, chartName: string | null | undefined): string {
+  if (!chartName?.trim()) return category;
+  return `${chartName.trim()} — ${category}`;
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const { transcript, chartName, model } = (await req.json()) as {
+      transcript?: string;
+      chartName?: string;
+      model?: string;
+    };
+
+    if (!transcript?.trim()) {
+      return NextResponse.json({ error: "Missing transcript" }, { status: 400 });
+    }
+
+    // Load existing memory rows scoped to this chart (prefix match) so the
+    // model can reconcile against what's already been distilled for this person.
+    const prefix = chartName?.trim() ? `${chartName.trim()} — ` : null;
+    const allMemory = await prisma.councilMemory.findMany({
+      orderBy: { category: "asc" },
+    });
+    const scopedMemory = prefix
+      ? allMemory.filter((c) => c.category.startsWith(prefix))
+      : allMemory.filter((c) => !c.category.includes(" — ")); // unscoped rows only
+
+    // Present bare category names to the model (strip the prefix) so it can
+    // match against the canonical five names.
+    const catBlock =
+      scopedMemory.length > 0
+        ? scopedMemory
+          .map((c) => {
+            const bareName = prefix ? c.category.slice(prefix.length) : c.category;
+            return `### ${bareName}\n${c.content.trim() || "(empty)"}`;
+          })
+          .join("\n\n")
+        : "(no categories yet)";
+
+    const userContent = [
+      "─── ACTIVE PROJECT ───",
+      chartName?.trim()
+        ? `Chart: ${chartName.trim()}`
+        : "(none — this is an Interface chat with no chart active)",
+      "",
+      "─── EXISTING CATEGORIES ───",
+      catBlock,
+      "",
+      "─── SESSION TRANSCRIPT ───",
+      transcript.trim(),
+    ].join("\n");
+
+    const completion = await openai.chat.completions.create({
+      model: model?.trim() || FALLBACK_MODEL,
+      messages: [
+        { role: "system", content: INTERFACE_MEMORY_SYSTEM },
+        { role: "user", content: userContent },
+      ],
+      max_tokens: 4000,
+      temperature: 0.4,
+      response_format: { type: "json_object" },
+    });
+
+    const raw = completion.choices[0]?.message?.content?.trim() ?? "";
+    const parsed = parseRoutes(raw);
+
+    if (!parsed) {
+      return NextResponse.json(
+        { error: "Model did not return usable JSON." },
+        { status: 502 },
+      );
+    }
+
+    const routes = parsed
+      .filter((r) => r && typeof r.category === "string" && Array.isArray(r.lessons))
+      .map((r) => ({
+        category: r.category.trim(),
+        lessons: r.lessons
+          .filter((l) => typeof l === "string" && l.trim())
+          .map((l) => l.trim()),
+      }))
+      .filter((r) => r.category && r.lessons.length > 0);
+
+    if (routes.length === 0) {
+      return NextResponse.json({ ok: true, categoriesUpdated: [] });
+    }
+
+    const updated: string[] = [];
+
+    for (const route of routes) {
+      // The model returns bare category names — scope them to the chart.
+      const fullCategory = scopeCategory(route.category, chartName);
+
+      // Find the existing row by the full scoped name.
+      const existing = allMemory.find(
+        (c) => c.category.toLowerCase() === fullCategory.toLowerCase(),
+      );
+
+      const currentContent = existing?.content ?? "";
+      const newBullets = route.lessons.map((l) => `- ${l}`).join("\n");
+      const merged = currentContent.trim()
+        ? `${currentContent.trim()}\n${newBullets}`
+        : newBullets;
+
+      await prisma.councilMemory.upsert({
+        where: { category: existing?.category ?? fullCategory },
+        update: { content: merged },
+        create: { category: fullCategory, content: merged },
+      });
+
+      updated.push(fullCategory);
+    }
+
+    return NextResponse.json({ ok: true, categoriesUpdated: updated });
+  } catch (err) {
+    return NextResponse.json({ error: String(err) }, { status: 500 });
+  }
+}

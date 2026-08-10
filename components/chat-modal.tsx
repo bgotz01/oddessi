@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -10,46 +11,109 @@ import {
 import { usePathname } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useChat } from "@/components/chat-provider";
+import {
+  useChat,
+  type ChatSessionSummary,
+  type Systems,
+} from "@/components/chat-provider";
 import { useChart } from "@/components/chart-context";
+import { MemoryControl } from "@/components/interface-memory";
+import { PromptModal } from "@/components/prompt-modal";
 import { MODELS } from "@/lib/models";
-import { DEFAULT_INTERFACE_PROMPT } from "@/lib/interface-prefs";
 
-type Panel = "chat" | "prompt";
+/** The three positions of the systems control, in the order they read. */
+const SYSTEM_OPTIONS: Array<{ value: Systems; label: string; title: string }> = [
+  {
+    value: "western",
+    label: "West",
+    title: "Western only — placements, houses and aspects. The four pillars are withheld.",
+  },
+  {
+    value: "chinese",
+    label: "East",
+    title: "Chinese only — the four pillars, Day Master and luck pillars. The Western chart is withheld.",
+  },
+  {
+    value: "both",
+    label: "Both",
+    title: "Both systems, each in its own vocabulary and never translated into the other.",
+  },
+];
+
+/**
+ * How a past conversation reads in the dropdown: the date first, then what you
+ * opened it with. The date leads because it is fixed width, so the titles below
+ * it line up into a column instead of starting at a different place on every
+ * row — and because "which day was that" is how you actually look for one.
+ *
+ * The stored title is the first message trimmed to 80 characters, which is far
+ * too long for a select, so it is cut again here.
+ */
+function sessionLabel(session: ChatSessionSummary): string {
+  const date = new Date(session.updatedAt).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+  });
+  const title = session.title?.trim() || "Untitled";
+  const trimmed = title.length > 44 ? `${title.slice(0, 43)}…` : title;
+  return `${date} · ${trimmed}`;
+}
 
 export default function ChatModal() {
   const {
     open, setOpen,
     model, setModel,
-    systemPrompt, setSystemPrompt,
-    savePrefs, saving,
-    messages, send, busy, clear,
+    messages, send, busy,
+    systems, setSystems,
+    sessions, sessionId, loadSession,
   } = useChat();
+  // Memory lives in MemoryControl and the system prompt lives in PromptModal,
+  // so neither is destructured here any more.
   const { chart } = useChart();
   const pathname = usePathname();
 
-  const [panel, setPanel] = useState<Panel>("chat");
   const [draft, setDraft] = useState("");
-  const [promptDraft, setPromptDraft] = useState(systemPrompt);
-  const [saved, setSaved] = useState(false);
+  const [promptOpen, setPromptOpen] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollerRef = useRef<HTMLDivElement>(null);
 
-  // Keep promptDraft in sync when prefs load from DB.
-  useEffect(() => {
-    setPromptDraft(systemPrompt);
-  }, [systemPrompt]);
+  /**
+   * Whether the transcript is parked at the bottom.
+   *
+   * The whole point of tracking this: auto-scroll used to run on every
+   * `messages` change, which during a stream is every token. Scrolling up to
+   * read the beginning of a long answer yanked you straight back down again, so
+   * a reply could not be read until it had finished. Now the follow only
+   * happens while you are already at the bottom — scroll up and it lets go;
+   * come back down and it picks up again.
+   */
+  const [pinned, setPinned] = useState(true);
 
   useEffect(() => {
+    if (!pinned) return;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, pinned]);
+
+  /** 40px of slack so a hair of overscroll or a rounding error still counts. */
+  const handleScroll = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setPinned(distance < 40);
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    setPinned(true);
+  }, []);
 
   useEffect(() => {
-    if (open && panel === "chat") {
+    if (open && !promptOpen) {
       setTimeout(() => textareaRef.current?.focus(), 50);
     }
-  }, [open, panel]);
+  }, [open, promptOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -79,13 +143,6 @@ export default function ChatModal() {
     submit();
   }
 
-  async function handleSavePrompt() {
-    setSystemPrompt(promptDraft);
-    await savePrefs();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  }
-
   if (!open) return null;
 
   return (
@@ -107,79 +164,62 @@ export default function ChatModal() {
       >
         {/* ── Header ── */}
         <div className="flex shrink-0 items-center justify-between border-b border-rule px-6 py-3">
-          {/* Left: title + context labels */}
-          <div className="flex items-baseline gap-4">
-            <span className="inscription text-[0.8125rem] text-bone">Interface</span>
+          {/* Left: title + context labels. `min-w-0` + truncation rather than
+              wrapping — the header is a single band and a chart called
+              "Simeon Gotzev 2" must not push it to two lines. */}
+          <div className="flex min-w-0 items-baseline gap-4">
+            {/* The route sits under the title, small — it is what the Interface
+                can currently see, so it belongs to the title rather than to the
+                controls. The wrapper's baseline is the title's, so the chart
+                name beside it still lines up. */}
+            <div className="shrink-0">
+              <span className="inscription block text-[0.8125rem] leading-tight text-bone">
+                Interface
+              </span>
+              <span className="datum block text-[0.5rem] uppercase tracking-[0.18em] text-bone-faint">
+                {pathname === "/" ? "home" : pathname}
+              </span>
+            </div>
             {chart ? (
-              <span className="datum text-[0.625rem] text-patina-dim uppercase tracking-[0.2em]">
+              <span className="datum truncate text-[0.625rem] text-patina-dim uppercase tracking-[0.2em]">
                 {chart.name}
               </span>
             ) : (
-              <span className="datum text-[0.625rem] text-bone-faint uppercase tracking-[0.2em]">
+              <span className="datum shrink-0 text-[0.625rem] text-bone-faint uppercase tracking-[0.2em]">
                 no chart
               </span>
             )}
-            <span className="datum text-[0.625rem] text-bone-faint uppercase tracking-[0.2em]">
-              {pathname === "/" ? "home" : pathname}
-            </span>
           </div>
 
-          {/* Right: tab switcher + controls */}
-          <div className="flex items-center gap-4">
-            {/* Tab toggle */}
+          {/* Right: which tradition, and the close. Never compressed — the left
+              side gives way first, because a truncated chart name is legible and
+              a two-line control row is not.
+
+              Systems sits up here rather than with the model and prompt below:
+              it decides what the Interface *is* for this conversation, which is
+              closer to the chart's identity on the left than to the machinery
+              that generates a reply. */}
+          <div className="flex shrink-0 items-center gap-3">
             <div className="flex items-center border border-rule">
-              <button
-                onClick={() => setPanel("chat")}
-                className={`datum text-[0.6rem] uppercase tracking-[0.18em] px-3 py-1.5 transition-colors ${panel === "chat"
-                  ? "bg-surface-alt text-bone"
-                  : "text-bone-faint hover:text-bone"
-                  }`}
-              >
-                Chat
-              </button>
-              <div className="w-px self-stretch bg-rule" />
-              <button
-                onClick={() => setPanel("prompt")}
-                className={`datum text-[0.6rem] uppercase tracking-[0.18em] px-3 py-1.5 transition-colors ${panel === "prompt"
-                  ? "bg-surface-alt text-bone"
-                  : "text-bone-faint hover:text-bone"
-                  }`}
-              >
-                Prompt
-              </button>
-            </div>
-
-            {/* Model selector (always visible) */}
-            <select
-              value={model}
-              onChange={(e) => {
-                setModel(e.target.value);
-                // Persist immediately — no need to visit the Prompt panel.
-                fetch("/api/interface-prefs", {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ model: e.target.value }),
-                }).catch(() => {/* silently ignore — in-memory state is still updated */ });
-              }}
-              className="datum bg-void border border-rule text-[0.625rem] text-bone-faint uppercase tracking-[0.14em] px-2 py-1 focus:border-patina focus:outline-none"
-              aria-label="Model"
-            >
-              {MODELS.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.label}
-                </option>
+              {SYSTEM_OPTIONS.map((option, i) => (
+                <div key={option.value} className="flex items-stretch">
+                  {i > 0 && <div className="w-px self-stretch bg-rule" />}
+                  <button
+                    type="button"
+                    onClick={() => setSystems(option.value)}
+                    aria-pressed={systems === option.value}
+                    title={option.title}
+                    className={`datum px-3 py-1.5 text-[0.6rem] uppercase tracking-[0.18em] transition-colors ${
+                      systems === option.value
+                        ? "bg-surface-alt text-patina"
+                        : "text-bone-faint hover:text-bone"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                </div>
               ))}
-            </select>
-
-            {panel === "chat" && messages.length > 0 && (
-              <button
-                onClick={clear}
-                className="datum text-[0.625rem] uppercase tracking-[0.18em] text-bone-faint hover:text-bone transition-colors"
-                aria-label="Clear conversation"
-              >
-                clear
-              </button>
-            )}
+            </div>
 
             <button
               onClick={() => setOpen(false)}
@@ -191,10 +231,85 @@ export default function ChatModal() {
           </div>
         </div>
 
-        {/* ── Chat panel ── */}
-        {panel === "chat" && (
-          <>
-            <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6 min-h-0">
+        {/* ── Second row: which conversation, and how the reply gets made ──
+            Session on the left; prompt, model and memory on the right. The
+            three on the right are the machinery — what the model is told, which
+            model is told it, and what it remembers. */}
+        {(
+          <div className="flex shrink-0 items-center justify-between gap-4 border-b border-rule px-6 py-2">
+            <div className="flex min-w-0 items-center gap-3">
+              <select
+                value={sessionId ?? ""}
+                onChange={(e) => loadSession(e.target.value || null)}
+                className="datum max-w-[22rem] truncate border border-rule bg-void px-2 py-1 text-[0.625rem] uppercase tracking-[0.14em] text-bone-faint focus:border-patina focus:outline-none"
+                aria-label="Conversation"
+              >
+                <option value="">
+                  {sessionId ? "＋ New chat" : "New chat"}
+                </option>
+                {sessions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {sessionLabel(s)}
+                  </option>
+                ))}
+              </select>
+
+            </div>
+
+            <div className="flex shrink-0 items-center gap-3">
+              {/* Next to the model on purpose: the prompt and the model are the
+                  two halves of one question — what gets said, and by whom. */}
+              <button
+                type="button"
+                onClick={() => setPromptOpen(true)}
+                title="Edit the system prompt sent before every message"
+                className={`datum whitespace-nowrap border px-2 py-1 text-[0.625rem] uppercase tracking-[0.14em] transition-colors ${
+                  promptOpen
+                    ? "border-patina text-patina"
+                    : "border-rule text-bone-faint hover:text-bone"
+                }`}
+              >
+                Prompt
+              </button>
+
+              <select
+                value={model}
+                onChange={(e) => {
+                setModel(e.target.value);
+                // Persist immediately — no need to visit the Prompt panel.
+                fetch("/api/interface-prefs", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ model: e.target.value }),
+                }).catch(() => {/* silently ignore — in-memory state is still updated */ });
+                }}
+                className="datum shrink-0 border border-rule bg-void px-2 py-1 text-[0.625rem] uppercase tracking-[0.14em] text-bone-faint focus:border-patina focus:outline-none"
+                aria-label="Model"
+              >
+                {MODELS.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+
+              <MemoryControl />
+            </div>
+          </div>
+        )}
+
+        {/* ── Chat ──
+            No longer behind a tab: the chat is the whole modal now, and the
+            system prompt has its own surface. */}
+        <>
+            {/* `relative` so the jump-down control can sit against the foot of
+                the transcript rather than the foot of the modal. */}
+            <div className="relative flex min-h-0 flex-1 flex-col">
+            <div
+              ref={scrollerRef}
+              onScroll={handleScroll}
+              className="flex-1 overflow-y-auto px-8 py-6 space-y-6 min-h-0"
+            >
               {messages.length === 0 && (
                 <p className="text-[1.0625rem] font-light italic text-bone-faint leading-relaxed">
                   {chart
@@ -212,12 +327,21 @@ export default function ChatModal() {
                     {msg.role === "user" ? "you" : "interface"}
                   </span>
                   {msg.role === "user" ? (
-                    <p className="max-w-[80%] text-[1.0625rem] font-light leading-relaxed text-bone">
+                    // `whitespace-pre-wrap` so a message you took the trouble to
+                    // lay out — blank lines between thoughts, a list of
+                    // questions — comes back looking the way you typed it,
+                    // instead of collapsed into one paragraph. `break-words`
+                    // keeps a long unbroken string from widening the column.
+                    <p className="max-w-[80%] whitespace-pre-wrap break-words text-right text-[1.0625rem] font-light leading-relaxed text-bone">
                       {msg.content}
                     </p>
                   ) : (
+                    // Full width, unlike the user's message. The 80 % cap is what
+                    // marks a message as *yours* — a right-aligned block that stops
+                    // short. Applying it to the reply too just threw away a fifth
+                    // of the modal and made every list wrap early for no gain.
                     <div
-                      className={`prose-chat max-w-[80%] ${msg.streaming
+                      className={`prose-chat w-full ${msg.streaming
                         ? "after:content-['▋'] after:animate-pulse after:text-patina after:ml-0.5"
                         : ""
                         }`}
@@ -231,6 +355,31 @@ export default function ChatModal() {
               ))}
 
               <div ref={bottomRef} />
+            </div>
+
+              {/* Jump to the foot of the transcript. Only while you are away
+                  from it — a permanent button would be a permanent nag, and
+                  when you are already at the bottom it does nothing. Marked
+                  while a reply is still coming in, because then the thing you
+                  are scrolled away from is still moving. */}
+              {!pinned && (
+                <button
+                  type="button"
+                  onClick={scrollToBottom}
+                  aria-label="Scroll to the latest message"
+                  className="absolute bottom-4 left-1/2 flex h-8 w-8 -translate-x-1/2 items-center justify-center border border-rule bg-surface-alt text-bone-faint shadow-lg transition-colors hover:border-patina hover:text-patina"
+                >
+                  <span aria-hidden className="datum text-[0.75rem] leading-none">
+                    ↓
+                  </span>
+                  {busy && (
+                    <span
+                      aria-hidden
+                      className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-patina"
+                    />
+                  )}
+                </button>
+              )}
             </div>
 
             <form
@@ -263,52 +412,8 @@ export default function ChatModal() {
               </button>
             </form>
           </>
-        )}
 
-        {/* ── Prompt editor panel ── */}
-        {panel === "prompt" && (
-          <div className="flex flex-1 flex-col min-h-0 px-8 py-6 gap-4">
-            <div>
-              <p className="eyebrow mb-3">System Prompt</p>
-              <p className="text-[0.875rem] font-light text-bone-faint leading-relaxed">
-                This is sent to the model before every conversation. The chart data and current
-                page are always appended automatically — write the character and focus here.
-              </p>
-            </div>
-
-            <textarea
-              value={promptDraft}
-              onChange={(e) => setPromptDraft(e.target.value)}
-              className="flex-1 resize-none bg-surface-alt border border-rule text-[0.9375rem] font-light text-bone leading-relaxed px-4 py-3 focus:border-patina focus:outline-none placeholder:text-bone-faint"
-              spellCheck={false}
-              aria-label="System prompt"
-            />
-
-            <div className="flex shrink-0 items-center justify-between">
-              <button
-                onClick={() => setPromptDraft(DEFAULT_INTERFACE_PROMPT)}
-                className="datum text-[0.625rem] uppercase tracking-[0.18em] text-bone-faint hover:text-bone transition-colors"
-              >
-                reset to default
-              </button>
-
-              <div className="flex items-center gap-4">
-                {saved && (
-                  <span className="datum text-[0.625rem] uppercase tracking-[0.18em] text-patina">
-                    saved
-                  </span>
-                )}
-                <button
-                  onClick={handleSavePrompt}
-                  disabled={saving}
-                  className="datum text-[0.625rem] uppercase tracking-[0.2em] border border-rule px-4 py-2 text-bone-soft hover:border-patina hover:text-patina disabled:opacity-30 transition-colors"
-                >
-                  {saving ? "saving…" : "save"}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {promptOpen && <PromptModal onClose={() => setPromptOpen(false)} />}
       </div>
     </>
   );

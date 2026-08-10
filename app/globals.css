@@ -103,10 +103,24 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  /*
+    Cormorant is a small-on-the-body face — a low x-height and a high stroke
+    contrast, drawn for display sizes. Set at the 17px that suits a grotesque it
+    reads as fine print, and its thin strokes half vanish against the void.
+
+    Light-on-dark makes that worse rather than better: the ground bleeds into
+    the letter and thins every hairline further, which is why the same page can
+    look fine in print and feel murky on screen at full brightness. So running
+    text is set larger than the number looks, at weight 500 rather than the 300
+    it started at, and in bone rather than bone-soft. Micro labels stay in the
+    mono, which has none of these problems.
+  */
   body {
     font-family: var(--font-body);
-    font-size: 1.0625rem;
+    font-size: 1.1875rem;
+    font-weight: 500;
     line-height: 1.7;
+    color: var(--color-bone);
   }
 
   ::selection {
@@ -164,13 +178,21 @@
     letter-spacing: 0.04em;
   }
 
-  /* Micro label above a block. */
+  /*
+    Micro label above a block.
+
+    Was patina-dim, which is a *rule* colour — right for a hairline, far too
+    dark for 10px letters tracked out to 0.28em. At that size and spacing every
+    stroke is one pixel wide with air on both sides, so the label needs most of
+    the accent's strength to survive. Patina proper, at 500, is the floor.
+  */
   .eyebrow {
     font-family: var(--font-mono);
     text-transform: uppercase;
     letter-spacing: 0.28em;
     font-size: 0.625rem;
-    color: var(--color-patina-dim);
+    font-weight: 500;
+    color: var(--color-patina);
   }
 
   /*
@@ -182,6 +204,20 @@
   .glyph {
     font-feature-settings: "liga" 0;
     font-variant-emoji: text;
+    line-height: 1;
+  }
+
+  /*
+    Han — the stems and branches of the Chinese section. None of the three
+    loaded faces carry CJK, so the stack is named rather than left to the
+    browser's default, and it is a serif stack: 宋体 next to Cinzel reads as one
+    system, a UI sans next to it reads as a bug.
+  */
+  .han {
+    font-family: "Songti SC", "Songti TC", "Source Han Serif SC",
+      "Noto Serif CJK SC", "Noto Serif SC", "Hiragino Mincho ProN",
+      "PingFang SC", "Microsoft YaHei", serif;
+    font-feature-settings: "liga" 0;
     line-height: 1;
   }
 }
@@ -332,11 +368,17 @@
 }
 
 /* ─── Interface chat markdown prose ─────────────────────────────────── */
+/* Reply text. Was 17px at 300 in bone-soft, which is exactly the combination
+   the `body` note above rejects: Cormorant is a display face, light-on-dark
+   thins it further, and a long reply set that way is genuinely hard to read.
+   Same correction applied here as there — full bone, and enough weight to hold
+   the stroke. Kept at 17px rather than 19px because a reply runs much longer
+   than a passage and the modal is only 860px wide. */
 .prose-chat {
   font-size: 1.0625rem;
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.75;
-  color: var(--color-bone-soft);
+  color: var(--color-bone);
 }
 
 .prose-chat p {
@@ -347,9 +389,12 @@
   margin-bottom: 0;
 }
 
+/* Bold used to be distinguished by colour — bone against a bone-soft body. Now
+   that the body is bone too, weight is the only signal left, so it has to be a
+   real step rather than the 400→500 that reads as nothing at this size. */
 .prose-chat strong {
   color: var(--color-bone);
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .prose-chat em {

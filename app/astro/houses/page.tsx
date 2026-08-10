@@ -30,6 +30,7 @@ import {
 import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 import { houseTypeStyle } from "@/lib/house-types";
 import { bodyGlyph, signGlyph } from "@/lib/symbols";
+import DominanceModal from "@/components/DominanceModal";
 
 /**
  * The twelve houses, following arc's order of operations: what bodies do to a
@@ -92,8 +93,8 @@ function HouseReading({
           <span className="glyph mr-2 text-bone-faint">
             {signGlyph(cusp.sign)}
           </span>
-          <span className="text-[0.9375rem] font-light text-bone-soft italic">
-            {onCusp?.essence ?? cusp.sign}
+          <span className="text-[0.9375rem] font-light text-bone">
+            {cusp.sign}
           </span>
         </span>
 
@@ -287,6 +288,7 @@ function HouseReading({
 function Houses({ chart }: { chart: Chart }) {
   const [open, setOpen] = useState<number | null>(null);
   const [gridGuideOpen, setGridGuideOpen] = useState(false);
+  const [dominanceModalOpen, setDominanceModalOpen] = useState(false);
   const anchors = useRef(new Map<number, HTMLDivElement | null>());
 
   const dominance = useMemo(() => houseDominance(chart), [chart]);
@@ -397,7 +399,14 @@ function Houses({ chart }: { chart: Chart }) {
             <span className="datum text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase">Domain</span>
             <span className="datum hidden text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase md:block">Sign</span>
             <span className="datum text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase text-right">Tenants</span>
-            <span className="datum hidden text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase text-right md:block">Weight</span>
+            <button
+              type="button"
+              onClick={() => setDominanceModalOpen(true)}
+              title="How dominance is calculated"
+              className="datum hidden text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase text-right transition-colors hover:text-patina md:block"
+            >
+              Weight ?
+            </button>
             <span className="hidden md:block" />
           </div>
           {chart.houses.map((cusp) => (
@@ -413,6 +422,10 @@ function Houses({ chart }: { chart: Chart }) {
           ))}
         </div>
       </section>
+
+      {dominanceModalOpen && (
+        <DominanceModal onClose={() => setDominanceModalOpen(false)} />
+      )}
     </div>
   );
 }

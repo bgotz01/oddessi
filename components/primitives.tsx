@@ -77,7 +77,7 @@ export function PageTitle({
       </h1>
       <div className="mt-6 h-px w-full bg-patina-dim" />
       {lede ? (
-        <p className="mt-6 max-w-2xl text-[1.0625rem] font-light text-bone-soft">
+        <p className="mt-6 max-w-3xl text-[1.1875rem] text-bone-soft">
           {lede}
         </p>
       ) : null}

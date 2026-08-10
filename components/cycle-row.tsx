@@ -22,6 +22,15 @@ function monthLabel(iso: string): string {
   });
 }
 
+function fullDateLabel(iso: string): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 /**
  * Every segment boundary (start + end of each segment), de-duped at the
  * junction between adjacent segments, thinned only when truly overlapping.
@@ -194,7 +203,7 @@ export default function CycleRow({
                 height: `${BAR_H}px`,
                 borderRadius: "1px",
               }}
-              title={`${monthLabel(seg.start)} — ${monthLabel(seg.end)}`}
+              title={`${fullDateLabel(seg.start)} – ${fullDateLabel(seg.end)}`}
             >
               {/* Elapsed portion — bright */}
               <div
@@ -221,7 +230,7 @@ export default function CycleRow({
 
         {/* Boundary date labels */}
         {labels.map((l) => {
-          const fullDate = new Date(`${l.iso}T00:00:00Z`).toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
+          const fullDate = fullDateLabel(l.iso);
           return (
             <div
               key={l.iso}

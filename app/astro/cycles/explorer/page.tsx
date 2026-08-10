@@ -71,19 +71,17 @@ function Toggle({
       onClick={onClick}
       aria-pressed={on}
       style={{ "--tint": accent } as React.CSSProperties}
-      className={`group flex items-center gap-2.5 border px-3.5 py-2 transition-colors ${
-        on
-          ? "border-[var(--tint)] bg-[color-mix(in_srgb,var(--tint)_16%,transparent)] text-bone hover:bg-[color-mix(in_srgb,var(--tint)_26%,transparent)]"
-          : "border-rule-faint text-bone-faint hover:border-rule hover:bg-surface hover:text-bone-soft"
-      }`}
+      className={`group flex items-center gap-2.5 border px-3.5 py-2 transition-colors ${on
+        ? "border-[var(--tint)] bg-[color-mix(in_srgb,var(--tint)_16%,transparent)] text-bone hover:bg-[color-mix(in_srgb,var(--tint)_26%,transparent)]"
+        : "border-rule-faint text-bone-faint hover:border-rule hover:bg-surface hover:text-bone-soft"
+        }`}
     >
       <span
         aria-hidden
-        className={`h-[7px] w-[7px] shrink-0 border transition-colors ${
-          on
-            ? "border-[var(--tint)] bg-[var(--tint)]"
-            : "border-rule bg-transparent group-hover:border-bone-faint"
-        }`}
+        className={`h-[7px] w-[7px] shrink-0 border transition-colors ${on
+          ? "border-[var(--tint)] bg-[var(--tint)]"
+          : "border-rule bg-transparent group-hover:border-bone-faint"
+          }`}
       />
       {glyph ? (
         <span
@@ -150,13 +148,9 @@ export default function CyclesExplorerPage() {
       : null,
   );
 
+  // --- Passage filters (house transits, 5 outer planets) ---
   const [planets, setPlanets] = useState(
     () => new Set(PLANETS.map((p) => p.name)),
-  );
-  // House transits alone, because they are what both charts are built around;
-  // aspects and returns are a deliberate second question.
-  const [types, setTypes] = useState<Set<string>>(
-    () => new Set<string>(["house-transit"]),
   );
   const [statuses, setStatuses] = useState<Set<BandStatus>>(
     () => new Set<BandStatus>(STATUSES.map((s) => s.key)),
@@ -166,6 +160,20 @@ export default function CyclesExplorerPage() {
   const [decades, setDecades] = useState<Set<number>>(
     () => new Set([decadeOf(new Date().getUTCFullYear())]),
   );
+
+  // --- Expanded Axis filters (aspects, returns — everything else) ---
+  const [axisPlanets, setAxisPlanets] = useState(
+    () => new Set(PLANETS.map((p) => p.name)),
+  );
+  // Aspects and returns only — house transits belong to the Passage.
+  const AXIS_TYPES = TYPES.filter((t) => t.key !== "house-transit");
+  const [axisTypes, setAxisTypes] = useState<Set<string>>(
+    () => new Set<string>(AXIS_TYPES.map((t) => t.key)),
+  );
+  const [axisStatuses, setAxisStatuses] = useState<Set<BandStatus>>(
+    () => new Set<BandStatus>(STATUSES.map((s) => s.key)),
+  );
+
   // Every band on its own row: the full reading, but a dense one. Closed until
   // asked for, so the page opens on the Passage.
   const [axisOpen, setAxisOpen] = useState(false);
@@ -208,18 +216,19 @@ export default function CyclesExplorerPage() {
   }, [state, allDecades, decades]);
 
   // Fetched once unfiltered; narrowing from here is instant and client-side.
+  // Expanded Axis excludes house transits — those belong to the Passage.
   const bands = useMemo(() => {
     if (state.status !== "ready" || !span) return [];
     const at = new Date(nowMs);
     return state.data.bands.filter(
       (b) =>
-        planets.has(b.title) &&
-        types.has(typeOf(b)) &&
-        statuses.has(statusOfBand(b, at)) &&
+        axisPlanets.has(b.title) &&
+        axisTypes.has(typeOf(b)) &&
+        axisStatuses.has(statusOfBand(b, at)) &&
         b.end > span.windowStart &&
         b.start < span.windowEnd,
     );
-  }, [state, planets, types, statuses, span, nowMs]);
+  }, [state, axisPlanets, axisTypes, axisStatuses, span, nowMs]);
 
   // The Passage is house transits by definition, so the kind filter has
   // nothing to say about it. Planet, status and span all apply.
@@ -272,28 +281,6 @@ export default function CyclesExplorerPage() {
               glyph={p.glyph}
               label={p.name}
               onClick={() => toggle(planets, p.name, setPlanets)}
-            />
-          ))}
-        </FilterRow>
-
-        <FilterRow
-          label="Kind"
-          count={types.size}
-          total={TYPES.length}
-          onToggleAll={() =>
-            toggleAll(
-              types,
-              TYPES.map((t) => t.key as string),
-              setTypes,
-            )
-          }
-        >
-          {TYPES.map((t) => (
-            <Toggle
-              key={t.key}
-              on={types.has(t.key)}
-              label={t.label}
-              onClick={() => toggle(types, t.key, setTypes)}
             />
           ))}
         </FilterRow>
@@ -387,25 +374,99 @@ export default function CyclesExplorerPage() {
 
           <section>
             <SectionHeading
-              aside={`${bands.length} of ${state.data.bands.length} · ${
-                bands.filter(hasRetrograde).length
-              } ℞`}
+              aside={`${bands.length} of ${state.data.bands.length} · ${bands.filter(hasRetrograde).length
+                } ℞`}
               open={axisOpen}
               onToggle={() => setAxisOpen((was) => !was)}
             >
               Expanded Axis
             </SectionHeading>
-            {!axisOpen ? null : bands.length === 0 ? (
-              <p className="font-light text-bone-soft">
-                Nothing matches those filters.
-              </p>
-            ) : (
-              <Timeline
-                bands={bands}
-                now={now}
-                windowStart={span.windowStart}
-                windowEnd={span.windowEnd}
-              />
+            {!axisOpen ? null : (
+              <>
+                <div className="mb-8 border-t border-rule">
+                  <FilterRow
+                    label="Planet"
+                    count={axisPlanets.size}
+                    total={PLANETS.length}
+                    onToggleAll={() =>
+                      toggleAll(
+                        axisPlanets,
+                        PLANETS.map((p) => p.name),
+                        setAxisPlanets,
+                      )
+                    }
+                  >
+                    {PLANETS.map((p) => (
+                      <Toggle
+                        key={p.name}
+                        on={axisPlanets.has(p.name)}
+                        tint={p.color}
+                        glyph={p.glyph}
+                        label={p.name}
+                        onClick={() => toggle(axisPlanets, p.name, setAxisPlanets)}
+                      />
+                    ))}
+                  </FilterRow>
+
+                  <FilterRow
+                    label="Kind"
+                    count={axisTypes.size}
+                    total={AXIS_TYPES.length}
+                    onToggleAll={() =>
+                      toggleAll(
+                        axisTypes,
+                        AXIS_TYPES.map((t) => t.key as string),
+                        setAxisTypes,
+                      )
+                    }
+                  >
+                    {AXIS_TYPES.map((t) => (
+                      <Toggle
+                        key={t.key}
+                        on={axisTypes.has(t.key)}
+                        label={t.label}
+                        onClick={() => toggle(axisTypes, t.key, setAxisTypes)}
+                      />
+                    ))}
+                  </FilterRow>
+
+                  <FilterRow
+                    label="Status"
+                    count={axisStatuses.size}
+                    total={STATUSES.length}
+                    onToggleAll={() =>
+                      toggleAll(
+                        axisStatuses,
+                        STATUSES.map((s) => s.key),
+                        setAxisStatuses,
+                      )
+                    }
+                  >
+                    {STATUSES.map((s) => (
+                      <Toggle
+                        key={s.key}
+                        on={axisStatuses.has(s.key)}
+                        tint={s.tint}
+                        label={s.label}
+                        onClick={() => toggle(axisStatuses, s.key, setAxisStatuses)}
+                      />
+                    ))}
+                  </FilterRow>
+                </div>
+
+                {bands.length === 0 ? (
+                  <p className="font-light text-bone-soft">
+                    Nothing matches those filters.
+                  </p>
+                ) : (
+                  <Timeline
+                    bands={bands}
+                    now={now}
+                    windowStart={span.windowStart}
+                    windowEnd={span.windowEnd}
+                  />
+                )}
+              </>
             )}
           </section>
         </div>

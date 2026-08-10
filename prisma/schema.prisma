@@ -168,6 +168,38 @@ model CouncilMemory {
   updatedAt DateTime @updatedAt
 }
 
+// ─── Interface Chat ───────────────────────────────────────────────────────────
+// Each "conversation" in the Interface modal is one session. Messages are
+// appended as the conversation progresses. When the user hits "clear", the
+// session is closed and distilled into CouncilMemory before being wiped from
+// the UI (the rows remain in DB for history).
+
+model InterfaceChatSession {
+  id        String                 @id @default(uuid())
+  title     String? // set to the first user message (trimmed to 80 chars)
+  chartId   String? // BirthChartData.id — null means no chart was active
+  chartName String? // denormalised display name so queries don't need a join
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
+  messages  InterfaceChatMessage[]
+
+  @@index([chartId])
+  @@map("interface_chat_sessions")
+}
+
+model InterfaceChatMessage {
+  id        String               @id @default(uuid())
+  sessionId String
+  session   InterfaceChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String // 'user' | 'assistant'
+  content   String
+  order     Int
+  createdAt DateTime             @default(now())
+
+  @@index([sessionId])
+  @@map("interface_chat_messages")
+}
+
 // Model price overrides + soft-removals, edited from the model pickers and
 // merged over the code defaults in lib/models.ts.
 model ModelPrice {
