@@ -1,5 +1,10 @@
 import Link from "next/link";
 
+/**
+ * One card per way in, in the order they make sense: the chart everything is
+ * read from, then each system's own section, then the page that puts all three
+ * on one axis.
+ */
 const SECTIONS = [
   {
     href: "/birth-chart",
@@ -7,19 +12,29 @@ const SECTIONS = [
     description: "The natal positions — a fixed map of where everything stood at the moment of birth.",
   },
   {
-    href: "/astro/cycles",
-    label: "Cycles",
-    description: "Long transits and returns, laid out as bands across time.",
+    href: "/western/cycles",
+    label: "Western",
+    description: "Planets, houses, and the long transits and returns laid out as bands across time.",
   },
   {
-    href: "/astro/cycles-explorer",
-    label: "Explorer",
-    description: "Browse and filter every active and upcoming cycle.",
+    href: "/eastern/four-pillars",
+    label: "Eastern",
+    description: "The four pillars, the balance of phases, and the ten-year luck pillars.",
+  },
+  {
+    href: "/numerology",
+    label: "Numerology",
+    description: "A name and a date reduced to integers. Scaffolded; nothing computed yet.",
   },
   {
     href: "/transits",
     label: "Transits",
-    description: "Day-to-day planetary movements against the natal chart.",
+    description: "Every system on one axis — transits, luck pillars and personal years against the same stretch of time.",
+  },
+  {
+    href: "/compare",
+    label: "Comparison",
+    description: "The same four questions put to both systems, and where their answers agree.",
   },
 ] as const;
 

@@ -2,11 +2,12 @@
  * The two systems, asked the same four questions.
  *
  * This module is the whole argument for the Comparison page, so it is worth
- * stating plainly. `app/chinese/page.tsx` refuses to cross-reference the
- * Western pages, on the grounds that a page which keeps translating one system
- * into the other ("your Metal is like your Saturn") teaches neither. That
- * refusal still stands and this file does not break it: nothing here maps a
- * phase to a planet, an element to an element, or a pillar to a house.
+ * stating plainly. `app/eastern/four-pillars/page.tsx` refuses to
+ * cross-reference the Western pages, on the grounds that a page which keeps
+ * translating one system into the other ("your Metal is like your Saturn")
+ * teaches neither. That refusal still stands and this file does not break it:
+ * nothing here maps a phase to a planet, an element to an element, or a pillar
+ * to a house.
  *
  * What it does instead is put two *conclusions* beside each other. Both systems
  * independently answer "where is the weight", "what is missing", "what does it

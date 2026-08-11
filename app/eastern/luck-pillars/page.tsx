@@ -102,7 +102,7 @@ export default function LuckPillarsPage() {
 
       <p className="mb-10">
         <Link
-          href="/chinese"
+          href="/eastern/four-pillars"
           className="datum text-[0.6875rem] tracking-[0.18em] text-bone-soft uppercase transition-colors hover:text-patina"
         >
           ← Back to the four pillars

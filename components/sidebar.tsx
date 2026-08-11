@@ -13,10 +13,15 @@ import ChartSelector from "@/components/chart-selector";
  * six collapsible groups because nothing said no; this list is the "no".
  *
  * The links are grouped by *system*, because a system is a whole way of
- * dividing a life and its pages do not interleave: nothing under Chinese takes
- * a sign or a house, nothing under Western takes a stem or a branch. The chart
- * selector stays above both, since the birth being read is the same either way
- * — one person, two instruments.
+ * dividing a life and its pages do not interleave: nothing under Eastern takes
+ * a sign or a house, nothing under Western takes a stem or a branch, and
+ * nothing under Numerology takes either. The chart selector stays above all of
+ * them, since the birth being read is the same throughout — one person, three
+ * instruments.
+ *
+ * The route prefixes match the groups exactly — /western, /eastern,
+ * /numerology — so a path names its own system and `systemsForPath` can scope
+ * the conversation's memory off nothing more than the URL.
  */
 type NavItem =
   | { href: string; label: string; children?: never }
@@ -36,28 +41,36 @@ const NAV: NavGroup[] = [
   {
     label: "Western",
     items: [
-      { href: "/astro/planets", label: "Planets" },
-      { href: "/astro/houses", label: "Houses" },
+      { href: "/western/planets", label: "Planets" },
+      { href: "/western/houses", label: "Houses" },
       {
-        href: "/astro/cycles",
+        href: "/western/cycles",
         label: "Cycles",
-        children: [{ href: "/astro/cycles/explorer", label: "Explorer" }],
+        children: [{ href: "/western/cycles/explorer", label: "Explorer" }],
       },
-      { href: "/transits", label: "Transits" },
     ],
   },
   {
-    label: "Chinese",
+    label: "Eastern",
     items: [
-      { href: "/chinese", label: "Four Pillars" },
-      { href: "/chinese/luck-pillars", label: "Luck Pillars" },
+      { href: "/eastern/four-pillars", label: "Four Pillars" },
+      { href: "/eastern/luck-pillars", label: "Luck Pillars" },
     ],
   },
   {
-    // Last, and in its own group. It belongs to neither section above, and
-    // filing it under either would imply that section owns the reading.
-    label: "Both",
-    items: [{ href: "/compare", label: "Comparison" }],
+    label: "Numerology",
+    items: [{ href: "/numerology", label: "Numbers" }],
+  },
+  {
+    // Last, and in its own group. These belong to no section above, and filing
+    // either under one would imply that section owns the reading. Transits sits
+    // here rather than under Western because the axis carries every system's
+    // cycles at once — that shared axis is the whole point of the page.
+    label: "All systems",
+    items: [
+      { href: "/transits", label: "Transits" },
+      { href: "/compare", label: "Comparison" },
+    ],
   },
 ];
 
@@ -70,8 +83,8 @@ const ALL_HREFS = NAV.flatMap((group) =>
 
 /**
  * The one link the current path belongs to — the longest prefix match, so
- * `/chinese/luck-pillars` lights the luck pillars rather than also lighting
- * `/chinese`, while `/transits/abc` still lights Transits.
+ * `/western/cycles/explorer` lights the explorer rather than also lighting
+ * `/western/cycles`, while `/transits/abc` still lights Transits.
  */
 function matchHref(pathname: string): string | null {
   return (

@@ -170,7 +170,7 @@ export async function POST(request: Request) {
       },
     });
 
-    // Populate the cycles cache so /astro/cycles has data for this chart.
+    // Populate the cycles cache so /western/cycles has data for this chart.
     // Awaited deliberately — a chart whose Cycles page is empty for the first
     // minute reads as broken, and the calculation takes a few seconds.
     let cyclesCached = true;

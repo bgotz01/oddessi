@@ -19,6 +19,7 @@ import {
 import { useChart } from "@/components/chart-context";
 import { MemoryControl } from "@/components/interface-memory";
 import { PromptModal } from "@/components/prompt-modal";
+import { PinPassage } from "@/components/pin-passage";
 import { systemsForPath } from "@/lib/memory-scope";
 import { MODELS } from "@/lib/models";
 
@@ -85,6 +86,7 @@ export default function ChatModal() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const transcriptRef = useRef<HTMLDivElement>(null);
 
   /**
    * Whether the transcript is parked at the bottom.
@@ -325,9 +327,9 @@ export default function ChatModal() {
             No longer behind a tab: the chat is the whole modal now, and the
             system prompt has its own surface. */}
         <>
-            {/* `relative` so the jump-down control can sit against the foot of
-                the transcript rather than the foot of the modal. */}
-            <div className="relative flex min-h-0 flex-1 flex-col">
+            {/* `relative` so the jump-down control and the pin bar can sit
+                against the transcript rather than the foot of the modal. */}
+            <div ref={transcriptRef} className="relative flex min-h-0 flex-1 flex-col">
             <div
               ref={scrollerRef}
               onScroll={handleScroll}
@@ -346,16 +348,31 @@ export default function ChatModal() {
                   key={msg.id}
                   className={`flex flex-col gap-1.5 ${msg.role === "user" ? "items-end" : "items-start"}`}
                 >
-                  <span className="eyebrow text-[0.5rem]">
+                  {/* The label shares the message's column so it sits over the
+                      first word rather than out at the modal's edge. */}
+                  <span
+                    className={`eyebrow text-[0.5rem] ${msg.role === "user" ? "w-1/2" : ""}`}
+                  >
                     {msg.role === "user" ? "you" : "interface"}
                   </span>
                   {msg.role === "user" ? (
+                    // Right-hand half of the modal, but the text inside it reads
+                    // left to right like everything else. Ragged-left text was
+                    // the previous attempt at marking a message as yours and it
+                    // read as broken — every line starting at a different place
+                    // is something you have to work at rather than read.
+                    //
+                    // `w-1/2` and not `max-w-1/2`: a fixed column means a short
+                    // question begins at the same place a long one does, so the
+                    // eye finds the start of every message you sent in the same
+                    // spot down the transcript.
+                    //
                     // `whitespace-pre-wrap` so a message you took the trouble to
                     // lay out — blank lines between thoughts, a list of
-                    // questions — comes back looking the way you typed it,
-                    // instead of collapsed into one paragraph. `break-words`
-                    // keeps a long unbroken string from widening the column.
-                    <p className="max-w-[80%] whitespace-pre-wrap break-words text-right text-[1.0625rem] font-light leading-relaxed text-bone">
+                    // questions — comes back looking the way you typed it.
+                    // `break-words` keeps a long unbroken string from widening
+                    // the column.
+                    <p className="w-1/2 whitespace-pre-wrap break-words text-[1.0625rem] font-light leading-relaxed text-bone">
                       {msg.content}
                     </p>
                   ) : (
@@ -385,6 +402,8 @@ export default function ChatModal() {
                   when you are already at the bottom it does nothing. Marked
                   while a reply is still coming in, because then the thing you
                   are scrolled away from is still moving. */}
+              <PinPassage scrollerRef={scrollerRef} containerRef={transcriptRef} />
+
               {!pinned && (
                 <button
                   type="button"

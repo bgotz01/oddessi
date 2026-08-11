@@ -361,7 +361,7 @@ function ReadingView({ reading }: { reading: Reading }) {
 
       <p>
         <Link
-          href="/chinese/luck-pillars"
+          href="/eastern/luck-pillars"
           className="datum text-[0.6875rem] tracking-[0.18em] text-bone-soft uppercase transition-colors hover:text-patina"
         >
           The ten-year luck pillars →

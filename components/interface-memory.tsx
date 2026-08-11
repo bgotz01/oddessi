@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useChat } from "@/components/chat-provider";
 import { useChart } from "@/components/chart-context";
-import type { MemoryScope } from "@/lib/memory-scope";
+import { isPinned, type MemoryScope } from "@/lib/memory-scope";
 
 /**
  * The memory control for the Interface: one button that owns everything to do
@@ -95,6 +95,25 @@ export function MemoryControl() {
       document.removeEventListener("keydown", onKey, true);
     };
   }, [open]);
+
+  // The name alone, so the callback is not rebuilt whenever anything else about
+  // the chart changes.
+  const chartName = chart?.name;
+
+  const unpin = useCallback(
+    (category: string, index: number) => {
+      if (!chartName) return;
+      const q = new URLSearchParams({
+        chartName,
+        category,
+        index: String(index),
+      });
+      fetch(`/api/chat/memory?${q}`, { method: "DELETE" })
+        .then(() => load())
+        .catch(() => {/* the row stays; the panel will re-read next open */ });
+    },
+    [chartName, load],
+  );
 
   const attached = memoryEnabled && !!chart;
 
@@ -201,13 +220,28 @@ export function MemoryControl() {
                     </div>
                     <ul className="space-y-1">
                       {cat.lessons.map((lesson, i) => (
-                        <li key={i} className="flex gap-2">
+                        <li key={i} className="group flex gap-2">
                           <span className="datum text-[0.5625rem] leading-5 text-patina-dim">
-                            —
+                            {isPinned(cat.category) ? "❝" : "—"}
                           </span>
-                          <span className="text-[0.9375rem] leading-snug text-bone-soft">
+                          <span className="flex-1 text-[0.9375rem] leading-snug text-bone-soft">
                             {lesson}
                           </span>
+                          {/* Only pinned passages get a remove control. A
+                              distilled lesson is the distiller's to reconcile,
+                              and a second editor over the same row would put
+                              the two out of step. */}
+                          {isPinned(cat.category) && (
+                            <button
+                              type="button"
+                              onClick={() => unpin(cat.category, i)}
+                              title="Remove this pinned passage"
+                              aria-label="Remove this pinned passage"
+                              className="datum shrink-0 text-[0.75rem] leading-5 text-bone-faint opacity-0 transition-opacity hover:text-ember group-hover:opacity-100"
+                            >
+                              ×
+                            </button>
+                          )}
                         </li>
                       ))}
                     </ul>

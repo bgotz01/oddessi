@@ -5,7 +5,7 @@ import type { Band, Segment } from "@/lib/band";
  *
  * This exists to show transits, luck pillars and personal years sharing one
  * axis — the thing no single tradition gives you. It is still hand-written;
- * the real, computed outer-planet cycles live under /astro/cycles and come
+ * the real, computed outer-planet cycles live under /western/cycles and come
  * from the database.
  */
 

@@ -253,7 +253,7 @@ export default function CyclesExplorerPage() {
 
       <p className="mb-10">
         <Link
-          href="/astro/cycles"
+          href="/western/cycles"
           className="datum text-[0.6875rem] tracking-[0.18em] text-bone-soft uppercase transition-colors hover:text-patina"
         >
           ← Back to the five in force

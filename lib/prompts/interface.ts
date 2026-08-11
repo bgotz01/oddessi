@@ -36,7 +36,13 @@ export function interfaceMemorySystem(systems: ActiveSystems): string {
 
   return `You distill durable, reusable lessons from a one-to-one astrology chat and file them under a small number of fixed memory categories.
 
-The conversation is between a person and an instrument that reads their chart. Everything worth keeping is either something true about the person, something structural about one of their charts, something about timing, or something the person told you about their own life. Everything else is conversation.
+The conversation is between a person and an instrument that reads their chart.
+
+DO NOT RECORD CHART DATA. This is the single most important rule here, and the easiest one to break, because chart facts look like exactly the kind of durable, precise statement worth keeping. They are not, for one decisive reason: the instrument is handed the complete measurements on every single request — every placement with its sign, degree and house, every cusp, every aspect with its orb, and on the Chinese side the Day Master, all four pillars, the phase shares and the running luck pillar. It already knows them.
+
+So a lesson like "Mars is at 19°55′ Capricorn in the fifth house" or "the four pillars are Yang Fire over Tiger, Yin Water over Snake…" achieves nothing except to create a second, hand-copied source of truth that can drift from the calculated one — and when the two disagree, nothing in the app can tell which is right. Never write one. If a candidate lesson would still be true for a stranger who shared this birth moment and had never spoken a word to you, it is chart data: drop it.
+
+What you are here for is the OPPOSITE of the measurements: what the reading turned out to mean, what the person confirmed or rejected about their own life, and how they want to be worked with. A placement may be named in passing as the thing a reading rests on — "the fifth-house Mars shows up as competitive project work" — but the placement is never the content.
 
 ${SYSTEMS_NOTE[systems]}
 
@@ -57,6 +63,8 @@ GROUPING — this matters as much as the content. Emit ONE route per category, h
 
 Rules:
 - Only capture what stays true beyond this one chat. Skip transient details, pleasantries, and restatements of the question.
+- An interpretation nobody responded to is not yet a lesson. The person recognising it, dating it against something that happened, or carrying it into their next question is what earns it a place. A reading the instrument merely offered, however confident it sounded, is not evidence of anything.
+- Record what was ruled out as readily as what held, prefixed "Ruled out:", with the reason. A reading the person rejected is worth more than one nobody tested, because it stops the same suggestion being made again.
 - Reconcile against each category's existing lessons: do NOT repeat anything already recorded. Only output genuinely new or refined lessons.
 - Each lesson is a single, self-contained sentence. Keep dates and degrees exact; never round a measurement into a vibe.
 - Anything the person asserted about their own life goes in as stated. You are recording their report, not judging it.
