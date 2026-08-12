@@ -92,6 +92,19 @@ function stintsFor(bands: Band[]): Stint[] {
     }
   }
 
+  // Bridge gaps between consecutive stints. The DB can store a day or two of
+  // void between one house ending and the next beginning (rounding artefacts
+  // or a one-day retrograde cusp). A gap of 1 day is acceptable; anything
+  // larger is a rendering hole and we close it by stretching the earlier
+  // stint's end date forward to meet the next one's start.
+  for (let i = 0; i < stints.length - 1; i++) {
+    const gap =
+      Date.parse(stints[i + 1].start) - Date.parse(stints[i].end);
+    if (gap > 86_400_000) {
+      stints[i].end = stints[i + 1].start;
+    }
+  }
+
   return stints;
 }
 
@@ -168,6 +181,7 @@ function PassageRow({
   now,
   scale,
   onHover,
+  onStintClick,
 }: {
   planet: string;
   glyph: string;
@@ -176,6 +190,7 @@ function PassageRow({
   now: Date;
   scale: Scale;
   onHover: (hover: Hover | null) => void;
+  onStintClick: (house: number, start: string, end: string) => void;
 }) {
   const current = stints.find((s) => statusOfStint(s, now) === "active");
 
@@ -192,10 +207,10 @@ function PassageRow({
           {glyph}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="inscription block truncate text-[0.6875rem] text-bone">
+          <span className="inscription block truncate text-[0.8125rem] text-bone">
             {planet}
           </span>
-          <span className="block truncate text-[0.75rem] font-light text-bone-faint italic">
+          <span className="block truncate text-[0.8125rem] font-light text-bone-faint italic">
             {current ? `House ${current.house} now` : `${stints.length} houses`}
           </span>
         </span>
@@ -233,20 +248,19 @@ function PassageRow({
                 });
               }}
               onMouseLeave={() => onHover(null)}
-              className="absolute top-1/2 flex h-4 -translate-y-1/2 items-center justify-center overflow-hidden"
+              onClick={() => onStintClick(stint.house, stint.start, stint.end)}
+              className="absolute top-1/2 flex h-5 -translate-y-1/2 cursor-pointer items-center justify-center overflow-hidden transition-opacity hover:opacity-80"
               style={{
                 left: `${left}%`,
                 width: `${width}%`,
-                backgroundColor: `color-mix(in srgb, ${tint} ${
-                  strong ? 72 : 26
-                }%, transparent)`,
+                backgroundColor: `color-mix(in srgb, ${tint} ${strong ? 72 : 26
+                  }%, transparent)`,
               }}
             >
               {width > 1.8 ? (
                 <span
-                  className={`datum text-[0.5rem] leading-none ${
-                    here ? "text-bone" : "text-bone-soft"
-                  }`}
+                  className={`datum text-[0.625rem] leading-none ${here ? "text-bone" : "text-bone-soft"
+                    }`}
                 >
                   {stint.house}
                 </span>
@@ -266,6 +280,7 @@ export default function HousePassage({
   now,
   windowStart,
   windowEnd,
+  onStintClick,
 }: {
   bands: Band[];
   /** Which planets to draw, in the order they should appear. */
@@ -275,6 +290,8 @@ export default function HousePassage({
   now: Date;
   windowStart: string;
   windowEnd: string;
+  /** Called when the user clicks a house block. */
+  onStintClick?: (planet: string, house: number, start: string, end: string) => void;
 }) {
   const [hover, setHover] = useState<Hover | null>(null);
 
@@ -321,6 +338,9 @@ export default function HousePassage({
             now={now}
             scale={scale}
             onHover={setHover}
+            onStintClick={(house, start, end) =>
+              onStintClick?.(r.name, house, start, end)
+            }
           />
         ))}
       </div>

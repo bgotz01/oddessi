@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import Timeline from "@/components/timeline";
 import HousePassage from "@/components/house-passage";
+import WesternCycleDrawer, {
+  type CycleTarget,
+} from "@/components/western/cycle-drawer";
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
@@ -190,6 +193,22 @@ export default function CyclesExplorerPage() {
   // Every band on its own row: the full reading, but a dense one. Closed until
   // asked for, so the page opens on the Passage.
   const [axisOpen, setAxisOpen] = useState(false);
+
+  // Right-hand interpretation drawer — opened by clicking a house stint or the
+  // standalone "Read a cycle" button.
+  const [drawerTarget, setDrawerTarget] = useState<CycleTarget | null>(null);
+  const [drawerTransit, setDrawerTransit] = useState<
+    { start: string; end: string } | undefined
+  >(undefined);
+
+  function openDrawer(
+    planet: string,
+    house: number,
+    transit?: { start: string; end: string },
+  ) {
+    setDrawerTarget({ planet, house });
+    setDrawerTransit(transit);
+  }
 
   /** All-or-nothing for a whole row. */
   function toggleAll<T>(set: Set<T>, all: T[], apply: (next: Set<T>) => void) {
@@ -420,7 +439,25 @@ export default function CyclesExplorerPage() {
         <div className="space-y-20">
           <section>
             <SectionHeading
-              aside={`${shownPlanets.length} of ${PLANETS.length} planets`}
+              aside={
+                <span className="flex items-baseline gap-5">
+                  <span className="text-bone-faint">
+                    {shownPlanets.length} of {PLANETS.length} planets
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openDrawer(
+                        drawerTarget?.planet ?? "Jupiter",
+                        drawerTarget?.house ?? 1,
+                      )
+                    }
+                    className="datum text-[0.625rem] tracking-[0.18em] text-bone-faint uppercase transition-colors hover:text-patina"
+                  >
+                    Read a cycle →
+                  </button>
+                </span>
+              }
             >
               The Passage
             </SectionHeading>
@@ -437,6 +474,9 @@ export default function CyclesExplorerPage() {
               now={now}
               windowStart={span.windowStart}
               windowEnd={span.windowEnd}
+              onStintClick={(planet, house, start, end) =>
+                openDrawer(planet, house, { start, end })
+              }
             />
           </section>
 
@@ -539,6 +579,23 @@ export default function CyclesExplorerPage() {
           </section>
         </div>
       )}
+
+      {drawerTarget ? (
+        <WesternCycleDrawer
+          target={drawerTarget}
+          transitInfo={drawerTransit}
+          onNavigate={(next) => {
+            setDrawerTarget(next);
+            // Clear transit info when the user navigates away from the
+            // clicked stint — the dates only belong to that exact house.
+            setDrawerTransit(undefined);
+          }}
+          onClose={() => {
+            setDrawerTarget(null);
+            setDrawerTransit(undefined);
+          }}
+        />
+      ) : null}
     </div>
   );
 }
