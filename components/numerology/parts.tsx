@@ -49,11 +49,12 @@ export function Figure({
 export function MasterNote({ n }: { n: CoreNumber }) {
   const under = reducesTo(n);
   if (under === null) return null;
+  const base = NUMBERS[under];
   return (
     <p className="datum mt-4 text-[0.6875rem] leading-relaxed text-bone-faint">
-      A master number. It reduces to {under}, and everything true of{" "}
-      {NUMBERS[under].title.toLowerCase()} is true here — at a pitch that is
-      harder to sustain and harder to put down.
+      A master number. Its base is {under} — {base.title}: {base.note.split(".")[0].toLowerCase()}.
+      Everything that applies there applies here, at a pitch that is harder to
+      sustain and harder to put down.
     </p>
   );
 }
@@ -111,9 +112,8 @@ export function NumberRow({
         onClick={onToggle}
         aria-expanded={inline ? open : undefined}
         aria-haspopup={inline ? undefined : "dialog"}
-        className={`grid w-full grid-cols-[3rem_1fr_auto_1rem] items-baseline gap-x-6 py-5 text-left transition-colors ${
-          open ? "bg-surface" : "hover:bg-surface-alt"
-        }`}
+        className={`grid w-full grid-cols-[3rem_1fr_auto_1rem] items-baseline gap-x-6 py-5 text-left transition-colors ${open ? "bg-surface" : "hover:bg-surface-alt"
+          }`}
       >
         <span className="pl-2">
           <Figure n={n} />
@@ -189,14 +189,12 @@ export function LetterRun({ parts }: { parts: NamePart[] }) {
               {part.letters.map((letter, i) => (
                 <span
                   key={`${letter.char}-${i}`}
-                  className={`flex w-8 flex-col items-center gap-1 border-t-2 pt-1.5 ${
-                    letter.vowel ? "border-patina-dim" : "border-rule"
-                  }`}
+                  className={`flex w-8 flex-col items-center gap-1 border-t-2 pt-1.5 ${letter.vowel ? "border-patina-dim" : "border-rule"
+                    }`}
                 >
                   <span
-                    className={`inscription text-[0.9375rem] ${
-                      letter.vowel ? "text-patina" : "text-bone-soft"
-                    }`}
+                    className={`inscription text-[0.9375rem] ${letter.vowel ? "text-patina" : "text-bone-soft"
+                      }`}
                   >
                     {letter.char}
                   </span>

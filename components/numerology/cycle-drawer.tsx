@@ -11,6 +11,7 @@ import {
 import { NUMBERS, POSITIONS, type Position } from "@/lib/numerology/lexicon";
 import { PINNACLE_READINGS } from "@/lib/numerology/pinnacles";
 import { CHALLENGE_READINGS } from "@/lib/numerology/challenges";
+import type { StandardNumber, ChallengeNumber } from "@/lib/numerology/numbers";
 import {
   challengeWorking,
   essenceWorking,
@@ -558,7 +559,7 @@ function TheLetters({
  */
 function PinnacleBody({ n }: { n: CoreNumber }) {
   const entry = NUMBERS[n];
-  const reading = PINNACLE_READINGS[n];
+  const reading = PINNACLE_READINGS[n as StandardNumber];
 
   return (
     <>
@@ -614,7 +615,7 @@ function PinnacleBody({ n }: { n: CoreNumber }) {
  */
 function ChallengeBody({ n }: { n: CoreNumber }) {
   const entry = NUMBERS[n];
-  const reading = CHALLENGE_READINGS[n];
+  const reading = CHALLENGE_READINGS[n as ChallengeNumber];
 
   return (
     <>

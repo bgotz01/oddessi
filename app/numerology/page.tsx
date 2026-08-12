@@ -15,7 +15,7 @@ import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import { useNumerologyReading } from "@/lib/numerology/use-reading";
 import { NUMBERS, POSITIONS, isMaster } from "@/lib/numerology/lexicon";
-import type { CoreNumber, NumerologyReading } from "@/lib/numerology/numbers";
+import type { CoreNumber, NumerologyReading, StandardNumber } from "@/lib/numerology/numbers";
 
 /**
  * The four fixed numbers — the ones that hold still for a whole life.
@@ -135,7 +135,7 @@ function Reading({
                 setSubject(
                   subject?.position === "lifePath"
                     ? null
-                    : { position: "lifePath", n: reading.lifePath, aside: birthDate },
+                    : { position: "lifePath", n: reading.lifePath as StandardNumber, aside: birthDate },
                 )
               }
               inline={false}
@@ -152,7 +152,7 @@ function Reading({
                   setSubject(
                     subject?.position === "expression"
                       ? null
-                      : { position: "expression", n: nameNumbers.expression },
+                      : { position: "expression", n: nameNumbers.expression as StandardNumber },
                   )
                 }
                 inline={false}
@@ -165,7 +165,7 @@ function Reading({
                   setSubject(
                     subject?.position === "soulUrge"
                       ? null
-                      : { position: "soulUrge", n: nameNumbers.soulUrge },
+                      : { position: "soulUrge", n: nameNumbers.soulUrge as StandardNumber },
                   )
                 }
                 inline={false}
@@ -178,7 +178,7 @@ function Reading({
                   setSubject(
                     subject?.position === "personality"
                       ? null
-                      : { position: "personality", n: nameNumbers.personality },
+                      : { position: "personality", n: nameNumbers.personality as StandardNumber },
                   )
                 }
                 inline={false}

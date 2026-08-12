@@ -39,11 +39,12 @@ function Row({ pillar, current }: { pillar: LuckPillar; current: boolean }) {
         branch: pillar.branch,
         startAge: pillar.startAge,
         endAge: pillar.endAge,
+        startDate: pillar.startDate,
+        endDate: pillar.endDate,
       }}
       label={`ages ${Math.floor(pillar.startAge)} to ${Math.floor(pillar.endAge)}`}
-      className={`grid w-full grid-cols-[5rem_5rem_1fr_auto] items-center gap-6 border-b border-rule-faint py-5 ${
-        current ? "bg-surface" : ""
-      }`}
+      className={`grid w-full grid-cols-[5rem_5rem_1fr_auto] items-center gap-6 border-b border-rule-faint py-5 ${current ? "bg-surface" : ""
+        }`}
     >
       <span
         className={`datum text-[0.6875rem] ${current ? "text-patina" : "text-bone-faint"}`}

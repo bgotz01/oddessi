@@ -16,11 +16,45 @@
  * side: the calculation should never have to import an adjective.
  */
 
-/** 1–9, plus the three master numbers, which are never reduced past themselves. */
-export type CoreNumber = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 11 | 22 | 33;
+// ─── Number types ─────────────────────────────────────────────────────────────
 
-/** The personal year runs 1–9 and starts again. Masters are reduced here. */
+/**
+ * Numbers reachable by sums of positive integers, with masters kept.
+ * Life Path, Expression, Soul Urge, Personality, and Pinnacle all land here.
+ * Zero is excluded because no sum of positive integers produces it.
+ */
+export type StandardNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 11 | 22 | 33;
+
+/**
+ * Numbers reachable by the Challenge position.
+ * Challenges are absolute differences of reduced components, so:
+ * - 0 is a real output (equal components cancel).
+ * - 9 is reachable when one component is a master and the difference lands there
+ *   before final reduction (e.g. |22 − 4| = 18 → 9).
+ * - 11, 22, 33 are never kept — a challenge of 11 reduces to 2.
+ */
+export type ChallengeNumber = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+
+/**
+ * Numbers reachable by the Essence position.
+ * Transit letter values sum to a number reduced keeping 11 and 22 (33 is not
+ * reachable from letter values in the Pythagorean table).
+ */
+export type EssenceNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 11 | 22;
+
+/** The personal year runs 1–9 strictly. Masters are reduced here. */
 export type YearNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+
+/** The three master numbers. */
+export type MasterNumber = 11 | 22 | 33;
+
+/**
+ * The full numeric vocabulary: every value that can appear anywhere in a
+ * reading. Use a narrower type where the domain is known.
+ */
+export type CoreNumber = 0 | StandardNumber;
+
+// ─── Reduction ────────────────────────────────────────────────────────────────
 
 const MASTERS: readonly number[] = [11, 22, 33];
 
@@ -49,9 +83,12 @@ function digitSum(n: number): number {
 /**
  * Add the digits until one is left, stopping early on a master number.
  *
- * Pass `keep: []` for the two places that do not honour masters — the personal
- * year, which is a position in a nine-year run and so must land in 1–9, and the
- * challenges, which are differences and can legitimately be 0.
+ * Pass `keep: []` for positions that do not honour masters:
+ * - Personal Year (must land in 1–9, a run of nine has no room for 11)
+ * - Challenges (differences; masters reduced to their base)
+ *
+ * Pass `keep: [11, 22]` for Essence (33 is not reachable from letter values).
+ * Pass `keep: MASTERS` (default) for everything else.
  */
 export function reduce(n: number, keep: readonly number[] = MASTERS): number {
   let value = Math.abs(n);
@@ -68,7 +105,10 @@ export interface Letter {
 }
 
 export interface NamePart {
-  /** As written, before the letters were stripped out of it. */
+  /**
+   * As written, before normalisation. Used only for display — all arithmetic
+   * operates on `letters`, which are already stripped and uppercased.
+   */
   raw: string;
   letters: Letter[];
 }
@@ -82,13 +122,12 @@ export interface NamePart {
  * consonant in the first name and a vowel in the second, which is not a rule so
  * much as an artefact of joining the parts before testing them.
  *
- * The rule here is the ordinary one: Y is a vowel when it is carrying the
- * sound itself, which in practice means neither neighbour is a vowel. Lynn and
- * Yvette get a vowel; Yolanda and Bryan get a consonant. W is never a vowel on
- * its own — arc declared a set for it and then never consulted it.
+ * The rule here: Y is a vowel when neither neighbour within the same part is
+ * a hard vowel. Lynn → vowel; Yolanda → consonant; Bryan → consonant.
+ * W is never a vowel on its own.
  *
  * No rule gets every name right, which is why the page prints the letters and
- * marks which ones counted rather than only showing the totals.
+ * marks which ones counted.
  */
 function isVowel(letters: string[], index: number): boolean {
   const char = letters[index];
@@ -100,11 +139,22 @@ function isVowel(letters: string[], index: number): boolean {
 }
 
 /**
- * Split a written name into parts, each spelled out with its values.
+ * Normalise and split a written name into parts for arithmetic.
  *
- * Anything that is not a letter is dropped — hyphens, apostrophes and accents
- * carry no value in the Pythagorean table — but the part it came from keeps its
- * original spelling in `raw` so the page can print the name as written.
+ * Normalisation rules (applied before splitting):
+ * - Trimmed and collapsed to single spaces between words.
+ * - Case-folded to uppercase.
+ * - Non-ASCII letters (accented, diacritics) are not transliterated — they are
+ *   stripped. A name like "André" is treated as "ANDR". If the chart owner
+ *   wants the accent counted they should save the name as "Andre".
+ * - Hyphens join two words into one part: "Mary-Jane" → one part "MARYJANE",
+ *   contributing one clock in Essence, not two. This is the most opinionated
+ *   rule; it is documented here because it affects Essence most visibly.
+ * - Apostrophes and all other non-letter characters are stripped.
+ * - Particles ("de", "la", "van", etc.) are treated as full parts with their
+ *   own letter values and their own Essence clock. There is no standard
+ *   convention for excluding them.
+ * - Empty parts (nothing but stripped characters) are discarded.
  */
 export function readName(name: string): NamePart[] {
   return name
@@ -138,18 +188,18 @@ function sumLetters(
 }
 
 /** Every letter of the name. Sometimes called the Destiny number. */
-export function expression(parts: NamePart[]): CoreNumber {
-  return reduce(sumLetters(parts, () => true)) as CoreNumber;
+export function expression(parts: NamePart[]): StandardNumber {
+  return reduce(sumLetters(parts, () => true)) as StandardNumber;
 }
 
 /** The vowels only. Sometimes called the Heart's Desire. */
-export function soulUrge(parts: NamePart[]): CoreNumber {
-  return reduce(sumLetters(parts, (l) => l.vowel)) as CoreNumber;
+export function soulUrge(parts: NamePart[]): StandardNumber {
+  return reduce(sumLetters(parts, (l) => l.vowel)) as StandardNumber;
 }
 
 /** The consonants only. What the name shows before anything is said. */
-export function personality(parts: NamePart[]): CoreNumber {
-  return reduce(sumLetters(parts, (l) => !l.vowel)) as CoreNumber;
+export function personality(parts: NamePart[]): StandardNumber {
+  return reduce(sumLetters(parts, (l) => !l.vowel)) as StandardNumber;
 }
 
 // ─── Dates ────────────────────────────────────────────────────────────────────
@@ -162,21 +212,30 @@ export interface BirthDate {
 }
 
 /**
- * Month, day and year each reduced first, then added and reduced again.
+ * Month, day and year each reduced first (masters kept), then added and
+ * reduced again.
  *
- * The order matters and is not the only convention in circulation: adding the
- * eight digits straight across gives a different answer for some dates, because
- * reducing first can preserve a master in a component that the flat sum would
- * have carried away. This is the method arc used and the one most commonly
- * published.
+ * The order matters: adding all eight digits straight across gives a different
+ * answer for some dates, because reducing each component first can preserve a
+ * master that the flat sum would carry away. This is the component-first method
+ * and the one most commonly published.
  */
-export function lifePath(birth: BirthDate): CoreNumber {
+export function lifePath(birth: BirthDate): StandardNumber {
   const sum =
     reduce(birth.month) + reduce(birth.day) + reduce(birth.year);
-  return reduce(sum) as CoreNumber;
+  return reduce(sum) as StandardNumber;
 }
 
-/** The same sum with the calendar year swapped in for the birth year. */
+/**
+ * The calendar year's personal year number for this birth date.
+ *
+ * Reduced all the way — no masters. A nine-year run must land in 1–9;
+ * an 11 would create a run of ten and break the cycle.
+ *
+ * In this system the year turns on 1 January rather than on the birthday.
+ * Birthday-transition systems exist and give different answers for the months
+ * before the birthday in any given year.
+ */
 export function personalYear(birth: BirthDate, year: number): YearNumber {
   const sum =
     reduce(birth.month, []) + reduce(birth.day, []) + reduce(year, []);
@@ -205,9 +264,9 @@ export function personalYearRun(
 
 export interface Pinnacle {
   index: 1 | 2 | 3 | 4;
-  number: CoreNumber;
-  /** The obstacle inside the chapter. A difference, so 0 is a real answer. */
-  challenge: CoreNumber;
+  number: StandardNumber;
+  /** The obstacle inside the chapter. ChallengeNumber (0 is a real answer). */
+  challenge: ChallengeNumber;
   startAge: number;
   /** Null on the fourth, which does not close. */
   endAge: number | null;
@@ -218,35 +277,41 @@ export interface Pinnacle {
 /**
  * The four chapters, from the birth date alone.
  *
- * Numbers: month+day, day+year, the first two added, month+year. Challenges are
- * the absolute differences of the same pairs, reduced without masters because a
- * challenge of 11 would be an obstacle of 2 wearing a costume.
+ * Pinnacle numbers: month+day, day+year, pinnacle1+pinnacle2, month+year.
+ * All reductions keep masters — a 22nd of the month enters each sum as 22.
+ * The third pinnacle is built from the already-reduced first two, so a master
+ * in either is preserved through the intermediate stage.
  *
- * The first chapter closes at 36 minus the Life Path — the one place a master
- * has to be flattened, or a Life Path 33 would end the chapter before birth.
- * Each of the next two runs nine years; the fourth runs out.
+ * Challenge numbers: the absolute differences of the same four pairs, reduced
+ * without masters. A challenge of 11 would be an obstacle of 2 wearing a
+ * costume, so it is flattened. Zero is a valid output when the two components
+ * are equal.
+ *
+ * The first chapter closes at 36 minus the Life Path (reduced without masters
+ * for this calculation, or a Life Path 33 would close the chapter before birth).
  */
 export function pinnacles(birth: BirthDate): Pinnacle[] {
+  // Components kept with masters for pinnacle sums.
   const month = reduce(birth.month);
   const day = reduce(birth.day);
   const year = reduce(birth.year);
 
-  const numbers = [
-    reduce(month + day),
-    reduce(day + year),
-    reduce(reduce(month + day) + reduce(day + year)),
-    reduce(month + year),
-  ] as CoreNumber[];
+  // Pinnacle numbers — each is a sum, masters kept throughout.
+  const p1 = reduce(month + day);
+  const p2 = reduce(day + year);
+  const p3 = reduce(p1 + p2);
+  const p4 = reduce(month + year);
+  const numbers: StandardNumber[] = [p1, p2, p3, p4] as StandardNumber[];
 
-  const firstChallenge = reduce(Math.abs(month - day), []);
-  const secondChallenge = reduce(Math.abs(day - year), []);
-  const challenges = [
-    firstChallenge,
-    secondChallenge,
-    reduce(Math.abs(firstChallenge - secondChallenge), []),
-    reduce(Math.abs(month - year), []),
-  ] as CoreNumber[];
+  // Challenge numbers — absolute differences, masters flattened.
+  const c1 = reduce(Math.abs(month - day), []);
+  const c2 = reduce(Math.abs(day - year), []);
+  const c3 = reduce(Math.abs(c1 - c2), []);
+  const c4 = reduce(Math.abs(month - year), []);
+  const challenges: ChallengeNumber[] = [c1, c2, c3, c4] as ChallengeNumber[];
 
+  // First chapter length: 36 minus the life path, with life path reduced
+  // without masters (a Life Path 33 would otherwise close before birth).
   const firstEnds = 36 - reduce(lifePath(birth), []);
   const bounds: Array<[number, number | null]> = [
     [0, firstEnds],
@@ -295,7 +360,13 @@ export interface Transit {
 export interface EssenceYear {
   age: number;
   year: number;
-  number: CoreNumber;
+  /**
+   * The sum of all concurrent transit letters, reduced keeping 11 and 22.
+   * 33 is excluded from the keep list because no combination of Pythagorean
+   * letter values can sum to 33 after reduction (the maximum single-letter
+   * value is 9, and 33 requires a very specific path that is not reachable).
+   */
+  number: EssenceNumber;
   transits: Transit[];
 }
 
@@ -305,8 +376,7 @@ export interface EssenceYear {
  * Each letter holds for as many years as its value, in spelling order, and the
  * part starts over when it runs out — so the whole part repeats every
  * (sum of its values) years. That periodicity is used to jump straight into the
- * right pass rather than walking from birth, which is what arc did behind a
- * thousand-iteration guard.
+ * right pass rather than walking from birth.
  */
 function transitAt(part: NamePart, age: number): Transit {
   const period = part.letters.reduce((n, l) => n + l.value, 0);
@@ -334,10 +404,13 @@ function transitAt(part: NamePart, age: number): Transit {
 /**
  * The year-by-year transit of the name, over a span of ages.
  *
- * Every part of the name contributes one ruling letter per year; the essence is
- * their sum. Arc's version used the first and last parts only, dropping middle
- * names its own comment said it would include — with two-part names the two
- * agree, and with three the method here is the one the tradition describes.
+ * Every part of the name contributes one ruling letter per year (its own clock,
+ * running independently). The essence for a given age is the sum of all
+ * concurrent transit letters, reduced keeping 11 and 22.
+ *
+ * Parts are defined by whitespace in the stored name — hyphens join two words
+ * into one part (see readName). A three-word name produces three concurrent
+ * clocks; a hyphenated name may produce fewer.
  */
 export function essence(
   parts: NamePart[],
@@ -355,7 +428,7 @@ export function essence(
       number: reduce(
         transits.reduce((n, t) => n + t.value, 0),
         [11, 22],
-      ) as CoreNumber,
+      ) as EssenceNumber,
       transits,
     });
   }
@@ -406,11 +479,10 @@ function working(
 /**
  * The three reduced components every date-derived number here is built from.
  *
- * `keep` is not a detail. The pinnacles reduce their components with masters
- * intact, so a 22nd of the month enters the sum as 22; the personal year
- * reduces all the way, so the same day enters as 4. Both are what the functions
- * above already do, and a working that assumed one convention for both printed
- * a sum that did not produce the number sitting next to it.
+ * `keep` matters: pinnacles reduce with masters intact (a 22nd of the month
+ * enters as 22); the personal year and challenges reduce all the way (the same
+ * day enters as 4). Passing the wrong list produces a working whose arithmetic
+ * does not match the number sitting next to it.
  */
 function dateOperands(birth: BirthDate, keep: readonly number[]) {
   return {
@@ -429,7 +501,13 @@ export function personalYearWorking(birth: BirthDate, year: number): Working {
   );
 }
 
-/** Month+day, day+year, the first two added, month+year — in that order. */
+/**
+ * Month+day, day+year, pinnacle1+pinnacle2, month+year — in that order.
+ *
+ * The third pinnacle's operands are the already-reduced first and second
+ * pinnacles, not raw date components — masters present in those intermediate
+ * results are preserved when they enter the third sum.
+ */
 export function pinnacleWorking(birth: BirthDate, index: 1 | 2 | 3 | 4): Working {
   const { month, day, year } = dateOperands(birth, MASTERS);
 
@@ -437,6 +515,7 @@ export function pinnacleWorking(birth: BirthDate, index: 1 | 2 | 3 | 4): Working
   if (index === 2) return working([day, year], "+", MASTERS);
   if (index === 4) return working([month, year], "+", MASTERS);
 
+  // Third: built from the reduced first and second pinnacles.
   return working(
     [
       { label: "First pinnacle", value: reduce(month.value + day.value) },
@@ -447,7 +526,11 @@ export function pinnacleWorking(birth: BirthDate, index: 1 | 2 | 3 | 4): Working
   );
 }
 
-/** The same pairs as differences. Never a master, and 0 is a real answer. */
+/**
+ * The same pairs as differences. Components are taken with masters kept (same
+ * as pinnacles), then the absolute difference is reduced without masters.
+ * A challenge of 11 is an obstacle of 2; the difference is what is kept.
+ */
 export function challengeWorking(birth: BirthDate, index: 1 | 2 | 3 | 4): Working {
   const { month, day, year } = dateOperands(birth, MASTERS);
 
@@ -457,14 +540,8 @@ export function challengeWorking(birth: BirthDate, index: 1 | 2 | 3 | 4): Workin
 
   return working(
     [
-      {
-        label: "First challenge",
-        value: reduce(Math.abs(month.value - day.value), []),
-      },
-      {
-        label: "Second challenge",
-        value: reduce(Math.abs(day.value - year.value), []),
-      },
+      { label: "First challenge", value: reduce(Math.abs(month.value - day.value), []) },
+      { label: "Second challenge", value: reduce(Math.abs(day.value - year.value), []) },
     ],
     "−",
     [],
@@ -483,6 +560,24 @@ export function essenceWorking(year: EssenceYear): Working {
   );
 }
 
+// ─── Lexicon helpers ──────────────────────────────────────────────────────────
+
+/** True for the three numbers that are never reduced past themselves. */
+export function isMaster(n: CoreNumber): n is MasterNumber {
+  return n === 11 || n === 22 || n === 33;
+}
+
+/**
+ * What a master reduces to. Returns a precise type (2 | 4 | 6) rather than the
+ * full CoreNumber, so callers can rely on TypeScript to carry the relationship.
+ */
+export function reducesTo(n: CoreNumber): 2 | 4 | 6 | null {
+  if (n === 11) return 2;
+  if (n === 22) return 4;
+  if (n === 33) return 6;
+  return null;
+}
+
 // ─── The whole reading ────────────────────────────────────────────────────────
 
 export interface NumerologyReading {
@@ -497,12 +592,12 @@ export interface NumerologyReading {
   fullName: boolean;
   birth: BirthDate;
   age: number;
-  lifePath: CoreNumber;
+  lifePath: StandardNumber;
   /** Null when `fullName` is false. */
   nameNumbers: {
-    expression: CoreNumber;
-    soulUrge: CoreNumber;
-    personality: CoreNumber;
+    expression: StandardNumber;
+    soulUrge: StandardNumber;
+    personality: StandardNumber;
   } | null;
   personalYear: {
     year: number;
@@ -558,10 +653,10 @@ export function computeReading(
     lifePath: lifePath(input.birth),
     nameNumbers: fullName
       ? {
-          expression: expression(parts),
-          soulUrge: soulUrge(parts),
-          personality: personality(parts),
-        }
+        expression: expression(parts),
+        soulUrge: soulUrge(parts),
+        personality: personality(parts),
+      }
       : null,
     personalYear: {
       year,

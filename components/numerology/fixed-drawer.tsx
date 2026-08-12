@@ -4,13 +4,16 @@ import { useEffect } from "react";
 import { Block, Prose, Terms } from "@/components/study-panel";
 import { Figure, MasterNote } from "@/components/numerology/parts";
 import { NUMBERS, POSITIONS, type Position } from "@/lib/numerology/lexicon";
-import type { CoreNumber } from "@/lib/numerology/numbers";
+import type { CoreNumber, StandardNumber } from "@/lib/numerology/numbers";
 import {
   LIFE_PATH_READINGS,
   EXPRESSION_READINGS,
   SOUL_URGE_READINGS,
   PERSONALITY_READINGS,
-  type FixedReading,
+  type LifePathReading,
+  type ExpressionReading,
+  type SoulUrgeReading,
+  type PersonalityReading,
 } from "@/lib/numerology/fixed";
 
 /**
@@ -28,16 +31,18 @@ import {
 
 export type FixedSubject = {
   position: Extract<Position, "lifePath" | "expression" | "soulUrge" | "personality">;
-  n: CoreNumber;
-  /** Printed in the header as the aside — birth date for life path, omitted for name numbers. */
+  n: StandardNumber;
   aside?: string;
 };
 
-function getReading(position: FixedSubject["position"], n: CoreNumber): FixedReading {
+function getReading(
+  position: FixedSubject["position"],
+  n: StandardNumber,
+): LifePathReading | ExpressionReading | SoulUrgeReading | PersonalityReading {
   switch (position) {
-    case "lifePath":    return LIFE_PATH_READINGS[n];
-    case "expression":  return EXPRESSION_READINGS[n];
-    case "soulUrge":    return SOUL_URGE_READINGS[n];
+    case "lifePath": return LIFE_PATH_READINGS[n];
+    case "expression": return EXPRESSION_READINGS[n];
+    case "soulUrge": return SOUL_URGE_READINGS[n];
     case "personality": return PERSONALITY_READINGS[n];
   }
 }

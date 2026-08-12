@@ -1,20 +1,17 @@
 /**
  * What the numbers mean.
  *
- * Two tables and no third. A number has a character, and a position asks a
- * question; a reading is one put through the other. Arc had a separate block of
- * prose for every number in every position — twelve numbers across eight places
- * is nearly a hundred passages, written once and then never reconciled, so the
- * same 7 was solitary in one file and studious in another.
- *
- * Here the character is written once and the position frames it. Thirteen
- * entries plus eight, rather than a hundred and four, and nothing can drift out
- * of agreement with itself. Where a reading wants more than the frame gives,
- * that is a question for the council, which has the whole reading in front of
- * it — not for another table.
+ * The canonical definitions live here: a number has a character, a position
+ * asks a question, and a reading is one put through the other. The character
+ * is written once; position-specific applications live in the neighbouring
+ * files (fixed.ts, pinnacles.ts, challenges.ts), which extend rather than
+ * replace these entries. Nothing in those files should be undeducible from
+ * the number entry here and the position entry below.
  */
 
-import type { CoreNumber } from "./numbers";
+import type { CoreNumber, StandardNumber } from "./numbers";
+export type { StandardNumber };
+export { isMaster, reducesTo } from "./numbers";
 
 export interface NumberEntry {
   /** The name it goes by. Kept short enough to sit under a numeral. */
@@ -83,17 +80,17 @@ export const NUMBERS: Record<CoreNumber, NumberEntry> = {
   },
   11: {
     title: "The Signal",
-    note: "A 2 under load. The same attunement, turned up until it stops being a social skill and becomes something closer to reception — accurate, unbidden, and hard on the nerves that carry it.",
+    note: "Sensitivity running at a pitch where it stops being a social skill and becomes something closer to reception — accurate, unbidden, and hard on the nerves that carry it. What others sense dimly, this number registers clearly and without choosing to.",
     terms: ["Reception", "Intensity", "Strain"],
   },
   22: {
     title: "The Works",
-    note: "A 4 at scale. The building instinct pointed at something too large to finish alone, which makes the ordinary competence of the 4 into either a body of work or a lifetime of foundations with nothing on them.",
+    note: "The instinct to build, pointed at something too large to finish alone. What gets made holds — the same capacity for patient construction as the more ordinary builder — but the scale of what is attempted means the finished thing may remain invisible for most of the work.",
     terms: ["Scale", "Construction", "Overload"],
   },
   33: {
     title: "The Charge",
-    note: "A 6 without a boundary. Care extended past the household to whoever is in front of it, which is either service or a slow disappearance depending entirely on whether anything is left over.",
+    note: "Care extended past the household to whoever is in front of it. The impulse to answer what is needed does not stop at the boundary of the personal circle, which makes the giving genuine and the risk of disappearing into it equally real.",
     terms: ["Service", "Devotion", "Erasure"],
   },
 };
@@ -122,62 +119,51 @@ export const POSITIONS: Record<Position, PositionEntry> = {
   lifePath: {
     label: "Life Path",
     from: "The birth date",
-    asks: "The one number that cannot be changed, since the date cannot. Read it as the terrain rather than the traveller: the kind of problem this life keeps being handed, whatever is done about it.",
+    asks: "The fixed terrain of the life: the kind of problem or condition that keeps returning, whatever is done about it. It describes what the life keeps asking of the person rather than who the person is.",
     fixed: true,
   },
   expression: {
     label: "Expression",
     from: "Every letter of the name",
-    asks: "What the person is equipped with, as against what they are here to learn. Taken from the whole name because it is the whole apparatus — the abilities that are available whether or not they are wanted.",
+    asks: "What the person is equipped with. Taken from the whole name because it describes the whole apparatus — the abilities, capacities, and ways of acting that are available whether or not they are wanted.",
     fixed: true,
   },
   soulUrge: {
     label: "Soul Urge",
     from: "The vowels",
-    asks: "What is actually wanted, underneath what is pursued. The vowels are the sounded part of a name, which is the argument for reading them as the part that is not on display.",
+    asks: "What is actually wanted underneath what is pursued. The vowels are the sounded part of the name, and are read here as the inward motive rather than the part most immediately visible to others.",
     fixed: true,
   },
   personality: {
     label: "Personality",
     from: "The consonants",
-    asks: "What arrives in the room before anything is said. Not a mask exactly — it is made of the same name — but the edge of it, and the part strangers take for the whole.",
+    asks: "What arrives before anything is said. Not a mask exactly, since it belongs to the same name, but the outer edge of it — the part strangers encounter first and may mistake for the whole.",
     fixed: true,
   },
   personalYear: {
     label: "Personal Year",
     from: "Birth month and day, plus the calendar year",
-    asks: "What this particular year is for. It turns on 1 January rather than on a birthday, runs one to nine and starts again, so it is a position in a cycle before it is a description of a mood.",
+    asks: "What this particular year is asking for. In this system it turns on 1 January rather than on the birthday — other conventions use the birthday — and moves through a repeating cycle from one to nine. It describes the emphasis of the year, not simply its mood.",
     fixed: false,
   },
   pinnacle: {
     label: "Pinnacle",
     from: "Pairs of the birth date",
-    asks: "The standing condition of a whole chapter — decades, not seasons. What is available during it, and what the years inside it keep being about.",
+    asks: "The standing condition of a long chapter of life. It describes what becomes available during that period, what the period keeps emphasizing, and the kind of development it repeatedly invites.",
     fixed: false,
   },
   challenge: {
     label: "Challenge",
     from: "Differences within the birth date",
-    asks: "The obstacle inside the chapter, taken as a difference rather than a sum. Not the opposite of the pinnacle — the price of it, and usually the same trait viewed from underneath.",
+    asks: "The recurring friction running through a chapter, taken as a difference rather than a sum. It is not the opposite of the pinnacle, but the particular difficulty the person keeps having to work through while the chapter unfolds.",
     fixed: false,
   },
   essence: {
     label: "Essence",
-    from: "The letters of the name, in order, a year each per value",
-    asks: "The name read as a clock. Each letter rules for as many years as it is worth, so the name spells itself out across a life and the essence is whichever letters are sounding at once.",
+    from: "All parts of the name running concurrently",
+    asks: "The name read as a clock. Each part of the name moves through its letters in spelling order, with each letter remaining active for as many years as its value; the Essence is the sum of the letters sounding together at a given time.",
     fixed: false,
   },
 };
 
-/** True for the three numbers that are never reduced past themselves. */
-export function isMaster(n: CoreNumber): boolean {
-  return n === 11 || n === 22 || n === 33;
-}
 
-/** What a master reduces to, for the note that says so. Null for the rest. */
-export function reducesTo(n: CoreNumber): CoreNumber | null {
-  if (n === 11) return 2;
-  if (n === 22) return 4;
-  if (n === 33) return 6;
-  return null;
-}

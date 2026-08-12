@@ -60,17 +60,17 @@ import {
 
 export type Explainable =
   | {
-      kind: "pillar";
-      role: "year" | "month" | "day" | "hour";
-      stem: StemIndex;
-      branch: BranchIndex;
-      dayMaster: StemIndex;
-    }
+    kind: "pillar";
+    role: "year" | "month" | "day" | "hour";
+    stem: StemIndex;
+    branch: BranchIndex;
+    dayMaster: StemIndex;
+  }
   | { kind: "stem"; stem: StemIndex; asDayMaster?: boolean }
   | { kind: "branch"; branch: BranchIndex }
   | { kind: "element"; element: Element; share?: number }
   | { kind: "god"; family: GodFamily; share?: number }
-  | { kind: "luck"; stem: StemIndex; branch: BranchIndex; startAge: number; endAge: number }
+  | { kind: "luck"; stem: StemIndex; branch: BranchIndex; startAge: number; endAge: number; startDate: string; endDate: string }
   | { kind: "concept"; concept: ConceptKey };
 
 const ExplainContext = createContext<((subject: Explainable) => void) | null>(null);
@@ -292,14 +292,17 @@ function headingOf(subject: Explainable): {
             : `${subject.share}% of this chart`,
         tint: elementColor(subject.element),
       };
-    case "luck":
+    case "luck": {
+      const startYear = new Date(subject.startDate).getUTCFullYear();
+      const endYear = new Date(subject.endDate).getUTCFullYear();
       return {
-        eyebrow: `Luck pillar · ages ${Math.floor(subject.startAge)}–${Math.floor(subject.endAge)}`,
+        eyebrow: `Luck pillar · ages ${Math.floor(subject.startAge)}–${Math.floor(subject.endAge)} · ${startYear}–${endYear}`,
         title: `${STEMS[subject.stem].polarity} ${STEMS[subject.stem].element} ${BRANCHES[subject.branch].animal}`,
         subtitle: `${STEMS[subject.stem].pinyin} ${BRANCHES[subject.branch].pinyin}`,
         han: [stemPart(subject.stem), branchPart(subject.branch)],
         tint: elementColor(STEMS[subject.stem].element),
       };
+    }
     case "god":
       return {
         eyebrow: `Ten Gods · ${GOD_FAMILIES[subject.family].han}`,
@@ -581,18 +584,37 @@ function LuckBody({
   branch,
   startAge,
   endAge,
+  startDate,
+  endDate,
 }: {
   stem: StemIndex;
   branch: BranchIndex;
   startAge: number;
   endAge: number;
+  startDate: string;
+  endDate: string;
 }) {
   const s = STEMS[stem];
   const b = BRANCHES[branch];
+  const startYear = new Date(startDate).getUTCFullYear();
+  const endYear = new Date(endDate).getUTCFullYear();
 
   return (
     <>
-      <Block title="This decade" aside={`Ages ${Math.floor(startAge)}–${Math.floor(endAge)}`}>
+      <Block
+        title="This decade"
+        aside={
+          <span>
+            <span className="text-bone-soft">
+              Ages {Math.floor(startAge)}–{Math.floor(endAge)}
+            </span>
+            <span className="text-bone-faint"> · </span>
+            <span>
+              {startYear}–{endYear}
+            </span>
+          </span>
+        }
+      >
         <Prose>
           For ten years the chart is read with {s.polarity} {s.element} added
           above and {b.animal} below — a pair that is not in the birth chart,
