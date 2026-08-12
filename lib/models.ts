@@ -14,18 +14,18 @@ const RAW_MODELS = [
     { id: 'deepseek/deepseek-v4-pro', label: 'DeepSeek V4 Pro', inputCost: 0.44, outputCost: 0.87, context: '1M', speed: '66 t/s', speedNum: 66, latency: '1256ms', latencyMs: 1256, maxTokens: 8000 },
     { id: 'anthropic/claude-sonnet-5', label: 'Claude Sonnet 5', inputCost: 2.00, outputCost: 10.00, context: '1M', speed: '44 t/s', speedNum: 44, latency: '2046ms', latencyMs: 2046, maxTokens: 8000 },
     { id: 'anthropic/claude-opus-4.8', label: 'Claude Opus 4.8', inputCost: 5.00, outputCost: 25.00, context: '1M', speed: '43 t/s', speedNum: 43, latency: '1398ms', latencyMs: 1398, maxTokens: 8000 },
-    { id: 'anthropic/claude-fable-5', label: 'Claude Fable 5', inputCost: 10.00, outputCost: 50.00, context: '1M', speed: '43 t/s', speedNum: 43, latency: '1398ms', latencyMs: 1398, maxTokens: 8000 },
     { id: 'deepseek/deepseek-v3.2', label: 'DeepSeek V3.2', inputCost: 0.23, outputCost: 0.34, context: '131K', speed: '25 t/s', speedNum: 25, latency: '1549ms', latencyMs: 1549, maxTokens: 8000 },
     { id: 'google/gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite', inputCost: 0.25, outputCost: 1.50, context: '1M', speed: '97 t/s', speedNum: 97, latency: '1074ms', latencyMs: 1074, maxTokens: 8000 },
     { id: 'google/gemini-3.5-flash', label: 'Gemini 3.5 Flash', inputCost: 1.50, outputCost: 9.00, context: '1M', speed: '141 t/s', speedNum: 141, latency: '1731ms', latencyMs: 1731, maxTokens: 8000 },
-    { id: 'z-ai/glm-5.2', label: 'Z.ai GLM 5.2', inputCost: 1.20, outputCost: 4.10, context: '1M', speed: '42 t/s', speedNum: 42, latency: '1236ms', latencyMs: 1236, maxTokens: 4000 },
+    { id: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash', inputCost: 0.30, outputCost: 2.50, context: '1M', speed: '120 t/s', speedNum: 120, latency: '950ms', latencyMs: 950, maxTokens: 8000 },
     { id: 'google/gemma-4-26b-a4b-it', label: 'Gemma 4 26B A4B', inputCost: 0.06, outputCost: 0.33, context: '262K', speed: '12 t/s', speedNum: 12, latency: '1616ms', latencyMs: 1616, maxTokens: 8000 },
+    { id: 'z-ai/glm-5.2', label: 'Z.ai GLM 5.2', inputCost: 0.42, outputCost: 1.40, context: '1M', speed: '42 t/s', speedNum: 42, latency: '1236ms', latencyMs: 1236, maxTokens: 4000 },
     { id: 'qwen/qwen3.7-plus', label: 'Qwen3.7 Plus', inputCost: 0.32, outputCost: 1.28, context: '1M', speed: '11 t/s', speedNum: 11, latency: '1190ms', latencyMs: 1190, maxTokens: 8000 },
     { id: 'qwen/qwen3.7-max', label: 'Qwen3.7 Max', inputCost: 1.25, outputCost: 3.75, context: '1M', speed: '50 t/s', speedNum: 50, latency: '1260ms', latencyMs: 1260, maxTokens: 8000 },
     { id: 'moonshotai/kimi-k3', label: 'Kimi K3', inputCost: 3.00, outputCost: 15.00, context: '1M', speed: '44 t/s', speedNum: 44, latency: '1400ms', latencyMs: 1400, maxTokens: 8000 },
-    { id: 'google/gemini-2.5-flash', label: 'Gemini 2.5 Flash', inputCost: 0.30, outputCost: 2.50, context: '1M', speed: '120 t/s', speedNum: 120, latency: '950ms', latencyMs: 950, maxTokens: 8000 },
-    { id: 'openai/gpt-5.6-luna', label: 'GPT-5.6 Luna', inputCost: 1.00, outputCost: 6.00, context: '400K', speed: '80 t/s', speedNum: 80, latency: '1200ms', latencyMs: 1200, maxTokens: 8000 },
-    { id: 'openai/gpt-5.4-mini', label: 'GPT-5.4 Mini', inputCost: 0.75, outputCost: 4.50, context: '400K', speed: '110 t/s', speedNum: 110, latency: '1000ms', latencyMs: 1000, maxTokens: 8000 },
+
+    { id: 'openai/gpt-5.6-luna', label: 'GPT-5.6 Luna', inputCost: 0.10, outputCost: 0.60, context: '400K', speed: '80 t/s', speedNum: 80, latency: '1200ms', latencyMs: 1200, maxTokens: 8000 },
+
 ] as const;
 
 export interface Model {

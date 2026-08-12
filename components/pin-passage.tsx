@@ -13,16 +13,17 @@ import type { MemoryScope } from "@/lib/memory-scope";
  * makes you break off, copy, open a window and paste will mostly not get done,
  * and the passages worth keeping are exactly the ones you notice mid-sentence.
  *
- * Three buttons rather than a pin-then-choose-scope dropdown: the scope is a
- * one-click choice out of three, so a menu would add a step to save a step. The
- * position matching the West/East switch is marked, because that is the right
+ * Buttons rather than a pin-then-choose-scope dropdown: the scope is a
+ * one-click choice out of four, so a menu would add a step to save a step. The
+ * position the systems switch implies is marked, because that is the right
  * answer nearly every time.
  */
 
 const SCOPES: Array<{ scope: MemoryScope; label: string; title: string }> = [
-  { scope: "West", label: "West", title: "Pin to Western Notes — read in West and Both" },
-  { scope: "East", label: "East", title: "Pin to Eastern Notes — read in East and Both" },
-  { scope: "Shared", label: "Both", title: "Pin to Notes — read in every conversation" },
+  { scope: "western", label: "West", title: "Pin to Western Notes — read whenever West is attached" },
+  { scope: "eastern", label: "East", title: "Pin to Eastern Notes — read whenever East is attached" },
+  { scope: "numerology", label: "Num", title: "Pin to Numerology Notes — read whenever Numbers is attached" },
+  { scope: "Shared", label: "All", title: "Pin to Notes — read in every conversation" },
 ];
 
 /** Where the floating bar sits, in coordinates relative to the transcript. */
@@ -45,9 +46,14 @@ export function PinPassage({
   const [saved, setSaved] = useState<MemoryScope | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
 
-  /** The scope the switch implies — marked, and what most pins should use. */
-  const suggested: MemoryScope =
-    systems === "western" ? "West" : systems === "chinese" ? "East" : "Shared";
+  /**
+   * The scope the switch implies — marked, and what most pins should use.
+   *
+   * Only a conversation narrowed to exactly one system gets a system suggested.
+   * With two attached there is no honest guess about which one the passage came
+   * from, and Shared is the answer that cannot be wrong.
+   */
+  const suggested: MemoryScope = systems.length === 1 ? systems[0] : "Shared";
 
   const readSelection = useCallback(() => {
     const selection = document.getSelection();

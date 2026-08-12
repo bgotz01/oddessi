@@ -13,6 +13,18 @@ import {
 import { DEFAULT_MODEL } from "@/lib/models";
 import { DEFAULT_INTERFACE_PROMPT } from "@/lib/interface-prefs";
 import { useChart } from "@/components/chart-context";
+import {
+  SYSTEMS,
+  parseSystems,
+  type ActiveSystems,
+  type System,
+} from "@/lib/memory-scope";
+
+/**
+ * Re-exported so the modal and the pin control have one import for the switch.
+ * The definition lives with the memory scopes because that is what it decides.
+ */
+export type { ActiveSystems, System } from "@/lib/memory-scope";
 
 /** A past conversation, as the session dropdown needs it. No transcript — the
  *  messages are fetched only when one is actually opened. */
@@ -58,8 +70,8 @@ interface ChatContextValue {
   memoryEnabled: boolean;
   setMemoryEnabled: (v: boolean) => void;
   /** Which system(s) the model may read from. */
-  systems: Systems;
-  setSystems: (v: Systems) => void;
+  systems: ActiveSystems;
+  setSystems: (v: ActiveSystems) => void;
   /**
    * Distil the current conversation into memory without ending it. `clear`
    * does this too, on the way out; this is the same thing on its own.
@@ -71,6 +83,18 @@ interface ChatContextValue {
    * there is new material to add.
    */
   distilled: boolean;
+  /**
+   * True when that distillation wrote nothing — the distiller read the
+   * transcript and found no lesson in it worth keeping.
+   *
+   * This is a routine outcome, not a failure: the distiller is deliberately
+   * strict, and a question with one answer that nobody confirmed or argued
+   * with is the commonest chat there is. It needs saying out loud all the same.
+   * Reporting it as "added to memory" sends people to the memory panel to look
+   * for something that was never written, and the only conclusion available
+   * there is that the app lost it.
+   */
+  distilledNothing: boolean;
   /** Past conversations for the active chart, newest first. */
   sessions: ChatSessionSummary[];
   /** The session currently on screen, or null for an unsaved new chat. */
@@ -139,19 +163,46 @@ const memorySetting = {
 /**
  * Which system(s) the Interface may read from.
  *
- * Narrowing to one is not only about tokens. With both attached the model will
- * reach across them unprompted — the two element vocabularies share three
- * names — so "Western only" is the way to get a reading that stays inside one
- * tradition and can be judged on its own terms. Both is the default because it
- * is what the app is for.
+ * Narrowing is not only about tokens. With more than one attached the model
+ * will reach across them unprompted — the Western elements and the Chinese
+ * phases share three names outright — so "Western only" is the way to get a
+ * reading that stays inside one tradition and can be judged on its own terms.
+ * All three is the default because it is what the app is for.
  *
- * Same localStorage store as the memory toggle above.
+ * Same localStorage store as the memory toggle above. The stored value is a
+ * comma-joined list; the three legacy strings are still read, which is why
+ * `parseSystems` and not a bare split.
  */
-export type Systems = "western" | "chinese" | "both";
-
 const SYSTEMS_KEY = "oddessi:systems";
 
 let systemsListeners: Array<() => void> = [];
+
+/**
+ * `useSyncExternalStore` compares snapshots by identity, so `get` must not
+ * return a fresh array each call or React re-renders forever. The parsed value
+ * is cached against the raw string it came from and only rebuilt when that
+ * changes.
+ */
+let cachedRaw: string | null = null;
+let cachedSystems: ActiveSystems = SYSTEMS;
+
+/**
+ * The stored string, read as a set.
+ *
+ * Three cases that are easy to collapse and must not be: never set (null) is
+ * the default of everything; the empty string is a deliberate "nothing
+ * attached"; and a lone token that is not a system name is one of the three
+ * values the old enum wrote, which `parseSystems` translates.
+ */
+function readStored(raw: string | null): ActiveSystems {
+  if (raw === null) return SYSTEMS;
+  if (raw === "") return [];
+  const parts = raw.split(",");
+  if (parts.length === 1 && !SYSTEMS.includes(parts[0] as System)) {
+    return parseSystems(parts[0]);
+  }
+  return parseSystems(parts);
+}
 
 const systemsSetting = {
   subscribe(onChange: () => void) {
@@ -162,15 +213,19 @@ const systemsSetting = {
       window.removeEventListener("storage", onChange);
     };
   },
-  get(): Systems {
-    const stored = window.localStorage.getItem(SYSTEMS_KEY);
-    return stored === "western" || stored === "chinese" ? stored : "both";
+  get(): ActiveSystems {
+    const raw = window.localStorage.getItem(SYSTEMS_KEY);
+    if (raw !== cachedRaw) {
+      cachedRaw = raw;
+      cachedSystems = readStored(raw);
+    }
+    return cachedSystems;
   },
-  getOnServer(): Systems {
-    return "both";
+  getOnServer(): ActiveSystems {
+    return SYSTEMS;
   },
-  set(value: Systems) {
-    window.localStorage.setItem(SYSTEMS_KEY, value);
+  set(value: ActiveSystems) {
+    window.localStorage.setItem(SYSTEMS_KEY, value.join(","));
     systemsListeners.forEach((l) => l());
   },
 };
@@ -208,7 +263,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     systemsSetting.get,
     systemsSetting.getOnServer,
   );
-  const setSystems = useCallback((v: Systems) => systemsSetting.set(v), []);
+  const setSystems = useCallback((v: ActiveSystems) => systemsSetting.set(v), []);
   // Read by `distilFrom`, which must not be re-created every time the switch
   // moves — same reason `chartRef` exists.
   const systemsRef = useRef(systems);
@@ -221,6 +276,15 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [sessionId, setSessionIdState] = useState<string | null>(null);
   /** Message count at the last distillation. 0 means "not distilled". */
   const [distilledCount, setDistilledCount] = useState(0);
+  /**
+   * How many categories that distillation actually wrote. `null` until the
+   * server has answered.
+   *
+   * Only ever read alongside `distilledCount`, which is why it needs no reset
+   * of its own: every path that abandons a distillation zeroes the count, and
+   * a zeroed count makes this value unreachable.
+   */
+  const [distilledCategories, setDistilledCategories] = useState<number | null>(null);
 
   // Current DB session id — created lazily on first message, reset on clear or chart change.
   const sessionIdRef = useRef<string | null>(null);
@@ -442,6 +506,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       // and pressing again while it is in flight would only send the same
       // transcript twice. A failure clears it again below.
       setDistilledCount(snapshot.length);
+      setDistilledCategories(null);
       fetch("/api/chat/summarize", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -454,10 +519,24 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           ...(chartRef.current?.name && { chartName: chartRef.current.name }),
         }),
       })
-        .then((res) => {
+        .then(async (res) => {
           // A rejected distillation must not leave the button claiming the
           // conversation is saved when it is not.
-          if (!res.ok) setDistilledCount(0);
+          if (!res.ok) {
+            setDistilledCount(0);
+            return;
+          }
+          // Nor may a successful one. "Nothing worth keeping" comes back as a
+          // 200 with an empty list — the request worked, it just wrote nothing
+          // — so the count, not the status, is what the label has to follow.
+          const body = (await res.json().catch(() => null)) as
+            | { categoriesUpdated?: unknown }
+            | null;
+          setDistilledCategories(
+            Array.isArray(body?.categoriesUpdated)
+              ? body.categoriesUpdated.length
+              : null,
+          );
         })
         .catch(() => setDistilledCount(0))
         .finally(() => setSummarizing(false));
@@ -477,6 +556,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const distilled =
     distilledCount > 0 &&
     distilledCount === messages.filter((m) => m.content.trim()).length;
+
+  /**
+   * Nothing was written. `null` — a reply we could not read — is deliberately
+   * not counted as nothing: the safe guess when the answer is unreadable is
+   * that the write happened, since the server had already reported success.
+   */
+  const distilledNothing = distilled && distilledCategories === 0;
 
   // ── clear: summarize → wipe UI → reset session ──────────────────────────────
   const clear = useCallback(() => {
@@ -625,7 +711,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         savePrefs, saving,
         messages, send, busy, clear, summarizing,
         memoryEnabled, setMemoryEnabled,
-        systems, setSystems, distil, distilled,
+        systems, setSystems, distil, distilled, distilledNothing,
         sessions, sessionId, loadSession, deleteSession,
         setPageContext,
       }}

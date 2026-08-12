@@ -36,7 +36,10 @@ interface NavGroup {
 const NAV: NavGroup[] = [
   {
     label: null,
-    items: [{ href: "/birth-chart", label: "Birth Chart" }],
+    items: [
+      { href: "/birth-chart", label: "Birth Chart" },
+      { href: "/overview", label: "Overview" },
+    ],
   },
   {
     label: "Western",
@@ -59,19 +62,17 @@ const NAV: NavGroup[] = [
   },
   {
     label: "Numerology",
-    items: [{ href: "/numerology", label: "Numbers" }],
-  },
-  {
-    // Last, and in its own group. These belong to no section above, and filing
-    // either under one would imply that section owns the reading. Transits sits
-    // here rather than under Western because the axis carries every system's
-    // cycles at once — that shared axis is the whole point of the page.
-    label: "All systems",
     items: [
-      { href: "/transits", label: "Transits" },
-      { href: "/compare", label: "Comparison" },
+      { href: "/numerology", label: "Numbers" },
+      { href: "/numerology/cycles", label: "Cycles" },
+      // A sibling of Cycles rather than a child of it, which is what the route
+      // says too. The chapters are one of the three clocks, not a detail view
+      // of the other two — the nesting under Western Cycles is an explorer for
+      // the same transits, and this is a different reading.
+      { href: "/numerology/pinnacles", label: "Pinnacles" },
     ],
   },
+
 ];
 
 const ALL_HREFS = NAV.flatMap((group) =>
@@ -84,7 +85,7 @@ const ALL_HREFS = NAV.flatMap((group) =>
 /**
  * The one link the current path belongs to — the longest prefix match, so
  * `/western/cycles/explorer` lights the explorer rather than also lighting
- * `/western/cycles`, while `/transits/abc` still lights Transits.
+ * `/western/cycles`, while `/numerology/cycles` does not light `/numerology`.
  */
 function matchHref(pathname: string): string | null {
   return (
@@ -119,7 +120,7 @@ export default function Sidebar() {
 
         <nav className="flex flex-col items-center gap-1 mt-1">
           {NAV.map((group, index) => (
-            <div key={group.label ?? "chart"} className="flex flex-col items-center gap-1">
+            <div key={group.label ?? `unlabelled-${index}`} className="flex flex-col items-center gap-1">
               {/* A hairline stands in for the group name at this width. */}
               {index > 0 ? (
                 <span aria-hidden className="my-1.5 h-px w-4 bg-rule" />
@@ -153,26 +154,26 @@ export default function Sidebar() {
 
   return (
     <aside className="flex w-60 shrink-0 flex-col overflow-y-auto border-r border-rule">
-      <div className="flex items-center justify-between border-b border-rule-faint px-4 py-2">
+      {/* ChartSelector + collapse toggle share the same visual block */}
+      <div className="relative">
+        <ChartSelector />
         <button
           onClick={() => setCollapsed(true)}
           aria-label="Collapse sidebar"
-          className="ml-auto text-bone-faint hover:text-bone transition-colors"
+          className="absolute right-3 top-3 text-bone-faint/50 transition-colors hover:text-bone"
         >
           {/* chevron-left */}
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M10 4L6 8l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
       </div>
 
-      <ChartSelector />
-
       <nav className="flex flex-col py-4">
-        {NAV.map((group) => (
-          <div key={group.label ?? "chart"} className="pb-2">
+        {NAV.map((group, i) => (
+          <div key={group.label ?? `unlabelled-${i}`} className="pb-2">
             {group.label ? (
-              <p className="eyebrow px-6 pt-4 pb-2 text-bone-faint/70">
+              <p className="eyebrow px-6 pt-5 pb-2 border-t border-rule-faint mt-1">
                 {group.label}
               </p>
             ) : null}
@@ -187,8 +188,8 @@ export default function Sidebar() {
                     href={item.href}
                     aria-current={pathname === item.href ? "page" : undefined}
                     className={`datum border-l-2 px-6 py-3 text-[0.6875rem] uppercase tracking-[0.22em] transition-colors flex ${active
-                        ? "border-patina bg-surface text-patina"
-                        : "border-transparent text-bone-soft hover:bg-surface-alt hover:text-bone"
+                      ? "border-patina bg-surface text-patina"
+                      : "border-transparent text-bone-soft hover:bg-surface-alt hover:text-bone"
                       }`}
                   >
                     {item.label}
@@ -202,8 +203,8 @@ export default function Sidebar() {
                           href={child.href}
                           aria-current={childActive ? "page" : undefined}
                           className={`datum border-l-2 pl-10 pr-6 py-2 text-[0.625rem] uppercase tracking-[0.22em] transition-colors flex ${childActive
-                              ? "border-patina text-patina"
-                              : "border-transparent text-bone-faint hover:bg-surface-alt hover:text-bone-soft"
+                            ? "border-patina text-patina"
+                            : "border-transparent text-bone-faint hover:bg-surface-alt hover:text-bone-soft"
                             }`}
                         >
                           {child.label}

@@ -8,15 +8,38 @@ import NewChartForm from "@/components/new-chart-form";
 import { formatBirth } from "@/lib/charts";
 import { BODY_GLYPH, signGlyph } from "@/lib/symbols";
 
-/**
- * The fixed half of the study. Reads whichever chart the rail has selected —
- * switching in the sidebar re-renders this against the new one.
- */
 export default function BirthChartPage() {
   const { chart, charts, selectChart } = useChart();
   const router = useRouter();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
+  const [recalcDone, setRecalcDone] = useState(false);
+  const [showNewChart, setShowNewChart] = useState(false);
+
+  async function handleRecalculate() {
+    if (!chart) return;
+    setRecalculating(true);
+    setRecalcDone(false);
+    try {
+      const res = await fetch("/api/birth-chart/recache", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chartId: chart.id }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Recalculation failed");
+      }
+      setRecalcDone(true);
+      setTimeout(() => setRecalcDone(false), 4000);
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : "Recalculation failed");
+    } finally {
+      setRecalculating(false);
+    }
+  }
 
   async function handleDelete() {
     if (!chart) return;
@@ -31,7 +54,6 @@ export default function BirthChartPage() {
         const data = await res.json();
         throw new Error(data.error ?? "Deletion failed");
       }
-      // Switch to another chart if available, then reload to refresh the list.
       const remaining = charts.filter((c) => c.id !== chart.id);
       if (remaining.length > 0) selectChart(remaining[0].id);
       router.refresh();
@@ -47,23 +69,45 @@ export default function BirthChartPage() {
   if (!chart) {
     return (
       <div className="mx-auto w-full max-w-6xl px-8">
-        <PageTitle
-          eyebrow="The fixed symbols"
-          title="Birth Chart"
-          lede="No chart selected. Add birth data to begin the study."
-        />
+        <div className="flex items-start justify-between pt-16 pb-12">
+          <div>
+            <p className="eyebrow mb-4">Birth Chart</p>
+            <h1 className="inscription text-[2rem] leading-tight text-bone">
+              No chart selected
+            </h1>
+          </div>
+          <button
+            onClick={() => setShowNewChart(true)}
+            className="datum mt-1 rounded border border-patina-dim px-4 py-2 text-[0.625rem] tracking-[0.18em] text-patina uppercase transition-colors hover:bg-patina-deep"
+          >
+            Add New Chart
+          </button>
+        </div>
+        {showNewChart && (
+          <NewChartModal onClose={() => setShowNewChart(false)} />
+        )}
       </div>
     );
   }
 
   return (
     <div className="mx-auto w-full max-w-6xl px-8 pb-24">
-      <PageTitle
-        eyebrow="The fixed symbols"
-        title="Birth Chart"
-        lede="The vocabulary. These do not move — everything under Transits is
-              something moving across this."
-      />
+      {/* Page header with chart name + Add New Chart */}
+      <div className="flex items-start justify-between pt-16 pb-12">
+        <div>
+          <p className="eyebrow mb-4">Birth Chart</p>
+          <h1 className="inscription text-[2rem] leading-tight text-bone">
+            {chart.name}
+          </h1>
+          <div className="mt-6 h-px w-full bg-patina-dim" />
+        </div>
+        <button
+          onClick={() => setShowNewChart(true)}
+          className="datum mt-1 rounded border border-patina-dim px-4 py-2 text-[0.625rem] tracking-[0.18em] text-patina uppercase transition-colors hover:bg-patina-deep"
+        >
+          Add New Chart
+        </button>
+      </div>
 
       <section className="mb-16">
         <SectionHeading>The Moment</SectionHeading>
@@ -86,40 +130,53 @@ export default function BirthChartPage() {
             <p className="datum text-[0.625rem] text-bone-faint">
               {chart.birth.latitude.toFixed(4)}, {chart.birth.longitude.toFixed(4)}
             </p>
-            {chart.birth.city && chart.birth.location !== chart.birth.city && !chart.birth.location.startsWith(chart.birth.city) && (
-              <p className="datum text-[0.625rem] text-bone-faint opacity-60">
-                {chart.birth.location}
-              </p>
+            {chart.birth.city &&
+              chart.birth.location !== chart.birth.city &&
+              !chart.birth.location.startsWith(chart.birth.city) && (
+                <p className="datum text-[0.625rem] text-bone-faint opacity-60">
+                  {chart.birth.location}
+                </p>
+              )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRecalculate}
+              disabled={recalculating || deleting}
+              className="datum rounded border border-rule px-3 py-1 text-[0.625rem] text-bone-faint transition-colors hover:border-rule-faint hover:text-bone disabled:opacity-50"
+            >
+              {recalculating ? "Recalculating…" : recalcDone ? "Done ✓" : "Recalculate cycles"}
+            </button>
+
+            {confirmDelete ? (
+              <div className="flex items-center gap-2">
+                <span className="datum text-[0.625rem] text-ember">
+                  Delete &ldquo;{chart.name}&rdquo;?
+                </span>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="datum rounded border border-ember px-3 py-1 text-[0.625rem] text-ember transition-colors hover:bg-ember hover:text-void disabled:opacity-50"
+                >
+                  {deleting ? "Deleting…" : "Confirm"}
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  disabled={deleting}
+                  className="datum rounded border border-rule px-3 py-1 text-[0.625rem] text-bone-faint transition-colors hover:border-rule-faint hover:text-bone disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                disabled={recalculating}
+                className="datum rounded border border-rule px-3 py-1 text-[0.625rem] text-bone-faint transition-colors hover:border-ember hover:text-ember disabled:opacity-50"
+              >
+                Delete chart
+              </button>
             )}
           </div>
-          {confirmDelete ? (
-            <div className="flex items-center gap-3">
-              <span className="datum text-[0.625rem] text-ember">
-                Delete &ldquo;{chart.name}&rdquo;?
-              </span>
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="datum rounded border border-ember px-3 py-1 text-[0.625rem] text-ember transition-colors hover:bg-ember hover:text-void disabled:opacity-50"
-              >
-                {deleting ? "Deleting…" : "Confirm"}
-              </button>
-              <button
-                onClick={() => setConfirmDelete(false)}
-                disabled={deleting}
-                className="datum rounded border border-rule px-3 py-1 text-[0.625rem] text-bone-faint transition-colors hover:border-rule-faint hover:text-bone disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="datum rounded border border-rule px-3 py-1 text-[0.625rem] text-bone-faint transition-colors hover:border-ember hover:text-ember"
-            >
-              Delete chart
-            </button>
-          )}
         </div>
       </section>
 
@@ -160,10 +217,37 @@ export default function BirthChartPage() {
         </div>
       </section>
 
-      <section>
-        <SectionHeading aside="swiss ephemeris">New Chart</SectionHeading>
-        <NewChartForm />
-      </section>
+      {showNewChart && (
+        <NewChartModal onClose={() => setShowNewChart(false)} />
+      )}
+    </div>
+  );
+}
+
+function NewChartModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center bg-void/80 px-4 pt-24 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="w-full max-w-2xl border border-rule bg-void shadow-2xl">
+        {/* Modal header */}
+        <div className="flex items-center justify-between border-b border-rule px-8 py-5">
+          <h2 className="inscription text-[1rem] text-bone">New Chart</h2>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="text-bone-faint transition-colors hover:text-bone"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M2 2l12 12M14 2L2 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+        </div>
+        <div className="px-8 py-8">
+          <NewChartForm onSuccess={onClose} />
+        </div>
+      </div>
     </div>
   );
 }

@@ -29,6 +29,8 @@ interface Props {
     memorySummarizing: boolean;
     memoryError: string | null;
     memoryDrafts: Record<string, string>;
+    /** Chart whose topics sort first, when the Interface sent the user here. */
+    memoryFocus: string | null;
     hasMessages: boolean;
     setMemoryDrafts: (fn: (prev: Record<string, string>) => Record<string, string>) => void;
     onCloseMemory: () => void;
@@ -72,7 +74,7 @@ export default function CouncilModals({
     refsOpen, availableRefs, attachedRefs, autoRef,
     onCloseRefs, onToggleRef, onSetRefs, onClearRefs,
     memoryOpen, memoryCategories, selectedMemoryCats, memoryRoutes,
-    memorySummarizing, memoryError, memoryDrafts, hasMessages,
+    memorySummarizing, memoryError, memoryDrafts, memoryFocus, hasMessages,
     setMemoryDrafts, onCloseMemory, onToggleMemoryCat,
     onSaveCategory, onCreateCategory, onRenameCategory, onDeleteCategory,
     onSummarize, onDismissRoutes,
@@ -104,6 +106,7 @@ export default function CouncilModals({
                     error={memoryError}
                     drafts={memoryDrafts}
                     setDrafts={setMemoryDrafts}
+                    focus={memoryFocus}
                     canSummarize={hasMessages}
                     onClose={onCloseMemory}
                     onToggleSelected={onToggleMemoryCat}

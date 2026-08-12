@@ -142,16 +142,35 @@ export const PAGE_REFS: PageRef[] = [
         content: readLibSource('symbols.ts'),
     },
     {
-        id: 'method/cycles',
-        label: 'Cycles',
+        // How the three systems' cycles are put on one axis, and which one row
+        // per system is chosen. Worth carrying because the selection *is* the
+        // argument of that page.
+        id: 'method/overview',
+        label: 'Overview Axis',
         group: 'Method',
-        content: readLibSource('cycles.ts'),
+        content: readLibSource('overview.ts'),
     },
     {
         id: 'method/astro-cycles',
         label: 'Cycle Catalogue',
         group: 'Method',
         content: readLibSource('astro-cycles.ts'),
+    },
+    {
+        // The whole of numerology is these two files: one of arithmetic and one
+        // of vocabulary. Both are small enough to carry, and without them the
+        // council would be reasoning about numerology in general rather than
+        // about the conventions this instrument actually applied.
+        id: 'method/numerology-numbers',
+        label: 'Numerology · Calculation',
+        group: 'Method',
+        content: readLibSource('numerology/numbers.ts'),
+    },
+    {
+        id: 'method/numerology-lexicon',
+        label: 'Numerology · Lexicon',
+        group: 'Method',
+        content: readLibSource('numerology/lexicon.ts'),
     },
     {
         id: 'method/planetary-returns',
@@ -177,11 +196,11 @@ export const PAGE_REFS: PageRef[] = [
         content: readAppSource('birth-chart/page.tsx'),
     },
     {
-        id: 'pages/transits',
-        label: 'Transits',
+        id: 'pages/overview',
+        label: 'Overview',
         group: 'Pages',
-        path: '/transits',
-        content: readAppSource('transits/page.tsx'),
+        path: '/overview',
+        content: readAppSource('overview/page.tsx'),
     },
     {
         id: 'pages/western-planets',
@@ -205,6 +224,17 @@ export const PAGE_REFS: PageRef[] = [
         content: readAppSource('western/cycles/page.tsx'),
     },
     {
+        // Its own entry rather than falling through to the Cycles page above.
+        // `refForPath` matches on prefix, so without this the explorer route
+        // was handed /western/cycles' source — a page that shows five active
+        // transits and nothing ahead, which is not the page being asked about.
+        id: 'pages/western-cycles-explorer',
+        label: 'Western · Cycles Explorer',
+        group: 'Pages',
+        path: '/western/cycles/explorer',
+        content: readAppSource('western/cycles/explorer/page.tsx'),
+    },
+    {
         id: 'pages/eastern-four-pillars',
         label: 'Eastern · Four Pillars',
         group: 'Pages',
@@ -220,10 +250,24 @@ export const PAGE_REFS: PageRef[] = [
     },
     {
         id: 'pages/numerology',
-        label: 'Numerology',
+        label: 'Numerology · Numbers',
         group: 'Pages',
         path: '/numerology',
         content: readAppSource('numerology/page.tsx'),
+    },
+    {
+        id: 'pages/numerology-cycles',
+        label: 'Numerology · Cycles',
+        group: 'Pages',
+        path: '/numerology/cycles',
+        content: readAppSource('numerology/cycles/page.tsx'),
+    },
+    {
+        id: 'pages/numerology-pinnacles',
+        label: 'Numerology · Pinnacles',
+        group: 'Pages',
+        path: '/numerology/pinnacles',
+        content: readAppSource('numerology/pinnacles/page.tsx'),
     },
     {
         id: 'pages/compare',
@@ -254,9 +298,18 @@ export const PAGE_REF_GROUPS = Array.from(
     new Set(PAGE_REFS.map((r) => r.group))
 );
 
-/** Find a ref whose path matches the given pathname (exact or prefix). */
+/**
+ * Find a ref whose path matches the given pathname (exact or prefix).
+ *
+ * Longest match wins, not first: a section with both an index and a subpage
+ * registered — `/numerology` and `/numerology/cycles` — would otherwise attach
+ * whichever happened to be declared first, and silently hand the council the
+ * wrong page's source for the rest of the conversation.
+ */
 export function refForPath(pathname: string): PageRef | undefined {
-    return PAGE_REFS.find((r) => r.path && (r.path === pathname || pathname.startsWith(r.path + '/')));
+    return PAGE_REFS
+        .filter((r) => r.path && (r.path === pathname || pathname.startsWith(r.path + '/')))
+        .sort((a, b) => b.path!.length - a.path!.length)[0];
 }
 
 /** Wrap the selected persistent-memory categories as a labeled system-prompt block. */

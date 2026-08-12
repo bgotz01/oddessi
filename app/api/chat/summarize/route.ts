@@ -6,6 +6,7 @@ import { interfaceMemorySystem } from "@/lib/prompts/interface";
 import {
   buildCategory,
   chartPrefix,
+  parseSystems,
   scopeOf,
   readableScopes,
   writableCategories,
@@ -84,11 +85,10 @@ export async function POST(req: NextRequest) {
       chartName?: string;
       model?: string;
       /** Which systems were attached while this conversation happened. */
-      systems?: ActiveSystems;
+      systems?: ActiveSystems | string;
     };
 
-    const active: ActiveSystems =
-      systems === "western" || systems === "chinese" ? systems : "both";
+    const active = parseSystems(systems);
     const allowedNames = new Set(
       writableCategories(active).map((c) => c.name.toLowerCase()),
     );

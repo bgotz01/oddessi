@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import { type Band, hasRetrograde, statusOfBand } from "@/lib/band";
 import {
   LABEL_W,
@@ -118,10 +119,10 @@ function BandRow({
           {band.glyph}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="inscription block truncate text-[0.6875rem] text-bone">
+          <span className="inscription block truncate text-[0.8125rem] text-bone">
             {band.title}
           </span>
-          <span className="block truncate text-[0.75rem] font-light italic text-bone-faint">
+          <span className="block truncate text-[0.875rem] font-light italic text-bone-faint">
             {band.subtitle}
           </span>
         </span>
@@ -207,6 +208,26 @@ function BandRow({
   );
 }
 
+/**
+ * A banner naming the system the rows beneath it belong to.
+ *
+ * Only appears where bands carry a `group`. It sits in the label column rather
+ * than across the whole width so the track stays uninterrupted — the axis is
+ * continuous, and a full-width divider would suggest three charts stacked
+ * rather than one chart with three vocabularies in it.
+ */
+function GroupBanner({ label }: { label: string }) {
+  return (
+    <div
+      className="grid border-b border-rule-faint"
+      style={{ gridTemplateColumns: `${LABEL_W} 1fr` }}
+    >
+      <span className="eyebrow py-2.5 text-bone-faint/70">{label}</span>
+      <span />
+    </div>
+  );
+}
+
 export default function Timeline({
   bands,
   now,
@@ -226,8 +247,13 @@ export default function Timeline({
 
       <div className="relative border-t border-rule">
         <YearGrid scale={scale} />
-        {bands.map((b) => (
-          <BandRow key={b.id} band={b} now={now} scale={scale} />
+        {bands.map((band, i) => (
+          <Fragment key={band.id}>
+            {band.group && band.group !== bands[i - 1]?.group ? (
+              <GroupBanner label={band.group} />
+            ) : null}
+            <BandRow band={band} now={now} scale={scale} />
+          </Fragment>
         ))}
       </div>
 

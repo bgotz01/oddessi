@@ -73,6 +73,15 @@ export interface Chart {
   aspects: Aspect[];
 }
 
+/**
+ * Stand-in for a chart saved without a name.
+ *
+ * Exported because it has to be recognisable again downstream: numerology takes
+ * its numbers from the letters of the name, and two plausible words would
+ * otherwise produce a full set of confident, meaningless answers.
+ */
+export const UNTITLED_CHART = "Untitled chart";
+
 const SIGNS = [
   "Aries",
   "Taurus",
@@ -297,7 +306,7 @@ export async function fetchCharts(): Promise<Chart[]> {
     const cusps = readCusps(row.housePositions);
     return {
       id: row.id,
-      name: row.name?.trim() || "Untitled chart",
+      name: row.name?.trim() || UNTITLED_CHART,
       isDefault: row.isDefault,
       birth: {
         date: row.birthDate.toISOString().slice(0, 10),

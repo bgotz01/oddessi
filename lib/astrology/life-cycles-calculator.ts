@@ -303,6 +303,25 @@ async function calculateHouseTransitCycles(
         nonOverlapping.push(c);
     }
 
+    // Gap-fill pass: a gap ≤ 2× the sample interval (28 days) between consecutive
+    // candidates is a sampling artefact — the planet crossed the cusp between two
+    // sample points, not a real void. Extend the earlier candidate's end to meet
+    // the next candidate's start so the cycle timeline has no holes.
+    const GAP_FILL_MS = 2 * sampleInterval; // 28 days
+    for (let i = 0; i < nonOverlapping.length - 1; i++) {
+        const cur = nonOverlapping[i];
+        const next = nonOverlapping[i + 1];
+        const gap = next.start.getTime() - cur.end.getTime();
+        if (gap > 0 && gap <= GAP_FILL_MS) {
+            cur.end = next.start;
+            // If this candidate had no retrograde periods its initialEnd was the
+            // same as its end — keep them consistent.
+            if (cur.retrogradePeriods.length === 0) {
+                cur.initialEnd = cur.end;
+            }
+        }
+    }
+
     for (const c of nonOverlapping) {
         const cycle = createHouseTransitCycle(planet, c.house, c.start, c.end, currentDate);
         if (c.retrogradePeriods.length > 0) {

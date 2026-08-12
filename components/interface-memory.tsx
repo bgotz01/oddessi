@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useChat } from "@/components/chat-provider";
 import { useChart } from "@/components/chart-context";
-import { isPinned, type MemoryScope } from "@/lib/memory-scope";
+import { SYSTEM_LABEL, isPinned, type MemoryScope } from "@/lib/memory-scope";
 
 /**
  * The memory control for the Interface: one button that owns everything to do
@@ -31,14 +31,20 @@ interface MemoryCategory {
 
 /**
  * The heading colour carries the scope, because the name already carries it in
- * words — "Eastern Chart" does not also need an EAST tag beside it. Patina for
- * Western and ember for Chinese matches the two column rules on the Comparison
- * page, so the pairing is already learned. Shared categories stay bone: they
- * belong to the person rather than to either system.
+ * words — "Eastern Readings" does not also need an EAST tag beside it. Patina
+ * for Western and ember for Chinese matches the two column rules on the
+ * Comparison page, so that pairing is already learned.
+ *
+ * Numerology arrived without a learned colour of its own, and the two accents
+ * were spoken for. It takes the one remaining hue in the palette that carries
+ * no other meaning — `gold-muted`, which is a periwinkle despite its name and
+ * is otherwise unused. Shared categories stay bone: they belong to the person
+ * rather than to any system.
  */
 const SCOPE_COLOR: Record<MemoryScope, string> = {
-  West: "text-patina",
-  East: "text-ember",
+  western: "text-patina",
+  eastern: "text-ember",
+  numerology: "text-gold-muted",
   Shared: "text-bone",
 };
 
@@ -194,8 +200,8 @@ export function MemoryControl() {
                         className={`eyebrow ${SCOPE_COLOR[cat.scope]}`}
                         title={
                           cat.scope === "Shared"
-                            ? "About the person rather than either system — read in every conversation"
-                            : `Only read when ${cat.scope === "West" ? "West" : "East"} or Both is selected`
+                            ? "About the person rather than any one system — read in every conversation"
+                            : `Only read when ${SYSTEM_LABEL[cat.scope]} is attached`
                         }
                       >
                         {cat.category}
@@ -259,8 +265,22 @@ export function MemoryControl() {
             <span className="datum text-[0.5625rem] uppercase tracking-[0.18em] text-bone-faint">
               distil below the composer
             </span>
+            {/* Memory is a table, not a file — every chart's lessons live in
+                one store, which is why editing them is the council's job and
+                not this panel's. The link carries the chart so the handoff
+                lands on this person's topics rather than on the council page
+                with the modal shut, which is all it used to do. */}
             <a
-              href="/council"
+              href={
+                chart
+                  ? `/council?memory=${encodeURIComponent(chart.name)}`
+                  : "/council"
+              }
+              title={
+                chart
+                  ? `Edit ${chart.name}'s memory in the council's editor`
+                  : "Edit memory in the council's editor"
+              }
               className="datum shrink-0 text-[0.5625rem] uppercase tracking-[0.18em] text-bone-faint transition-colors hover:text-patina"
             >
               edit ›

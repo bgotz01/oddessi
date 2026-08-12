@@ -64,6 +64,10 @@ export interface CycleRowData {
   significance: string;
   start: string;
   end: string;
+  /** Planet is between houses; this is the next incoming transit. */
+  upcoming?: boolean;
+  /** The houses ahead of the one shown, soonest first. May be absent. */
+  next?: { house: string; houseNumber: number | null; start: string }[];
 }
 
 export default function CycleRow({
@@ -88,6 +92,15 @@ export default function CycleRow({
     ? `${planetWord} in ${houseName}`
     : meta?.description ?? null;
 
+  /**
+   * The house after this one, named on the row.
+   *
+   * The sequence itself is not news — houses are contiguous sectors in order,
+   * so the sixth always follows the fifth — but the date is, because a
+   * retrograde can hold a planet at a cusp for the better part of a year. A
+   * page that shows only what is in force can say when it ends and still leave
+   * "so what comes next, and when" unanswerable, which is exactly what it did.
+   */
   const start = Date.parse(band.start);
   const span = Date.parse(band.end) - start;
   const pos = (iso: string) =>
@@ -113,8 +126,8 @@ export default function CycleRow({
         onClick={onClick}
         onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") onClick(); } : undefined}
         className={`mb-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 ${onClick
-            ? "cursor-pointer rounded-sm outline-none hover:opacity-80 focus-visible:ring-1 focus-visible:ring-[var(--color-patina)]"
-            : ""
+          ? "cursor-pointer rounded-sm outline-none hover:opacity-80 focus-visible:ring-1 focus-visible:ring-[var(--color-patina)]"
+          : ""
           }`}
       >
         {/* Left: glyph · planet · house */}
@@ -142,19 +155,20 @@ export default function CycleRow({
         {/* Right: elapsed + info affordance */}
         <div className="flex items-center gap-3">
           <div>
-            <span className="datum text-[1rem]" style={{ color }}>
-              {Math.round(elapsed * 100)}%
-            </span>
-            <span className="datum text-[0.6875rem] text-bone-faint ml-1">elapsed</span>
+            {cycle.upcoming ? (
+              <span className="datum text-[0.75rem]" style={{ color, opacity: 0.7 }}>
+                starts {new Date(`${cycle.start}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })}
+              </span>
+            ) : (
+              <>
+                <span className="datum text-[1rem]" style={{ color }}>
+                  {Math.round(elapsed * 100)}%
+                </span>
+                <span className="datum text-[0.6875rem] text-bone-faint ml-1">elapsed</span>
+              </>
+            )}
           </div>
-          {onClick && (
-            <span
-              className={`datum text-[0.625rem] tracking-[0.18em] uppercase transition-colors ${selected ? "text-patina" : "text-bone-faint"
-                }`}
-            >
-              {selected ? "open ›" : "read ›"}
-            </span>
-          )}
+
         </div>
       </div>
 

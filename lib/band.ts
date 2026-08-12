@@ -33,6 +33,14 @@ export interface Band {
   href?: string;
   /** Planet identity colour (hex). Falls back to patina when absent. */
   color?: string;
+  /**
+   * Which system the band belongs to, for charts that carry more than one.
+   *
+   * Set only on the Overview, where the whole point is that three vocabularies
+   * are sharing an axis and a reader needs to know which one a row is speaking.
+   * The single-system charts leave it undefined and get no banners.
+   */
+  group?: string;
 }
 
 export function statusOfBand(band: Band, now: Date): BandStatus {

@@ -15,18 +15,78 @@
  * derived:
  *
  *     "Boris Gotzev — Eastern Readings"
- *      ^chart          ^category → scope East
+ *      ^chart          ^category → scope eastern
  *
  * SHARED is not a fudge. Plenty of what a session teaches is not a reading at
  * all: what the person is like, what happened to them in 2019, how they want to
  * be spoken to. None of that belongs to a system, and hiding it when the switch
  * moves would make the instrument forget the person every time it changed lens.
+ *
+ * Adding numerology cost two rows in the list below and nothing else, which is
+ * the whole argument for this design: the scopes are derived from the names, so
+ * a new system is a naming decision rather than a migration.
  */
 
-export type MemoryScope = "West" | "East" | "Shared";
+/** The three instruments. The route prefixes use these exact words. */
+export type System = "western" | "eastern" | "numerology";
 
-/** Which systems a conversation had attached. Mirrors `Systems` in the provider. */
-export type ActiveSystems = "western" | "chinese" | "both";
+export const SYSTEMS: readonly System[] = ["western", "eastern", "numerology"];
+
+export const SYSTEM_LABEL: Record<System, string> = {
+  western: "Western",
+  eastern: "Eastern",
+  numerology: "Numerology",
+};
+
+/**
+ * Which systems a conversation has attached — a SET, not a choice.
+ *
+ * This was a three-valued enum ("western" | "chinese" | "both") for as long as
+ * there were two systems, which worked because two systems have exactly three
+ * useful states. Three systems have seven, and a fourth would have fifteen;
+ * enumerating them produces names like "westernAndNumerology" that no one can
+ * read and that every consumer has to destructure by hand anyway.
+ *
+ * So the switch is now three independent toggles and this is the set they
+ * produce. Empty is allowed and means something real: the person and the
+ * conversation, with no chart attached at all.
+ */
+export type ActiveSystems = readonly System[];
+
+/**
+ * Read whatever a client sent into a set.
+ *
+ * The old enum is still in people's localStorage and in older request bodies,
+ * so its three values are translated rather than rejected. "both" becomes all
+ * three: it meant "everything this app has", and what the app has has changed.
+ */
+export function parseSystems(value: unknown): ActiveSystems {
+  if (Array.isArray(value)) {
+    const kept = value.filter((v): v is System =>
+      SYSTEMS.includes(v as System),
+    );
+    // An array is taken at its word, empty included — that is a real state.
+    return Array.from(new Set(kept));
+  }
+  if (value === "western") return ["western"];
+  if (value === "chinese" || value === "eastern") return ["eastern"];
+  return SYSTEMS;
+}
+
+/** True when exactly this system is attached and nothing else. */
+export function isOnly(systems: ActiveSystems, system: System): boolean {
+  return systems.length === 1 && systems[0] === system;
+}
+
+/**
+ * The scope a memory row belongs to.
+ *
+ * A scope is a system, or Shared for what belongs to no system — what the
+ * person is like, what happened to them, how they want to be worked with. None
+ * of that is a reading, and hiding it when the switch moves would make the
+ * instrument forget the person every time it changed lens.
+ */
+export type MemoryScope = System | "Shared";
 
 export interface MemoryCategoryDef {
   name: string;
@@ -76,16 +136,23 @@ export const INTERFACE_CATEGORIES: MemoryCategoryDef[] = [
   {
     name: "Western Readings",
     distillable: true,
-    scope: "West",
+    scope: "western",
     blurb:
       "Interpretations of the natal chart that earned their place — what a configuration turned out to MEAN for this person, the placement it rests on, and what in their life confirmed it. Name the placement in passing, never as the content: \"the fifth-house Mars shows up as competitive project work rather than play — he confirmed the pattern across three ventures\" is a reading; \"Mars is at 19°55′ Capricorn in the fifth\" is a measurement the instrument already has. Record readings that FAILED here too, marked \"Ruled out:\", with why — so they are not offered again.",
   },
   {
     name: "Eastern Readings",
     distillable: true,
-    scope: "East",
+    scope: "eastern",
     blurb:
       "The same for BaZi: what a Day Master, phase balance, branch relation or luck pillar turned out to MEAN for this person, and what confirmed it. The pillars and shares themselves are already in front of you every time — only their significance belongs here. Record ruled-out readings the same way.",
+  },
+  {
+    name: "Numerology Readings",
+    distillable: true,
+    scope: "numerology",
+    blurb:
+      "The same for the numbers: what a Life Path, Expression, Soul Urge, pinnacle or personal year turned out to MEAN for this person, and what in their life confirmed it. Be harder on yourself here than in the other two. Numerology gives twelve numbers and a handful of positions, so its readings are broad by construction and the temptation is to record the number's stock character back as though the person had confirmed it — \"his Life Path 9 is about release\" is the lexicon talking, not a lesson. Only what THIS person recognised, dated or argued with belongs here. Record ruled-out readings the same way.",
   },
   {
     name: "The Record",
@@ -110,19 +177,25 @@ export const INTERFACE_CATEGORIES: MemoryCategoryDef[] = [
     name: "Notes",
     distillable: false,
     scope: "Shared",
-    blurb: "Passages the person pinned by hand. Not about either system.",
+    blurb: "Passages the person pinned by hand. Not about any one system.",
   },
   {
     name: "Western Notes",
     distillable: false,
-    scope: "West",
+    scope: "western",
     blurb: "Passages the person pinned by hand from a Western reading.",
   },
   {
     name: "Eastern Notes",
     distillable: false,
-    scope: "East",
+    scope: "eastern",
     blurb: "Passages the person pinned by hand from a BaZi reading.",
+  },
+  {
+    name: "Numerology Notes",
+    distillable: false,
+    scope: "numerology",
+    blurb: "Passages the person pinned by hand from a reading of the numbers.",
   },
 ];
 
@@ -146,17 +219,21 @@ export function isLegacy(category: string): boolean {
   return !BY_NAME.has(category.trim().toLowerCase());
 }
 
-/** Which scopes a conversation may read, given the switch position. */
+/**
+ * Which scopes a conversation may read, given the switch.
+ *
+ * Shared is always in, including when nothing is attached: what the person is
+ * like and what happened to them does not stop being true because the chart was
+ * put away.
+ */
 export function readableScopes(systems: ActiveSystems): MemoryScope[] {
-  if (systems === "western") return ["West", "Shared"];
-  if (systems === "chinese") return ["East", "Shared"];
-  return ["West", "East", "Shared"];
+  return [...systems, "Shared"];
 }
 
 /**
  * The categories a conversation may write into. A chat with only the Western
- * chart attached has no business producing an "Eastern Chart" lesson — it never
- * saw the pillars.
+ * chart attached has no business producing an "Eastern Readings" lesson — it
+ * never saw the pillars.
  */
 export function writableCategories(systems: ActiveSystems): MemoryCategoryDef[] {
   const readable = readableScopes(systems);
@@ -184,30 +261,24 @@ export function isPinned(category: string): boolean {
  * because the mistake is invisible until a later reading quotes a Day Master
  * fact as though it were a natal one.
  *
- * So the route sets it on open. Since the split, the prefix IS the system:
- * `/eastern/...` is unambiguously East, `/western/...` and `/birth-chart` are
- * West, and `/compare` and `/transits` are Both — the axis carries an astro
- * transit, a luck pillar and a personal year at once, so scoping it West would
- * file a pillar lesson as a natal one, which is precisely the failure this
- * function exists to prevent.
+ * So the route sets it on open, and since the section split the prefix IS the
+ * system — `/eastern/...` narrows to Eastern and nothing else. `/compare` and
+ * `/overview` open everything, because the axis carries a house transit, a luck
+ * pillar and a personal year at once and scoping it to one would file a pillar
+ * lesson as a natal one — precisely the failure this function exists to
+ * prevent.
  *
- * `/numerology` belongs to neither scope. The stored categories are West, East
- * and Shared; there is no numerological one yet, and inventing a scope for a
- * page that computes nothing would create rows nothing can read back. It
- * returns null with the rest — the home page, the council — which leaves the
- * switch where the user last put it, because guessing there would be worse than
- * remembering.
+ * Pages that belong to no system — the home page, the council — return null and
+ * leave the switch where the user last put it, because guessing there would be
+ * worse than remembering.
  */
 export function systemsForPath(pathname: string): ActiveSystems | null {
-  if (pathname.startsWith("/eastern")) return "chinese";
-  if (pathname.startsWith("/compare") || pathname.startsWith("/transits")) {
-    return "both";
+  for (const system of SYSTEMS) {
+    if (pathname.startsWith(`/${system}`)) return [system];
   }
-  if (
-    pathname.startsWith("/western") ||
-    pathname.startsWith("/birth-chart")
-  ) {
-    return "western";
+  if (pathname.startsWith("/birth-chart")) return ["western"];
+  if (pathname.startsWith("/compare") || pathname.startsWith("/overview")) {
+    return SYSTEMS;
   }
   return null;
 }

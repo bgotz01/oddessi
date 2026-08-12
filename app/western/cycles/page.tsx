@@ -30,8 +30,16 @@ export default function CyclesPage() {
     if (state.status !== "ready") return;
 
     setPageContext({
-      _description: "Active House Transits (Cycles Page)",
+      _description: "House Transits (Cycles Page)",
       asOf: now.toISOString(),
+      _note:
+        "Houses are contiguous sectors of the ecliptic in order, so each planet " +
+        "crosses them consecutively — the sixth always follows the fifth. What is " +
+        "not derivable is the date, because a retrograde can hold a planet at a " +
+        "cusp and make two transits overlap, so use the `next` dates below rather " +
+        "than reasoning about when an ingress ought to fall. `next` is read from " +
+        "the same cache the page draws from; the page names the first entry and " +
+        "the rest are here. /western/cycles/explorer shows the whole span.",
       cycles: state.data.cycles.map((c) => ({
         planet: c.planet,
         house: c.house,
@@ -39,6 +47,11 @@ export default function CyclesPage() {
         significance: c.significance,
         transitStart: c.start,
         transitEnd: c.end,
+        // Whether the row on screen is in force or still ahead — a planet in a
+        // retrograde gap is shown its incoming transit, and calling that
+        // "current" would misdate everything downstream of it.
+        notYetBegun: c.upcoming ?? false,
+        next: c.next ?? [],
       })),
     });
 

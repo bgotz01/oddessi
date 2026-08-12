@@ -37,7 +37,7 @@ function Field({
   );
 }
 
-export default function NewChartForm() {
+export default function NewChartForm({ onSuccess }: { onSuccess?: () => void } = {}) {
   const router = useRouter();
   const { selectChart } = useChart();
 
@@ -128,6 +128,7 @@ export default function NewChartForm() {
       setPlace(null);
       setResults([]);
       router.refresh();
+      onSuccess?.();
     } catch {
       setError("Could not reach the server.");
     } finally {

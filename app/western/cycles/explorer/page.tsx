@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Timeline from "@/components/timeline";
 import HousePassage from "@/components/house-passage";
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import { useChart } from "@/components/chart-context";
+import { useChat } from "@/components/chat-provider";
 import { useJson } from "@/lib/use-json";
 import {
   hasRetrograde,
@@ -140,8 +141,20 @@ function FilterRow({
   );
 }
 
+/**
+ * How many bands travel with a message.
+ *
+ * The cache holds forty-five years across five planets and three kinds, which
+ * is several hundred bands and far too much to attach to every question. The
+ * cap bites only when someone selects the whole span; a decade — the default —
+ * comes in well under it. When it does bite the block says so, so the model
+ * reports a truncated view rather than a complete one.
+ */
+const CONTEXT_BAND_LIMIT = 200;
+
 export default function CyclesExplorerPage() {
   const { chart } = useChart();
+  const { setPageContext } = useChat();
   const state = useJson<AllResponse>(
     chart
       ? `/api/cycles?view=all&chartId=${encodeURIComponent(chart.id)}`
@@ -240,6 +253,61 @@ export default function CyclesExplorerPage() {
     else next.add(value);
     apply(next);
   }
+
+  /**
+   * Everything inside the selected span, for the chat.
+   *
+   * Scoped to the span rather than to the filters on purpose. The filters are
+   * how you narrow what you are LOOKING at, and narrowing them mid-conversation
+   * would silently retract cycles the model had already been told about — it
+   * would answer "Saturn enters the tenth in 2029" and then, two toggles later,
+   * deny knowing it. The span is the one filter that means "the period I am
+   * asking about", so that is the one the context follows.
+   */
+  const contextBands = useMemo(() => {
+    if (state.status !== "ready" || !span) return null;
+    const inSpan = state.data.bands.filter(
+      (b) => b.end > span.windowStart && b.start < span.windowEnd,
+    );
+    return {
+      total: inSpan.length,
+      bands: inSpan.slice(0, CONTEXT_BAND_LIMIT).map((b) => ({
+        planet: b.title,
+        what: b.subtitle,
+        kind: typeOf(b),
+        start: b.start,
+        end: b.end,
+        significance: b.significance,
+      })),
+    };
+  }, [state, span]);
+
+  useEffect(() => {
+    if (!contextBands || !span) return;
+
+    setPageContext({
+      _description: "Cycles Explorer — every cached cycle in the selected span",
+      _note:
+        "This is the whole cache for the span shown, past and future: house " +
+        "transits, aspect cycles and planetary returns. Houses are contiguous " +
+        "sectors of the ecliptic in order, so a planet crosses them " +
+        "consecutively, but the dates are not derivable from that — a " +
+        "retrograde can hold a planet at a cusp and make two house transits " +
+        "overlap. Read the dates, never infer them." +
+        (contextBands.total > contextBands.bands.length
+          ? ` Only the first ${contextBands.bands.length} of ${contextBands.total} bands are listed; say so rather than treating the list as complete.`
+          : ""),
+      asOf: now.toISOString(),
+      spanStart: span.windowStart,
+      spanEnd: span.windowEnd,
+      bands: contextBands.bands,
+    });
+
+    return () => setPageContext(null);
+    // `now` is a fresh Date every render and would loop; the span it sits in is
+    // what actually decides the content.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contextBands, span, setPageContext]);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-8 pb-24">

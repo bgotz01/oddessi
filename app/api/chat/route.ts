@@ -6,13 +6,24 @@ import { DEFAULT_INTERFACE_PROMPT } from "@/lib/interface-prefs";
 import { buildMemoryBlock } from "@/lib/pageContext";
 import { computeReading, type Gender } from "@/lib/chinese/pillars";
 import {
+  SYSTEMS,
+  SYSTEM_LABEL,
   chartPrefix,
   isLegacy,
+  parseSystems,
   readableScopes,
   scopeOf,
   type ActiveSystems,
+  type System,
 } from "@/lib/memory-scope";
 import { BRANCHES, STEMS, generatedBy } from "@/lib/chinese/almanac";
+import {
+  birthDateFromISO,
+  computeReading as computeNumerology,
+  pinnacleInForce,
+  type CoreNumber,
+} from "@/lib/numerology/numbers";
+import { NUMBERS, POSITIONS } from "@/lib/numerology/lexicon";
 
 /**
  * POST /api/chat
@@ -28,8 +39,61 @@ import { BRANCHES, STEMS, generatedBy } from "@/lib/chinese/almanac";
  *   4. The active chart's distilled memory, when the Chart Memory toggle is on.
  */
 
-/** Which system(s) the Interface is allowed to read from. */
-export type Systems = "western" | "chinese" | "both";
+/**
+ * The numbers for this birth, as a system-prompt block.
+ *
+ * Cheap enough to build inline — it is arithmetic over two fields — so unlike
+ * the four pillars it needs no try/catch and no ephemeris.
+ *
+ * The withheld case is stated rather than omitted. A model handed a Life Path
+ * and nothing else will cheerfully invent an Expression number if it does not
+ * know why one is missing, and "this chart is saved under one word" is the kind
+ * of fact it can pass on to the person usefully.
+ */
+function buildNumerologyBlock(chart: Chart): string {
+  const birth = birthDateFromISO(chart.birth.date);
+  if (!birth) return "";
+
+  const reading = computeNumerology({ name: chart.name, birth });
+  const name = (n: CoreNumber) => `${n} — ${NUMBERS[n].title}`;
+
+  const chapter = reading.pinnacles.find((p) =>
+    pinnacleInForce(p, reading.age),
+  );
+  const essence = reading.essence?.find((y) => y.age === reading.age);
+
+  const lines: Array<string | null> = [
+    "--- Numerology ---",
+    `Taken from the name "${reading.name}" and the birth date. Age ${reading.age}.`,
+    "",
+    `Life Path: ${name(reading.lifePath)} — ${POSITIONS.lifePath.asks}`,
+    reading.nameNumbers
+      ? [
+          `Expression: ${name(reading.nameNumbers.expression)}`,
+          `Soul Urge: ${name(reading.nameNumbers.soulUrge)}`,
+          `Personality: ${name(reading.nameNumbers.personality)}`,
+        ].join("\n")
+      : "Expression, Soul Urge and Personality: WITHHELD. This chart is saved under a single word, and those three are taken from the full name given at birth. Do not estimate them, and say so if asked.",
+    "",
+    `Personal Year ${reading.personalYear.year}: ${name(reading.personalYear.number)} — ${reading.personalYear.number} of 9, the run having opened in ${reading.personalYear.run[0].year}.`,
+    chapter
+      ? `Pinnacle ${chapter.index} (ages ${chapter.startAge}–${chapter.endAge ?? "on"}): ${name(chapter.number)}, with challenge ${name(chapter.challenge)}.`
+      : null,
+    essence
+      ? `Essence this year: ${name(essence.number)}, from the transit letters ${essence.transits.map((t) => `${t.letter} (${t.value}, from ${t.part})`).join(" and ")}.`
+      : null,
+    "",
+    "These numbers are NOT the Western or Chinese vocabularies. A 4 here is not",
+    "the fourth house and not the fourth pillar. Numerology is also the broadest",
+    "of the three — twelve numbers across a handful of positions — so resist",
+    "reciting a number's stock character as though it were an observation about",
+    "this person. The characters above are the frame; what they mean for them is",
+    "what the conversation is for.",
+    "--- End Numerology ---",
+  ];
+
+  return lines.filter((l) => l !== null).join("\n");
+}
 
 /**
  * The Four Pillars for this birth, as a system-prompt block.
@@ -189,15 +253,23 @@ function buildChartBlock(chart: Chart): string {
 }
 
 function buildPageContextBlock(ctx: Record<string, unknown>): string {
-  // The page supplies a `_description` key for a human-readable label.
+  // The page supplies a `_description` key for a human-readable label, and an
+  // optional `_note` for anything the shape alone does not say — a convention
+  // for the reading, a caveat about what the numbers mean. Both are lifted out
+  // and set as prose, because a paragraph of instruction buried as a string
+  // field inside a JSON dump reads as data about the page rather than as
+  // guidance about how to use it.
   const description = typeof ctx._description === "string" ? ctx._description : "Current page data";
+  const note = typeof ctx._note === "string" ? ctx._note : null;
   const data = { ...ctx };
   delete data._description;
+  delete data._note;
 
   const lines: string[] = [
     `--- ${description} ---`,
-    "The following data is exactly what the user can see on the current page.",
+    "The following is the data behind the current page.",
     "Use it as the ground truth for any questions about what is displayed.",
+    ...(note ? ["", note] : []),
     "",
     JSON.stringify(data, null, 2),
     `--- End ${description} ---`,
@@ -234,8 +306,8 @@ export async function POST(req: NextRequest) {
     pageContext?: Record<string, unknown> | null;
     /** Chart Memory toggle. Off, or no chart, means no memory block at all. */
     includeMemory?: boolean;
-    /** Which system(s) to put in front of the model. Defaults to both. */
-    systems?: Systems;
+    /** Which systems to put in front of the model. Defaults to all of them. */
+    systems?: ActiveSystems | string;
     /** DB session id — if provided, the user message and assistant reply are persisted. */
     sessionId?: string;
     /** The raw user message text, saved before streaming begins. */
@@ -266,20 +338,18 @@ export async function POST(req: NextRequest) {
   // whether long answers are allowed to finish.
   const maxTokens = MODELS.find((m) => m.id === model)?.maxTokens ?? 4000;
 
-  // Which systems are on the table. Anything unrecognised falls back to both,
-  // so an older client that sends nothing keeps the behaviour it had.
-  const active: Systems =
-    systems === "western" || systems === "chinese" ? systems : "both";
+  // Which systems are on the table. `parseSystems` also translates the three
+  // values the old switch sent, so an older client keeps working.
+  const active = parseSystems(systems);
+  const has = (system: System) => active.includes(system);
 
   const memory = includeMemory ? await loadChartMemory(chart?.name, active) : [];
-  const wantsWestern = active !== "chinese";
-  const wantsChinese = active !== "western";
 
   // The four pillars need an ephemeris pass, so only compute them when asked.
   // A failure here must not take the whole chat down — the Western half is
   // still perfectly answerable without them.
   let chineseBlock = "";
-  if (chart && wantsChinese) {
+  if (chart && has("eastern")) {
     try {
       chineseBlock = await buildChineseBlock(chart);
     } catch (error) {
@@ -291,21 +361,37 @@ export async function POST(req: NextRequest) {
   // belongs to, so a lesson is never read apart from the placements it was
   // drawn from.
   const parts: string[] = [savedPrompt];
-  if (chart && wantsWestern) parts.push("\n\n" + buildChartBlock(chart));
+  if (chart && has("western")) parts.push("\n\n" + buildChartBlock(chart));
   if (chineseBlock) parts.push("\n\n" + chineseBlock);
-  if (chart && active !== "both") {
-    const on = active === "western" ? "Western" : "Chinese";
-    const off = active === "western" ? "Chinese" : "Western";
-    parts.push(
-      [
-        `\n\nOnly the ${on} system is attached for this conversation. Read from it alone.`,
-        `If a question can only be answered from the ${off} system, say so plainly rather than guessing.`,
-        // The page the user is looking at may itself display the other system —
-        // /compare shows both by definition — and that data arrives separately,
-        // below. Seeing it on screen is not permission to read from it.
-        `The page data below may include ${off} material because that is what is on the user's screen. You may acknowledge it is there, but do not build the reading on it.`,
-      ].join(" "),
-    );
+  if (chart && has("numerology")) {
+    parts.push("\n\n" + buildNumerologyBlock(chart));
+  }
+
+  // What was deliberately left out, named. Withholding a system silently is
+  // worse than not having it: the model fills the gap from general knowledge
+  // and the answer reads exactly like one drawn from the chart.
+  if (chart) {
+    const withheld = SYSTEMS.filter((s) => !has(s));
+    if (withheld.length > 0) {
+      const names = withheld.map((s) => SYSTEM_LABEL[s]);
+      const list =
+        names.length === 1
+          ? names[0]
+          : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+      parts.push(
+        [
+          active.length === 0
+            ? `\n\nNo system is attached for this conversation — no chart data of any kind is in front of you.`
+            : `\n\nThe ${list} ${names.length === 1 ? "system is" : "systems are"} NOT attached for this conversation.`,
+          `If a question can only be answered from ${names.length === 1 ? "it" : "them"}, say so plainly rather than guessing.`,
+          // The page the user is looking at may itself display a withheld
+          // system — /overview shows all three by definition — and that data
+          // arrives separately, below. Seeing it on screen is not permission to
+          // read from it.
+          `The page data below may include ${list} material because that is what is on the user's screen. You may acknowledge it is there, but do not build the reading on it.`,
+        ].join(" "),
+      );
+    }
   }
   if (memory.length > 0) parts.push("\n\n" + buildMemoryBlock(memory));
   if (pathname) parts.push(`\nThe user is currently viewing: ${pathname}`);

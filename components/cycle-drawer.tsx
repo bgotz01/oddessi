@@ -6,6 +6,14 @@ import { HOUSE_NAMES } from "@/lib/astrology/standard-definitions";
 import { getCycleInterpretation } from "@/lib/cycle-interpretations";
 import type { CycleRowData } from "@/components/cycle-row";
 
+const PLANET_ELABORATIONS: Record<string, { action: string; description: string }> = {
+  Jupiter: { action: "Expansion", description: "Enlarges, spreads, amplifies" },
+  Saturn: { action: "Structure", description: "Constrains, formalizes, institutionalizes" },
+  Uranus: { action: "Disruption", description: "Breaks existing patterns and introduces the unexpected" },
+  Neptune: { action: "Dissolution", description: "Erodes boundaries, certainty, and established narratives" },
+  Pluto: { action: "Transformation", description: "Destroys/reconstitutes something at a fundamental level" },
+};
+
 export default function CycleDrawer({
   cycle,
   onClose,
@@ -19,6 +27,7 @@ export default function CycleDrawer({
   const interp = cycle.houseNumber
     ? getCycleInterpretation(cycle.planet, cycle.houseNumber)
     : undefined;
+  const elaboration = PLANET_ELABORATIONS[cycle.planet];
 
   // Close on Escape
   useEffect(() => {
@@ -31,19 +40,19 @@ export default function CycleDrawer({
 
   return (
     <>
-      {/* Backdrop — closes drawer on click, subtle so the chart remains visible */}
+      {/* Backdrop */}
       <div
         className="fixed inset-0 z-40 bg-void/40"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Drawer panel */}
+      {/* Drawer panel — full height, scrolls as one unit */}
       <div
         role="dialog"
         aria-modal="true"
         aria-label={`${cycle.planet} in ${cycle.house}`}
-        className="fixed right-0 top-0 z-50 flex h-full w-full max-w-md flex-col border-l border-rule bg-surface shadow-2xl"
+        className="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto border-l border-rule bg-surface shadow-2xl flex flex-col"
       >
         {/* Header */}
         <div className="shrink-0 border-b border-rule px-6 py-5">
@@ -57,10 +66,7 @@ export default function CycleDrawer({
               </span>
               <div>
                 <div className="flex items-baseline gap-2">
-                  <span
-                    className="inscription text-[1.125rem]"
-                    style={{ color }}
-                  >
+                  <span className="inscription text-[1.125rem]" style={{ color }}>
                     {cycle.planet}
                   </span>
                   <span className="inscription text-[1.125rem] text-bone">
@@ -70,6 +76,11 @@ export default function CycleDrawer({
                 {houseName && (
                   <p className="datum mt-0.5 text-[0.6875rem] tracking-[0.14em] text-bone-soft uppercase">
                     {houseName}
+                  </p>
+                )}
+                {elaboration && (
+                  <p className="mt-3 text-[1.25rem] italic leading-snug text-bone-faint">
+                    {elaboration.description}
                   </p>
                 )}
               </div>
@@ -83,7 +94,7 @@ export default function CycleDrawer({
             </button>
           </div>
 
-          {/* Duration + core process badge */}
+          {/* Core process + duration */}
           {interp && (
             <div className="mt-3 flex items-center gap-2">
               <span
@@ -96,7 +107,7 @@ export default function CycleDrawer({
             </div>
           )}
 
-          {/* Impact from the cached data, if any */}
+          {/* Significance */}
           {cycle.significance && (
             <div className="mt-4 pt-4 border-t border-rule-faint">
               <p className="text-[0.9375rem] leading-relaxed text-bone-soft">
@@ -106,8 +117,8 @@ export default function CycleDrawer({
           )}
         </div>
 
-        {/* Body — scrollable */}
-        <div className="flex-1 overflow-y-auto px-6 py-7 space-y-6">
+        {/* Body */}
+        <div className="px-6 py-7 space-y-6">
           {!interp ? (
             <p className="text-[0.9375rem] text-bone-soft">
               No interpretation available for this transit.
@@ -147,19 +158,15 @@ export default function CycleDrawer({
                 </div>
               </section>
 
-              {/* Growth + Challenges side by side */}
+              {/* Growth + Challenges */}
               <section className="grid gap-6 sm:grid-cols-2">
                 <div>
                   <p className="eyebrow mb-3 text-patina">Growth</p>
                   <ul className="space-y-2">
                     {interp.gifts.map((g) => (
                       <li key={g} className="flex gap-2.5">
-                        <span className="datum mt-[3px] shrink-0 text-[0.625rem] text-patina leading-5">
-                          —
-                        </span>
-                        <span className="text-[0.9375rem] leading-relaxed text-bone">
-                          {g}
-                        </span>
+                        <span className="datum mt-[3px] shrink-0 text-[0.625rem] text-patina leading-5">—</span>
+                        <span className="text-[0.9375rem] leading-relaxed text-bone">{g}</span>
                       </li>
                     ))}
                   </ul>
@@ -169,28 +176,24 @@ export default function CycleDrawer({
                   <ul className="space-y-2">
                     {interp.challenges.map((c) => (
                       <li key={c} className="flex gap-2.5">
-                        <span className="datum mt-[3px] shrink-0 text-[0.625rem] text-ember leading-5">
-                          —
-                        </span>
-                        <span className="text-[0.9375rem] leading-relaxed text-bone">
-                          {c}
-                        </span>
+                        <span className="datum mt-[3px] shrink-0 text-[0.625rem] text-ember leading-5">—</span>
+                        <span className="text-[0.9375rem] leading-relaxed text-bone">{c}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
               </section>
-
-              {/* Significance from the cached data, if any — NOT shown again since it's in header */}
             </>
           )}
         </div>
 
-        {/* Footer rule */}
-        <div
-          className="h-[3px] w-full shrink-0"
-          style={{ background: color, opacity: 0.35 }}
-        />
+        {/* Footer rule — sticks to the bottom of the content */}
+        <div className="mt-auto">
+          <div
+            className="h-[3px] w-full"
+            style={{ background: color, opacity: 0.35 }}
+          />
+        </div>
       </div>
     </>
   );

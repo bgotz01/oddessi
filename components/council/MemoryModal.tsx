@@ -1,12 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { chartPrefix } from '@/lib/memory-scope';
 import type { MemoryCategory, MemoryRoute } from './db';
 
 interface Props {
     categories: MemoryCategory[];
     selected: string[];               // categories attached to the current chat
     routes: MemoryRoute[] | null;     // distilled lessons, folded into the drafts on arrival
+    /**
+     * A chart name to sort to the top, set when the Interface sends someone here
+     * to edit one person's memory.
+     *
+     * This table holds every chart's lessons under prefixed names, so arriving
+     * from Brandon Santos's panel used to mean scrolling past everyone else's to
+     * find his. Sorting rather than filtering: the whole table is still the
+     * thing being edited, and hiding the rest would make a deletion or a rename
+     * look safer than it is.
+     */
+    focus?: string | null;
     summarizing: boolean;
     error?: string | null;
     canSummarize: boolean;
@@ -32,7 +44,7 @@ function Check({ on }: { on: boolean }) {
 }
 
 export default function MemoryModal({
-    categories, selected, routes, summarizing, error, canSummarize, drafts, setDrafts,
+    categories, selected, routes, summarizing, error, canSummarize, drafts, setDrafts, focus,
     onClose, onToggleSelected, onSaveCategory, onCreateCategory, onRenameCategory, onDeleteCategory,
     onSummarize, onDismissRoutes,
 }: Props) {
@@ -52,6 +64,14 @@ export default function MemoryModal({
         ...Object.keys(drafts).filter((k) => !categories.some((c) => c.category === k)),
     ];
     const dirtyCats = allCats.filter(isDirty);
+
+    // The focused chart's topics first, everything else after, each in the order
+    // it already had.
+    const prefix = focus?.trim() ? chartPrefix(focus) : null;
+    const focused = prefix ? allCats.filter((c) => c.startsWith(prefix)) : [];
+    const shownCats = prefix
+        ? [...focused, ...allCats.filter((c) => !c.startsWith(prefix))]
+        : allCats;
 
     useEffect(() => {
         const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -139,6 +159,16 @@ export default function MemoryModal({
                 <div className="shrink-0 px-6 pt-3 pb-2 font-cormorant text-sm leading-6 text-muted/70">
                     Lessons distilled from past sessions, grouped by topic. Distilling a chat writes straight into
                     these documents — edit any of them, then save. Checked topics are attached to the current chat.
+                    {prefix && (
+                        <>
+                            {' '}
+                            <span className="text-gold-dim">
+                                {focused.length > 0
+                                    ? `${focus}’s topics are first; every chart’s memory lives in this one table.`
+                                    : `Nothing distilled for ${focus} yet — the topics below belong to other charts.`}
+                            </span>
+                        </>
+                    )}
                 </div>
 
                 {error && (
@@ -154,7 +184,7 @@ export default function MemoryModal({
                             No topics yet. Add one below, or distil a chat.
                         </div>
                     )}
-                    {allCats.map((cat) => (
+                    {shownCats.map((cat) => (
                         <div key={cat} className={`border transition-colors ${isDirty(cat) ? 'border-gold-muted/45' : 'border-gold-muted/15'}`}>
                             <div className="flex items-center gap-2 border-b border-gold-muted/10 bg-surface-alt px-3 py-2">
                                 <button onClick={() => onToggleSelected(cat)} aria-label={selected.includes(cat) ? `Detach ${cat}` : `Attach ${cat}`} className="shrink-0">

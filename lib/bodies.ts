@@ -22,21 +22,21 @@ export interface BodyMeta {
 }
 
 export const BODY: Record<string, BodyMeta> = {
-  Sun: { color: "#d4a12c", role: "Identity & Will" },
-  Moon: { color: "#a9bdd4", role: "Feeling & Instinct" },
-  Mercury: { color: "#7bc47f", role: "Mind & Exchange" },
-  Venus: { color: "#d18bb4", role: "Love & Value" },
-  Mars: { color: "#cc4033", role: "Drive & Assertion" },
-  Jupiter: { color: "#7c5cbf", role: "Growth & Expansion" },
-  Saturn: { color: "#7a8199", role: "Structure & Maturation" },
-  Uranus: { color: "#3b9de0", role: "Change & Awakening" },
-  Neptune: { color: "#5b6bbf", role: "Dissolution & Vision" },
-  Pluto: { color: "#8b2f45", role: "Transformation & Power" },
-  "North Node": { color: "#b8a463", role: "The Path Forward" },
-  "South Node": { color: "#6c7383", role: "The Path Behind" },
-  Chiron: { color: "#a8794e", role: "Wound & Teaching" },
-  Ascendant: { color: "#6baf9a", role: "The Approach" },
-  Midheaven: { color: "#6baf9a", role: "The Aim" },
+  Sun: { color: "#e8b832", role: "Identity & Will" },
+  Moon: { color: "#bdd4e8", role: "Feeling & Instinct" },
+  Mercury: { color: "#8fd494", role: "Mind & Exchange" },
+  Venus: { color: "#e09cc8", role: "Love & Value" },
+  Mars: { color: "#e05040", role: "Drive & Assertion" },
+  Jupiter: { color: "#9b7fd4", role: "Growth & Expansion" },
+  Saturn: { color: "#9daab8", role: "Structure & Maturation" },
+  Uranus: { color: "#55b8f5", role: "Disruption & Awakening" },
+  Neptune: { color: "#7b8fe0", role: "Dissolution & Vision" },
+  Pluto: { color: "#c44060", role: "Transformation & Power" },
+  "North Node": { color: "#d4bc6a", role: "The Path Forward" },
+  "South Node": { color: "#8c96a8", role: "The Path Behind" },
+  Chiron: { color: "#c4945e", role: "Wound & Teaching" },
+  Ascendant: { color: "#7bc8b0", role: "The Approach" },
+  Midheaven: { color: "#7bc8b0", role: "The Aim" },
 };
 
 export function bodyColor(name: string): string {

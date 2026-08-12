@@ -53,6 +53,20 @@ export default function CouncilPage() {
     const [autoRef, setAutoRef] = useState<PageRefMeta | undefined>(undefined);
     // Persistent memory: separate from page references (which are static app content)
     const [memoryOpen, setMemoryOpen] = useState(false);
+    /**
+     * The chart the Interface sent us here to edit, from `?memory=<name>`.
+     *
+     * The Interface's memory panel is read-only by design — one editor over one
+     * table — so its "edit" link hands off to this modal. It used to hand off to
+     * the council page and no further, which left you on a chat surface with the
+     * modal shut and no sign of what you had come for.
+     *
+     * Read from `window.location` rather than `useSearchParams` because it is
+     * consumed once, on arrival: the param is an instruction to open, not a
+     * description of state, so it is stripped immediately and the modal is
+     * ordinary React state from then on.
+     */
+    const [memoryFocus, setMemoryFocus] = useState<string | null>(null);
     const [memoryCategories, setMemoryCategories] = useState<MemoryCategory[]>([]);
     const [memoryEnabled, setMemoryEnabled] = useState(true); // global on/off; off = clean chat
     const [selectedMemoryCats, setSelectedMemoryCats] = useState<string[]>([]); // subset attached this chat
@@ -135,6 +149,24 @@ export default function CouncilPage() {
     const userScrolledRef = useRef(false);
 
     // ── effects ───────────────────────────────────────────────────────────────
+    // Arriving from the Interface's "edit" link: open the memory modal on the
+    // chart it named, then strip the param so a later reload does not reopen a
+    // modal the user has since closed.
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const name = params.get('memory');
+        if (name === null) return;
+        setMemoryFocus(name.trim() || null);
+        setMemoryOpen(true);
+        params.delete('memory');
+        const query = params.toString();
+        window.history.replaceState(
+            null,
+            '',
+            window.location.pathname + (query ? `?${query}` : ''),
+        );
+    }, []);
+
     useEffect(() => {
         dbLoadPreferences()
             .then(({ agentModels, agentPrompts, globalModel }) => {
@@ -923,6 +955,7 @@ IMPORTANT: The user may address multiple agents in a single message. Only respon
                 memorySummarizing={memorySummarizing}
                 memoryError={memoryError}
                 memoryDrafts={memoryDrafts}
+                memoryFocus={memoryFocus}
                 hasMessages={hasMessages}
                 setMemoryDrafts={setMemoryDrafts}
                 onCloseMemory={() => { setMemoryOpen(false); setMemoryRoutes(null); }}

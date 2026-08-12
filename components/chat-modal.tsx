@@ -14,31 +14,42 @@ import remarkGfm from "remark-gfm";
 import {
   useChat,
   type ChatSessionSummary,
-  type Systems,
+  type System,
 } from "@/components/chat-provider";
 import { useChart } from "@/components/chart-context";
 import { MemoryControl } from "@/components/interface-memory";
 import { PromptModal } from "@/components/prompt-modal";
 import { PinPassage } from "@/components/pin-passage";
-import { systemsForPath } from "@/lib/memory-scope";
+import { SYSTEMS, systemsForPath } from "@/lib/memory-scope";
 import { MODELS } from "@/lib/models";
 
-/** The three positions of the systems control, in the order they read. */
-const SYSTEM_OPTIONS: Array<{ value: Systems; label: string; title: string }> = [
+/**
+ * The systems control: three independent toggles, not three positions.
+ *
+ * It was a one-of-three switch — West, East, Both — for as long as there were
+ * two systems. A third makes that shape impossible: "West and Numbers" is a
+ * perfectly ordinary thing to want and there is no button for it in a list of
+ * mutually exclusive options. So each system is now its own toggle, and "all
+ * three lit" is what "Both" used to mean.
+ *
+ * Turning them all off is allowed and does something real: the instrument keeps
+ * the person and the conversation and puts the chart away.
+ */
+const SYSTEM_OPTIONS: Array<{ value: System; label: string; title: string }> = [
   {
     value: "western",
     label: "West",
-    title: "Western only — placements, houses and aspects. The four pillars are withheld.",
+    title: "Placements, houses and aspects.",
   },
   {
-    value: "chinese",
+    value: "eastern",
     label: "East",
-    title: "Chinese only — the four pillars, Day Master and luck pillars. The Western chart is withheld.",
+    title: "The four pillars, the Day Master and the luck pillars.",
   },
   {
-    value: "both",
-    label: "Both",
-    title: "Both systems, each in its own vocabulary and never translated into the other.",
+    value: "numerology",
+    label: "Numbers",
+    title: "The life path, the core numbers and the cycles they run in.",
   },
 ];
 
@@ -68,7 +79,7 @@ export default function ChatModal() {
     messages, send, busy,
     systems, setSystems,
     sessions, sessionId, loadSession, deleteSession,
-    distil, distilled, summarizing,
+    distil, distilled, distilledNothing, summarizing,
   } = useChat();
   // Attaching and reading memory still lives in MemoryControl, and the system
   // prompt in PromptModal. Only `distil` comes back here, because it acts on
@@ -87,6 +98,8 @@ export default function ChatModal() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
+  /** The armed confirmation row, so a click inside it is not read as "elsewhere". */
+  const confirmRef = useRef<HTMLSpanElement>(null);
 
   /**
    * Whether the transcript is parked at the bottom.
@@ -140,6 +153,20 @@ export default function ChatModal() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  /** Attach or withhold one system, leaving the other two where they are. */
+  const toggleSystem = useCallback(
+    (system: System) => {
+      setSystems(
+        systems.includes(system)
+          ? systems.filter((s) => s !== system)
+          : // Rebuilt in canonical order rather than appended, so the stored
+            // string does not depend on the order the buttons were clicked.
+            SYSTEMS.filter((s) => s === system || systems.includes(s)),
+      );
+    },
+    [systems, setSystems],
+  );
+
   useEffect(() => {
     if (!open) return;
     const handler = (e: globalThis.KeyboardEvent) => {
@@ -148,6 +175,42 @@ export default function ChatModal() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [open, setOpen]);
+
+  /**
+   * Disarm the delete confirmation on a click elsewhere, or on Escape.
+   *
+   * This replaces an `onBlur` on the cancel button, which looked like the same
+   * thing and was fatal. Pressing the mouse on "yes" moves focus off "cancel"
+   * BEFORE the click completes, so the blur handler tore the confirmation row
+   * out of the DOM between mousedown and mouseup — and a click event only fires
+   * when both land on the same element. The button therefore did nothing at all:
+   * the row simply reverted, which reads as a dead control.
+   *
+   * A document listener has no such race, because it cannot fire between the
+   * two halves of a click on a button it is told to ignore. Escape is listened
+   * for in the capture phase so it disarms the confirmation without also closing
+   * the whole modal.
+   */
+  useEffect(() => {
+    if (!confirmingDelete) return;
+    const onDown = (e: MouseEvent) => {
+      if (!confirmRef.current?.contains(e.target as Node)) {
+        setConfirmingDelete(false);
+      }
+    };
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setConfirmingDelete(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey, true);
+    };
+  }, [confirmingDelete]);
 
   function submit() {
     const text = draft.trim();
@@ -225,25 +288,32 @@ export default function ChatModal() {
               closer to the chart's identity on the left than to the machinery
               that generates a reply. */}
           <div className="flex shrink-0 items-center gap-3">
-            <div className="flex items-center border border-rule">
-              {SYSTEM_OPTIONS.map((option, i) => (
-                <div key={option.value} className="flex items-stretch">
-                  {i > 0 && <div className="w-px self-stretch bg-rule" />}
-                  <button
-                    type="button"
-                    onClick={() => setSystems(option.value)}
-                    aria-pressed={systems === option.value}
-                    title={option.title}
-                    className={`datum px-3 py-1.5 text-[0.6rem] uppercase tracking-[0.18em] transition-colors ${
-                      systems === option.value
-                        ? "bg-surface-alt text-patina"
-                        : "text-bone-faint hover:text-bone"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                </div>
-              ))}
+            <div
+              className="flex items-center border border-rule"
+              role="group"
+              aria-label="Systems attached to this conversation"
+            >
+              {SYSTEM_OPTIONS.map((option, i) => {
+                const on = systems.includes(option.value);
+                return (
+                  <div key={option.value} className="flex items-stretch">
+                    {i > 0 && <div className="w-px self-stretch bg-rule" />}
+                    <button
+                      type="button"
+                      onClick={() => toggleSystem(option.value)}
+                      aria-pressed={on}
+                      title={`${on ? "Attached" : "Withheld"} — ${option.title}`}
+                      className={`datum px-3 py-1.5 text-[0.6rem] uppercase tracking-[0.18em] transition-colors ${
+                        on
+                          ? "bg-surface-alt text-patina"
+                          : "text-bone-faint hover:text-bone"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  </div>
+                );
+              })}
             </div>
 
             <button
@@ -461,19 +531,38 @@ export default function ChatModal() {
                 distil and nothing to delete. */}
             {messages.length > 0 && (
               <div className="flex shrink-0 items-center justify-between border-t border-rule-faint px-8 py-2">
-                {/* Three states, and the settled one is deliberately not a
-                    button: once this conversation is in memory there is nothing
-                    useful a second press could do, and a live-looking control
-                    invites one. It becomes a button again by itself as soon as
-                    another exchange gives it something new to add. */}
+                {/* Four states, and the two settled ones are deliberately not
+                    buttons: once the distiller has read this conversation there
+                    is nothing useful a second press could do, and a live-looking
+                    control invites one. It becomes a button again by itself as
+                    soon as another exchange gives it something new to read.
+
+                    The distinction between the two settled states is the whole
+                    point of them. The distiller is strict on purpose — a
+                    question with one answer that nobody confirmed or pushed back
+                    on yields nothing, which is the commonest chat there is — and
+                    saying "added to memory" then sends people to the memory panel
+                    to look for something that was never written. The panel
+                    truthfully says it holds nothing, and the only reading
+                    available is that the app dropped it. */}
                 {distilled && !summarizing ? (
-                  <span
-                    title="This conversation is in the chart's memory. Ask something more and it can be distilled again."
-                    className="datum flex items-center gap-2 text-[0.625rem] uppercase tracking-[0.18em] text-patina"
-                  >
-                    <span aria-hidden>✓</span>
-                    added to memory
-                  </span>
+                  distilledNothing ? (
+                    <span
+                      title="The distiller read this conversation and found nothing durable to keep — it records what you confirm, rule out or decide, not what it was merely asked. Push back on a reading or tie one to something that happened, and there will be."
+                      className="datum flex items-center gap-2 text-[0.625rem] uppercase tracking-[0.18em] text-bone-faint"
+                    >
+                      <span aria-hidden>–</span>
+                      nothing to keep yet
+                    </span>
+                  ) : (
+                    <span
+                      title="This conversation is in the chart's memory. Ask something more and it can be distilled again."
+                      className="datum flex items-center gap-2 text-[0.625rem] uppercase tracking-[0.18em] text-patina"
+                    >
+                      <span aria-hidden>✓</span>
+                      added to memory
+                    </span>
+                  )
                 ) : (
                   <button
                     type="button"
@@ -492,10 +581,12 @@ export default function ChatModal() {
 
                 {/* Two-step rather than a modal. A confirm dialog for this
                     would be a second overlay on top of two others, and the
-                    question is small enough to ask in place. Reverts on blur so
-                    a half-pressed delete cannot sit there armed. */}
+                    question is small enough to ask in place. It still cannot sit
+                    there armed — a click anywhere else disarms it — but that is
+                    handled by the document listener above rather than by a blur
+                    handler, for the reason given there. */}
                 {confirmingDelete ? (
-                  <span className="flex items-center gap-4">
+                  <span ref={confirmRef} className="flex items-center gap-4">
                     <span className="datum text-[0.625rem] uppercase tracking-[0.18em] text-ember">
                       delete permanently?
                     </span>
@@ -511,8 +602,9 @@ export default function ChatModal() {
                     </button>
                     <button
                       type="button"
+                      // Focused on arming so the safe answer is the one under
+                      // the keyboard. Nothing is bound to losing that focus.
                       autoFocus
-                      onBlur={() => setConfirmingDelete(false)}
                       onClick={() => setConfirmingDelete(false)}
                       className="datum text-[0.625rem] uppercase tracking-[0.18em] text-bone-faint transition-colors hover:text-bone"
                     >
