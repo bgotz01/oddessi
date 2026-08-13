@@ -73,7 +73,7 @@ export const CHALLENGE_READINGS: Record<
     terrain:
       "Communication, creative work, and anything that has to move from possibility into a finished form that can be shown to someone else.",
     working:
-      "Finishing something smaller than the thing imagined rather than scattering into another beginning. The challenge is to let expression become complete before asking whether it is complete enough.",
+      "Finishing something smaller than the thing imagined rather than scattering into another beginning. The challenge is to let one expression reach completion before its energy is redirected elsewhere.",
   },
 
   4: {
@@ -87,7 +87,7 @@ export const CHALLENGE_READINGS: Record<
 
   5: {
     obstacle:
-      "Freedom — the difficulty of remaining in motion without allowing movement itself to become the destination. Appetite keeps opening another possibility before the present one has necessarily run its course.",
+      "Movement — the difficulty of allowing change and possibility without letting movement itself become the destination. Appetite keeps opening another possibility before the present one has necessarily run its course.",
     terrain:
       "Change, commitment, novelty, and situations where the attraction of another experience competes with what has already been chosen.",
     working:
@@ -105,7 +105,7 @@ export const CHALLENGE_READINGS: Record<
 
   7: {
     obstacle:
-      "Understanding — the repeated difficulty of deciding when enough is known to remain engaged with what cannot be known completely. Distance helps the 7 see clearly, but the same distance can become a reason to keep withholding trust or participation.",
+      "Trust — the repeated difficulty of remaining engaged with what cannot be known completely. Distance helps the 7 see clearly, but the same distance can become a reason to keep withholding participation until certainty arrives.",
     terrain:
       "Uncertainty, solitude, belief, and situations where analysis can continue indefinitely without producing enough certainty to justify the next move.",
     working:

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Block, Prose, Terms } from "@/components/study-panel";
 import { Figure, MasterNote } from "@/components/numerology/parts";
 import { NUMBERS, POSITIONS, type Position } from "@/lib/numerology/lexicon";
+import { getMoniker } from "@/lib/numerology/monikers";
 import type { CoreNumber, StandardNumber } from "@/lib/numerology/numbers";
 import {
   LIFE_PATH_READINGS,
@@ -93,6 +94,14 @@ export default function FixedNumberDrawer({
                 <p className="mt-1.5 text-[1.25rem] leading-tight text-bone-soft">
                   {entry.title}
                 </p>
+                <p className="mt-1 text-[1.1875rem] italic text-patina">
+                  {getMoniker(n, position)}
+                </p>
+                {entry.keywords.length > 0 ? (
+                  <p className="mt-1.5 text-[0.9375rem] font-light text-bone-faint">
+                    {entry.keywords.join(" · ")}
+                  </p>
+                ) : null}
               </div>
             </div>
             <button

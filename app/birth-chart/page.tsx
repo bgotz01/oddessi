@@ -5,17 +5,19 @@ import { useRouter } from "next/navigation";
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import { useChart } from "@/components/chart-context";
 import NewChartForm from "@/components/new-chart-form";
+import ChartManageModal from "@/components/ChartManageModal";
 import { formatBirth } from "@/lib/charts";
 import { BODY_GLYPH, signGlyph } from "@/lib/symbols";
 
 export default function BirthChartPage() {
-  const { chart, charts, selectChart } = useChart();
+  const { chart, charts, selectChart, reorderCharts } = useChart();
   const router = useRouter();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
   const [recalcDone, setRecalcDone] = useState(false);
   const [showNewChart, setShowNewChart] = useState(false);
+  const [showManage, setShowManage] = useState(false);
 
   async function handleRecalculate() {
     if (!chart) return;
@@ -76,15 +78,32 @@ export default function BirthChartPage() {
               No chart selected
             </h1>
           </div>
-          <button
-            onClick={() => setShowNewChart(true)}
-            className="datum mt-1 rounded border border-patina-dim px-4 py-2 text-[0.625rem] tracking-[0.18em] text-patina uppercase transition-colors hover:bg-patina-deep"
-          >
-            Add New Chart
-          </button>
+          <div className="mt-1 flex items-center gap-2">
+            {charts.length > 1 && (
+              <button
+                onClick={() => setShowManage(true)}
+                className="datum rounded border border-rule px-4 py-2 text-[0.625rem] tracking-[0.18em] text-bone-faint uppercase transition-colors hover:border-rule-faint hover:text-bone"
+              >
+                Manage Charts
+              </button>
+            )}
+            <button
+              onClick={() => setShowNewChart(true)}
+              className="datum rounded border border-patina-dim px-4 py-2 text-[0.625rem] tracking-[0.18em] text-patina uppercase transition-colors hover:bg-patina-deep"
+            >
+              Add New Chart
+            </button>
+          </div>
         </div>
         {showNewChart && (
           <NewChartModal onClose={() => setShowNewChart(false)} />
+        )}
+        {showManage && (
+          <ChartManageModal
+            charts={charts}
+            onClose={() => setShowManage(false)}
+            onReorder={reorderCharts}
+          />
         )}
       </div>
     );
@@ -101,12 +120,22 @@ export default function BirthChartPage() {
           </h1>
           <div className="mt-6 h-px w-full bg-patina-dim" />
         </div>
-        <button
-          onClick={() => setShowNewChart(true)}
-          className="datum mt-1 rounded border border-patina-dim px-4 py-2 text-[0.625rem] tracking-[0.18em] text-patina uppercase transition-colors hover:bg-patina-deep"
-        >
-          Add New Chart
-        </button>
+        <div className="mt-1 flex items-center gap-2">
+          {charts.length > 1 && (
+            <button
+              onClick={() => setShowManage(true)}
+              className="datum rounded border border-rule px-4 py-2 text-[0.625rem] tracking-[0.18em] text-bone-faint uppercase transition-colors hover:border-rule-faint hover:text-bone"
+            >
+              Manage Charts
+            </button>
+          )}
+          <button
+            onClick={() => setShowNewChart(true)}
+            className="datum rounded border border-patina-dim px-4 py-2 text-[0.625rem] tracking-[0.18em] text-patina uppercase transition-colors hover:bg-patina-deep"
+          >
+            Add New Chart
+          </button>
+        </div>
       </div>
 
       <section className="mb-16">
@@ -219,6 +248,13 @@ export default function BirthChartPage() {
 
       {showNewChart && (
         <NewChartModal onClose={() => setShowNewChart(false)} />
+      )}
+      {showManage && (
+        <ChartManageModal
+          charts={charts}
+          onClose={() => setShowManage(false)}
+          onReorder={reorderCharts}
+        />
       )}
     </div>
   );

@@ -1,21 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { PageTitle, SectionHeading } from "@/components/primitives";
-import {
-  LetterRun,
-  NeedsFullName,
-  NumberRow,
-} from "@/components/numerology/parts";
-import FixedNumberDrawer, {
-  type FixedSubject,
-} from "@/components/numerology/fixed-drawer";
+import { LetterRun } from "@/components/numerology/parts";
+import FixedNumbers from "@/components/numerology/fixed-numbers";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import { useNumerologyReading } from "@/lib/numerology/use-reading";
-import { NUMBERS, POSITIONS, isMaster } from "@/lib/numerology/lexicon";
-import type { CoreNumber, NumerologyReading, StandardNumber } from "@/lib/numerology/numbers";
+import { NUMBERS } from "@/lib/numerology/lexicon";
+import type { CoreNumber, NumerologyReading } from "@/lib/numerology/numbers";
 
 /**
  * The four fixed numbers — the ones that hold still for a whole life.
@@ -72,10 +66,7 @@ export default function NumerologyPage() {
       <PageTitle
         eyebrow={chart ? chart.name : "No chart"}
         title="Numerology"
-        lede="A name and a date, reduced by addition until one figure is left.
-              No sky is consulted and nothing is measured — which makes this the
-              plainest system here and the one where the conventions do all the
-              work, so the page shows its arithmetic."
+
       />
 
       {!chart ? (
@@ -102,104 +93,10 @@ function Reading({
   birthDate: string;
 }) {
   const { nameNumbers, parts } = reading;
-  const [subject, setSubject] = useState<FixedSubject | null>(null);
-
-  const masters = [
-    reading.lifePath,
-    ...(nameNumbers
-      ? [nameNumbers.expression, nameNumbers.soulUrge, nameNumbers.personality]
-      : []),
-  ].filter(isMaster).length;
 
   return (
     <>
-      <section className="mb-16">
-        <SectionHeading
-          aside={
-            nameNumbers
-              ? `4 fixed · ${masters} master${masters === 1 ? "" : "s"}`
-              : "1 of 4 · name incomplete"
-          }
-        >
-          The Fixed Numbers
-        </SectionHeading>
-
-        <div className="border-t border-rule">
-          <div className="border-l-2 border-patina bg-patina-deep/30">
-            <NumberRow
-              position="lifePath"
-              n={reading.lifePath}
-              aside={birthDate}
-              open={subject?.position === "lifePath"}
-              onToggle={() =>
-                setSubject(
-                  subject?.position === "lifePath"
-                    ? null
-                    : { position: "lifePath", n: reading.lifePath as StandardNumber, aside: birthDate },
-                )
-              }
-              inline={false}
-            />
-          </div>
-
-          {nameNumbers ? (
-            <>
-              <NumberRow
-                position="expression"
-                n={nameNumbers.expression}
-                open={subject?.position === "expression"}
-                onToggle={() =>
-                  setSubject(
-                    subject?.position === "expression"
-                      ? null
-                      : { position: "expression", n: nameNumbers.expression as StandardNumber },
-                  )
-                }
-                inline={false}
-              />
-              <NumberRow
-                position="soulUrge"
-                n={nameNumbers.soulUrge}
-                open={subject?.position === "soulUrge"}
-                onToggle={() =>
-                  setSubject(
-                    subject?.position === "soulUrge"
-                      ? null
-                      : { position: "soulUrge", n: nameNumbers.soulUrge as StandardNumber },
-                  )
-                }
-                inline={false}
-              />
-              <NumberRow
-                position="personality"
-                n={nameNumbers.personality}
-                open={subject?.position === "personality"}
-                onToggle={() =>
-                  setSubject(
-                    subject?.position === "personality"
-                      ? null
-                      : { position: "personality", n: nameNumbers.personality as StandardNumber },
-                  )
-                }
-                inline={false}
-              />
-            </>
-          ) : null}
-        </div>
-
-        {!nameNumbers ? (
-          <div className="mt-8">
-            <NeedsFullName what="Expression, Soul Urge and Personality" />
-          </div>
-        ) : null}
-
-        <p className="datum mt-6 max-w-3xl text-[0.6875rem] leading-relaxed text-bone-faint">
-          {POSITIONS.lifePath.from} is reduced a component at a time — month,
-          day and year each on their own, then added and reduced again. Adding
-          the eight digits straight across is also in circulation and does not
-          always agree; this is the method the readings here assume.
-        </p>
-      </section>
+      <FixedNumbers reading={reading} birthDate={birthDate} />
 
       {nameNumbers ? (
         <section className="mb-16">
@@ -220,10 +117,6 @@ function Reading({
           The numbers that move →
         </Link>
       </p>
-
-      {subject ? (
-        <FixedNumberDrawer subject={subject} onClose={() => setSubject(null)} />
-      ) : null}
     </>
   );
 }

@@ -106,7 +106,7 @@ export const PINNACLE_READINGS: Record<StandardNumber, PinnacleReading> = {
     available:
       "Analytical clarity, independence of thought, and the patience to remain with a question after easier explanations have been exhausted.",
     cost:
-      "Isolation. The distance that makes understanding possible can become habitual, excluding information that only participation or contact could have supplied.",
+      "Suspicion. The distance that makes understanding possible can become habitual, until participation begins to look less trustworthy than observation and information available only through contact is discounted.",
     question:
       "What am I trying to understand here, and when has the distance stopped helping me understand it?",
   },

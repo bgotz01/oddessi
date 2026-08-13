@@ -1,5 +1,33 @@
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
+
+export async function PATCH(request: Request) {
+  try {
+    const { order } = (await request.json()) as { order?: string[] };
+    if (!Array.isArray(order) || order.length === 0) {
+      return NextResponse.json({ error: "order array required" }, { status: 400 });
+    }
+
+    // Update each chart's sortOrder in a single transaction.
+    await prisma.$transaction(
+      order.map((id, index) =>
+        prisma.birthChartData.update({
+          where: { id },
+          data: { sortOrder: index },
+        })
+      )
+    );
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Chart reorder failed:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500 }
+    );
+  }
+}
+
 import { prisma } from "@/lib/db";
 import { calculateBirthChart } from "@/lib/astrology/server-calculator";
 import { cacheLifeCyclesForChart } from "@/lib/astrology/cache-life-cycles";

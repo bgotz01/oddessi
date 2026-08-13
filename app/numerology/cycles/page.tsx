@@ -14,6 +14,9 @@ import NumerologyCycleDrawer, {
   isShowing,
   type CycleSubject,
 } from "@/components/numerology/cycle-drawer";
+import NumerologyReferenceDrawer, {
+  type ReferenceTarget,
+} from "@/components/numerology/reference-drawer";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import { useNumerologyReading } from "@/lib/numerology/use-reading";
@@ -50,6 +53,7 @@ export default function NumerologyCyclesPage() {
   const { setPageContext } = useChat();
   const reading = useNumerologyReading(chart);
   const [subject, setSubject] = useState<CycleSubject | null>(null);
+  const [refTarget, setRefTarget] = useState<ReferenceTarget | null>(null);
 
   useEffect(() => {
     if (!reading) return;
@@ -119,7 +123,7 @@ export default function NumerologyCyclesPage() {
         </p>
       ) : (
         <>
-          <Cycles reading={reading} subject={subject} onOpen={setSubject} />
+          <Cycles reading={reading} subject={subject} onOpen={setSubject} onOpenRef={setRefTarget} />
 
           {subject ? (
             <NumerologyCycleDrawer
@@ -127,6 +131,14 @@ export default function NumerologyCyclesPage() {
               subject={subject}
               onSelect={setSubject}
               onClose={() => setSubject(null)}
+            />
+          ) : null}
+
+          {refTarget ? (
+            <NumerologyReferenceDrawer
+              target={refTarget}
+              onNavigate={setRefTarget}
+              onClose={() => setRefTarget(null)}
             />
           ) : null}
         </>
@@ -139,10 +151,12 @@ function Cycles({
   reading,
   subject,
   onOpen,
+  onOpenRef,
 }: {
   reading: NumerologyReading;
   subject: CycleSubject | null;
   onOpen: (subject: CycleSubject) => void;
+  onOpenRef: (target: ReferenceTarget) => void;
 }) {
   const { personalYear, pinnacles, essence, age } = reading;
   const chapter = pinnacles.find((p) => pinnacleInForce(p, age));
@@ -152,7 +166,20 @@ function Cycles({
       {/* ── The year ──────────────────────────────────────────────────────── */}
       <section className="mb-16">
         <SectionHeading
-          aside={`${personalYear.number} of 9 · run opened ${personalYear.run[0].year}`}
+          aside={
+            <span className="flex items-baseline gap-5">
+              <span className="text-bone-faint">
+                {personalYear.number} of 9 · run opened {personalYear.run[0].year}
+              </span>
+              <button
+                type="button"
+                onClick={() => onOpenRef({ position: "personalYear", number: personalYear.number })}
+                className="datum text-[0.625rem] tracking-[0.18em] text-bone-faint uppercase transition-colors hover:text-patina"
+              >
+                Browse →
+              </button>
+            </span>
+          }
         >
           The Personal Year
         </SectionHeading>
@@ -238,7 +265,20 @@ function Cycles({
       {/* ── The chapter in force ──────────────────────────────────────────── */}
       <section className="mb-16">
         <SectionHeading
-          aside={chapter ? `chapter ${chapter.index} of 4 · age ${age}` : "—"}
+          aside={
+            <span className="flex items-baseline gap-5">
+              <span className="text-bone-faint">
+                {chapter ? `chapter ${chapter.index} of 4 · age ${age}` : "—"}
+              </span>
+              <button
+                type="button"
+                onClick={() => onOpenRef({ position: "pinnacle", number: chapter?.number ?? 1 })}
+                className="datum text-[0.625rem] tracking-[0.18em] text-bone-faint uppercase transition-colors hover:text-patina"
+              >
+                Browse →
+              </button>
+            </span>
+          }
         >
           The Pinnacle
         </SectionHeading>
@@ -269,7 +309,25 @@ function Cycles({
       {/* ── The letters, as a clock ───────────────────────────────────────── */}
       <section className="mb-16">
         <SectionHeading
-          aside={essence ? `ages ${essence[0].age}–${essence[essence.length - 1].age}` : "withheld"}
+          aside={
+            <span className="flex items-baseline gap-5">
+              <span className="text-bone-faint">
+                {essence ? `ages ${essence[0].age}–${essence[essence.length - 1].age}` : "withheld"}
+              </span>
+              {essence ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const current = essence.find((y) => y.age === age);
+                    onOpenRef({ position: "essence", number: current?.number ?? 1 });
+                  }}
+                  className="datum text-[0.625rem] tracking-[0.18em] text-bone-faint uppercase transition-colors hover:text-patina"
+                >
+                  Browse →
+                </button>
+              ) : null}
+            </span>
+          }
         >
           The Essence
         </SectionHeading>
@@ -371,12 +429,12 @@ function EssenceTable({
               aria-haspopup="dialog"
               onClick={() => onOpen({ kind: "essence", age: year.age })}
               className={`grid w-full grid-cols-[4rem_4rem_1fr_3rem] items-baseline gap-x-6 border-b border-rule-faint px-2 py-3 text-left transition-colors ${now
-                  ? "bg-patina-deep"
-                  : open
-                    ? "bg-surface"
-                    : past
-                      ? "opacity-50 hover:opacity-100 hover:bg-surface-alt"
-                      : "hover:bg-surface-alt"
+                ? "bg-patina-deep"
+                : open
+                  ? "bg-surface"
+                  : past
+                    ? "opacity-50 hover:opacity-100 hover:bg-surface-alt"
+                    : "hover:bg-surface-alt"
                 }`}
             >
               <span

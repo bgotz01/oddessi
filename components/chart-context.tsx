@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useState,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
@@ -49,21 +50,25 @@ const selection = {
 };
 
 interface ChartContextValue {
-  /** The chart under study. Null only when no charts exist at all. */
+  /** The chart currently under study. Null only when no charts exist at all. */
   chart: Chart | null;
   charts: Chart[];
   selectChart: (id: string) => void;
+  /** Optimistically reorder charts (e.g. after saving a new sort order). */
+  reorderCharts: (ordered: Chart[]) => void;
 }
 
 const ChartContext = createContext<ChartContextValue | undefined>(undefined);
 
 export function ChartProvider({
-  charts,
+  charts: initialCharts,
   children,
 }: {
   charts: Chart[];
   children: ReactNode;
 }) {
+  const [charts, setCharts] = useState<Chart[]>(initialCharts);
+
   const savedId = useSyncExternalStore(
     selection.subscribe,
     selection.get,
@@ -78,9 +83,10 @@ export function ChartProvider({
     null;
 
   const selectChart = useCallback((id: string) => selection.set(id), []);
+  const reorderCharts = useCallback((ordered: Chart[]) => setCharts(ordered), []);
 
   return (
-    <ChartContext.Provider value={{ chart, charts, selectChart }}>
+    <ChartContext.Provider value={{ chart, charts, selectChart, reorderCharts }}>
       {children}
     </ChartContext.Provider>
   );

@@ -9,6 +9,7 @@ import {
   pinnacleYears,
 } from "@/components/numerology/parts";
 import { NUMBERS, POSITIONS, type Position } from "@/lib/numerology/lexicon";
+import { getMoniker } from "@/lib/numerology/monikers";
 import { PINNACLE_READINGS } from "@/lib/numerology/pinnacles";
 import { CHALLENGE_READINGS } from "@/lib/numerology/challenges";
 import type { StandardNumber, ChallengeNumber } from "@/lib/numerology/numbers";
@@ -192,6 +193,14 @@ export default function NumerologyCycleDrawer({
                 <p className="mt-1.5 text-[1.25rem] leading-tight text-bone-soft">
                   {entry.title}
                 </p>
+                <p className="mt-1 text-[1.1875rem] italic text-patina">
+                  {getMoniker(resolved.n, resolved.position)}
+                </p>
+                {entry.keywords.length > 0 ? (
+                  <p className="mt-1.5 text-[0.9375rem] font-light text-bone-faint">
+                    {entry.keywords.join(" · ")}
+                  </p>
+                ) : null}
               </div>
             </div>
             <button

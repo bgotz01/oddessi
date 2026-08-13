@@ -299,7 +299,7 @@ function cityFromLocation(location: string | null): string {
 
 export async function fetchCharts(): Promise<Chart[]> {
   const rows = await prisma.birthChartData.findMany({
-    orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
   });
 
   return rows.map((row) => {

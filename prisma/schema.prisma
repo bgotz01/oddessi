@@ -49,12 +49,14 @@ model BirthChartData {
   angles          Json?
   aspects         Json?
   isDefault       Boolean                    @default(false)
+  sortOrder       Int                        @default(0)
   createdAt       DateTime                   @default(now())
   updatedAt       DateTime                   @updatedAt
   profile         PersonalDevelopmentProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@index([profileId])
   @@index([profileId, isDefault])
+  @@index([profileId, sortOrder])
   @@map("birth_chart_data")
 }
 

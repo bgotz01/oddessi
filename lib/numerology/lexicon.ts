@@ -14,10 +14,20 @@ export type { StandardNumber };
 export { isMaster, reducesTo } from "./numbers";
 
 export interface NumberEntry {
-  /** The name it goes by. Kept short enough to sit under a numeral. */
+  /** The primary label. Kept short enough to sit under a numeral. */
   title: string;
-  /** The character, stated flat. Two sentences at most. */
+  /** Two action verbs that capture the number's core motion. */
+  verbs: string;
+  /** An evocative short phrase, e.g. "The one who withdraws". */
+  moniker: string;
+  /** Additional descriptive keywords shown alongside the title. */
+  keywords: string[];
+  /** The number's character and the tension inherent in that character. */
   note: string;
+  /**
+   * Three-part progression:
+   * core force → characteristic expression → potential distortion.
+   */
   terms: string[];
 }
 
@@ -30,67 +40,106 @@ export interface NumberEntry {
 export const NUMBERS: Record<CoreNumber, NumberEntry> = {
   0: {
     title: "The Open Field",
-    note: "No single obstacle, which is not the same as no obstacle. Nothing is imposed and nothing is excused: whatever is chosen has to be chosen without the alibi of a difficulty that came with the birth.",
+    verbs: "Choose · Define",
+    moniker: "The one who defines their own obstacle",
+    keywords: ["No fixed obstacle", "Open choice", "Unassigned"],
+    note: "No single obstacle assigned — which is not the same as no obstacle. Without a named difficulty to push against, direction must be chosen rather than supplied by the condition itself. Everything is available and nothing is excused.",
     terms: ["Unassigned", "Unexcused", "Chosen"],
   },
   1: {
-    title: "The One Who Starts",
-    note: "The first move, made without waiting to be asked. Everything it is good at follows from going first, and everything it is bad at follows from not knowing how to be second.",
+    title: "Initiation",
+    verbs: "Begin · Lead",
+    moniker: "The one who goes first",
+    keywords: ["Independence", "Leadership", "Initiative", "Individuality", "Originality"],
+    note: "The number of initiative and self-direction. It acts from its own centre, begins without waiting to be asked, and finds authority in itself rather than inherited from elsewhere. Its difficulty is the same as its strength: it does not know how to be second.",
     terms: ["Initiative", "Autonomy", "Isolation"],
   },
   2: {
-    title: "The One Who Holds",
-    note: "Two things placed side by side and kept there. Reads a room accurately and at cost, and mistakes the ability to see every side for an obligation to take none.",
+    title: "Cooperation",
+    verbs: "Relate · Attune",
+    moniker: "The one who holds the middle",
+    keywords: ["Partnership", "Sensitivity", "Diplomacy", "Balance"],
+    note: "The number of relation and attunement. It reads a room accurately, holds two positions at once without forcing a resolution, and works through connection rather than opposition. Its difficulty is mistaking the ability to see every side for an obligation to take none.",
     terms: ["Attunement", "Patience", "Deference"],
   },
   3: {
-    title: "The One Who Says It",
-    note: "Expression as the native act — the thing is not finished until it has been made and shown. Generative and scattering in the same motion; the difficulty is never starting, it is stopping to finish.",
-    terms: ["Expression", "Charm", "Dispersal"],
+    title: "Creativity",
+    verbs: "Create · Express",
+    moniker: "The one who makes it visible",
+    keywords: ["Joy", "Communication", "Self-expression", "Optimism"],
+    note: "The number of creative energy, joy, and communication. It is generative, social, and naturally drawn to making things and sharing them. The difficulty is not starting — it is stopping long enough to finish. Energy scatters before it accumulates.",
+    terms: ["Creativity", "Communication", "Dispersal"],
   },
   4: {
-    title: "The One Who Builds",
-    note: "Work laid down in courses, each on the one beneath it. What it makes holds, and it will keep making it long past the point where the structure was the answer to anything.",
+    title: "Stability",
+    verbs: "Build · Stabilize",
+    moniker: "The one who builds to last",
+    keywords: ["Building", "Discipline", "Hard work", "Practicality"],
+    note: "The number of structure, discipline, and patient effort. It builds methodically, values order, and makes things that hold. Its difficulty is persistence past the point of usefulness — continuing to construct the same structure after the need has changed.",
     terms: ["Order", "Endurance", "Rigidity"],
   },
   5: {
-    title: "The One Who Moves",
-    note: "Appetite, and range. Learns by contact rather than by study, which is the fastest way to learn many things and no way at all to finish one.",
+    title: "Freedom",
+    verbs: "Explore · Adapt",
+    moniker: "The one who needs room to move",
+    keywords: ["Adventure", "Change", "Versatility", "Curiosity"],
+    note: "The number of change, variety, and direct experience. It learns by contact, adapts quickly, and resists anything that limits its range. Its difficulty is that the next possibility becomes compelling before the present one has run its course.",
     terms: ["Freedom", "Appetite", "Restlessness"],
   },
   6: {
-    title: "The One Who Answers",
-    note: "Responsibility taken up before anyone hands it over. Genuinely good at care, and consistently unable to tell the difference between being needed and being loved.",
+    title: "Care",
+    verbs: "Nurture · Sustain",
+    moniker: "The one who answers before being asked",
+    keywords: ["Nurturing", "Family", "Harmony", "Service"],
+    note: "The number of care, duty, and domestic harmony. It takes responsibility before being asked, is genuinely good at nurturing and sustaining, and finds purpose in being needed. Its difficulty is not knowing where obligation ends and love begins.",
     terms: ["Care", "Duty", "Overreach"],
   },
   7: {
-    title: "The One Who Withdraws",
-    note: "Distance kept on purpose, because the thing is not visible from inside the crowd. Sees what the others missed; misses what only the others could have told it.",
+    title: "Introspection",
+    verbs: "Analyze · Understand",
+    moniker: "The one who withdraws to see clearly",
+    keywords: ["Analysis", "Wisdom", "Spirituality", "Perfectionism"],
+    note: "The number of analysis, depth, and the interior life. It observes from a distance, thinks before it speaks, and wants to understand before it commits. Its difficulty is that the same distance that produces insight can become a barrier to participation.",
     terms: ["Analysis", "Solitude", "Suspicion"],
   },
   8: {
-    title: "The One Who Weighs",
-    note: "Consequence, in the material sense — what a decision costs, moves and is worth. Competent with power and rarely at ease with it, since every measure it takes applies to itself as well.",
-    terms: ["Authority", "Consequence", "Hunger"],
+    title: "Power",
+    verbs: "Direct · Achieve",
+    moniker: "The one who makes things happen",
+    keywords: ["Ambition", "Authority", "Material mastery", "Achievement"],
+    note: "The number of material authority, judgment, and consequence. It is competent with resources and decisions, operates at scale, and understands that actions have weight. Its difficulty is applying the same measuring habit to itself — and to relationships that do not belong in a ledger.",
+    terms: ["Authority", "Consequence", "Measurement"],
   },
   9: {
-    title: "The One Who Lets Go",
-    note: "The end of the run, and the wide view that comes with standing at it. Gives generously and holds on privately; the release it teaches is the one it finds hardest.",
+    title: "Completion",
+    verbs: "Integrate · Release",
+    moniker: "The one who has seen the whole cycle",
+    keywords: ["Wisdom", "Compassion", "Breadth", "Release", "Endings"],
+    note: "The number of completion, wisdom, and the long view. It has travelled the whole cycle and understands endings. Generous in principle and privately reluctant to let go — the release it teaches is the one it finds hardest to perform.",
     terms: ["Breadth", "Release", "Withholding"],
   },
   11: {
-    title: "The Signal",
-    note: "Sensitivity running at a pitch where it stops being a social skill and becomes something closer to reception — accurate, unbidden, and hard on the nerves that carry it. What others sense dimly, this number registers clearly and without choosing to.",
+    title: "Intuition",
+    verbs: "Receive · Perceive",
+    moniker: "The one who registers what others miss",
+    keywords: ["Inspiration", "Illumination", "Heightened perception", "Sensitivity"],
+    note: "The master of heightened sensitivity and inner knowing. Where 2 attunes to what is in the room, 11 registers what has not yet been said — impressions arrive unbidden and with unusual accuracy. The cost is the nervous strain of operating at that pitch.",
     terms: ["Reception", "Intensity", "Strain"],
   },
   22: {
-    title: "The Works",
-    note: "The instinct to build, pointed at something too large to finish alone. What gets made holds — the same capacity for patient construction as the more ordinary builder — but the scale of what is attempted means the finished thing may remain invisible for most of the work.",
+    title: "Realization",
+    verbs: "Envision · Construct",
+    moniker: "The one who builds for what outlasts them",
+    keywords: ["Master builder", "Large-scale vision", "Practical idealism", "Legacy"],
+    note: "The master builder. Where 4 constructs what one person can complete, 22 is drawn to structures that outlast the builder — institutions, systems, things too large for any single effort. The difficulty is that the scale of the vision can make ordinary progress feel insufficient.",
     terms: ["Scale", "Construction", "Overload"],
   },
   33: {
-    title: "The Charge",
-    note: "Care extended past the household to whoever is in front of it. The impulse to answer what is needed does not stop at the boundary of the personal circle, which makes the giving genuine and the risk of disappearing into it equally real.",
+    title: "Devotion",
+    verbs: "Serve · Uplift",
+    moniker: "The one who serves the whole",
+    keywords: ["Selfless giving", "Teaching", "Healing", "Unconditional love"],
+    note: "The master of selfless care. Where 6 answers to those it loves, 33 extends that responsibility outward without a natural boundary. The impulse to serve is genuine; the risk is that giving expands to fill every available space, and nothing is kept for the giver.",
     terms: ["Service", "Devotion", "Erasure"],
   },
 };
@@ -161,7 +210,7 @@ export const POSITIONS: Record<Position, PositionEntry> = {
   essence: {
     label: "Essence",
     from: "All parts of the name running concurrently",
-    asks: "The name read as a clock. Each part of the name moves through its letters in spelling order, with each letter remaining active for as many years as its value; the Essence is the sum of the letters sounding together at a given time.",
+    asks: "What is temporarily active through the name. Each part of the name moves through its letters in spelling order, with each letter remaining active for as many years as its value; the Essence is the sum of the letters sounding together at a given time. Unlike the fixed name numbers, it describes a changing emphasis in what is being expressed now.",
     fixed: false,
   },
 };

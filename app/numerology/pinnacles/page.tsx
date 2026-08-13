@@ -12,6 +12,9 @@ import NumerologyCycleDrawer, {
   isShowing,
   type CycleSubject,
 } from "@/components/numerology/cycle-drawer";
+import NumerologyReferenceDrawer, {
+  type ReferenceTarget,
+} from "@/components/numerology/reference-drawer";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import { useNumerologyReading } from "@/lib/numerology/use-reading";
@@ -43,6 +46,7 @@ export default function PinnaclesPage() {
   const { setPageContext } = useChat();
   const reading = useNumerologyReading(chart);
   const [subject, setSubject] = useState<CycleSubject | null>(null);
+  const [refTarget, setRefTarget] = useState<ReferenceTarget | null>(null);
 
   useEffect(() => {
     if (!reading) return;
@@ -98,7 +102,7 @@ export default function PinnaclesPage() {
         </p>
       ) : (
         <>
-          <Chapters reading={reading} subject={subject} onOpen={setSubject} />
+          <Chapters reading={reading} subject={subject} onOpen={setSubject} onOpenRef={setRefTarget} />
 
           {subject ? (
             <NumerologyCycleDrawer
@@ -106,6 +110,14 @@ export default function PinnaclesPage() {
               subject={subject}
               onSelect={setSubject}
               onClose={() => setSubject(null)}
+            />
+          ) : null}
+
+          {refTarget ? (
+            <NumerologyReferenceDrawer
+              target={refTarget}
+              onNavigate={setRefTarget}
+              onClose={() => setRefTarget(null)}
             />
           ) : null}
         </>
@@ -118,10 +130,12 @@ function Chapters({
   reading,
   subject,
   onOpen,
+  onOpenRef,
 }: {
   reading: NumerologyReading;
   subject: CycleSubject | null;
   onOpen: (subject: CycleSubject) => void;
+  onOpenRef: (target: ReferenceTarget) => void;
 }) {
   const { pinnacles, age, lifePath } = reading;
 
@@ -131,8 +145,7 @@ function Chapters({
         <SectionHeading aside={`age ${age} · Life Path ${lifePath}`}>
           The Whole Span
         </SectionHeading>
-        <Spine pinnacles={pinnacles} age={age} onOpen={onOpen} />
-        <p className="datum mt-6 max-w-3xl text-[0.6875rem] leading-relaxed text-bone-faint">
+        <Spine pinnacles={pinnacles} age={age} onOpen={onOpen} />        <p className="datum mt-6 max-w-3xl text-[0.6875rem] leading-relaxed text-bone-faint">
           The first chapter closes at 36 minus the Life Path — {lifePath} here,
           so it runs to {pinnacles[0].endAge} — and the next two are nine years
           each. The fourth has no end, which is not an oversight: three chapters
@@ -142,7 +155,20 @@ function Chapters({
       </section>
 
       <section className="mb-16">
-        <SectionHeading aside="4 chapters · 8 numbers">
+        <SectionHeading
+          aside={
+            <span className="flex items-baseline gap-5">
+              <span className="text-bone-faint">4 chapters · 8 numbers</span>
+              <button
+                type="button"
+                onClick={() => onOpenRef({ position: "pinnacle", number: 1 })}
+                className="datum text-[0.625rem] tracking-[0.18em] text-bone-faint uppercase transition-colors hover:text-patina"
+              >
+                Browse →
+              </button>
+            </span>
+          }
+        >
           Chapter by Chapter
         </SectionHeading>
 

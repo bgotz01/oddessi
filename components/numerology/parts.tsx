@@ -15,6 +15,7 @@ import {
   reducesTo,
   type Position,
 } from "@/lib/numerology/lexicon";
+import { getMoniker } from "@/lib/numerology/monikers";
 import type { CoreNumber, NamePart, Pinnacle } from "@/lib/numerology/numbers";
 
 /**
@@ -112,7 +113,7 @@ export function NumberRow({
         onClick={onToggle}
         aria-expanded={inline ? open : undefined}
         aria-haspopup={inline ? undefined : "dialog"}
-        className={`grid w-full grid-cols-[3rem_1fr_auto_1rem] items-baseline gap-x-6 py-5 text-left transition-colors ${open ? "bg-surface" : "hover:bg-surface-alt"
+        className={`grid w-full grid-cols-[3rem_1fr_auto_1rem] items-center gap-x-6 py-3.5 text-left transition-colors ${open ? "bg-surface" : "hover:bg-surface-alt"
           }`}
       >
         <span className="pl-2">
@@ -120,11 +121,19 @@ export function NumberRow({
         </span>
 
         <span className="min-w-0">
-          <span className="inscription block text-[0.8125rem] text-bone">
+          <span className="inscription block text-[0.9375rem] text-bone-faint">
             {place.label}
           </span>
-          <span className="mt-1.5 block text-[1.0625rem] leading-tight text-bone-soft">
-            {entry.title}
+          <span className="mt-1 flex items-baseline gap-3 flex-wrap">
+            <span className="text-[1.25rem] leading-tight text-bone">
+              {entry.title}
+            </span>
+            <span className="text-[1rem] text-bone-faint">
+              {entry.verbs}
+            </span>
+          </span>
+          <span className="mt-1 block text-[1.1875rem] italic text-patina">
+            {getMoniker(n, position)}
           </span>
         </span>
 
