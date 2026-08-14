@@ -78,21 +78,10 @@ export default function PinnaclesPage() {
       <PageTitle
         eyebrow={chart ? chart.name : "No chart"}
         title="The Pinnacles"
-        lede="A life divided into four chapters, from the birth date alone. Each
-              carries a number for what is available during it and a challenge
-              for what that costs — taken from the same pair of components, one
-              added and one subtracted, which is why they so often read as the
-              same trait from above and from underneath."
+        lede="A life divided into four chapters."
       />
 
-      <p className="mb-10">
-        <Link
-          href="/numerology/cycles"
-          className="datum text-[0.6875rem] tracking-[0.18em] text-bone-soft uppercase transition-colors hover:text-patina"
-        >
-          ← Back to the moving numbers
-        </Link>
-      </p>
+
 
       {!chart ? (
         <p className="text-bone-soft">No chart selected.</p>

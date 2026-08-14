@@ -225,8 +225,25 @@ function PassageRow({
           const width = pct(stint.end, scale) - left;
           if (width <= 0) return null;
 
-          const here = current === stint;
-          const strong = stint.house % 2 === 1;
+          const status = statusOfStint(stint, now);
+          const odd = stint.house % 2 === 1;
+
+          // Active: full-brightness tint. Upcoming: medium. Completed: muted.
+          // Odd/even alternation nudges adjacent blocks apart within each tier
+          // but is kept narrow so the state contrast always dominates.
+          const bgOpacity =
+            status === "active"
+              ? odd ? 90 : 72
+              : status === "upcoming"
+                ? odd ? 44 : 30
+                : odd ? 20 : 12;
+
+          const labelClass =
+            status === "active"
+              ? "text-bone"
+              : status === "upcoming"
+                ? "text-bone-soft"
+                : "text-bone-faint";
 
           return (
             <div
@@ -253,15 +270,11 @@ function PassageRow({
               style={{
                 left: `${left}%`,
                 width: `${width}%`,
-                backgroundColor: `color-mix(in srgb, ${tint} ${strong ? 72 : 26
-                  }%, transparent)`,
+                backgroundColor: `color-mix(in srgb, ${tint} ${bgOpacity}%, transparent)`,
               }}
             >
               {width > 1.8 ? (
-                <span
-                  className={`datum text-[0.625rem] leading-none ${here ? "text-bone" : "text-bone-soft"
-                    }`}
-                >
+                <span className={`datum text-[0.625rem] leading-none ${labelClass}`}>
                   {stint.house}
                 </span>
               ) : null}

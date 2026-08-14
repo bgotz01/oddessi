@@ -1,26 +1,54 @@
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 
+interface PatchBody {
+  // Single-chart field updates
+  chartId?: string;
+  name?: string;
+  gender?: string | null;
+  birthDate?: string;   // YYYY-MM-DD
+  birthTime?: string;   // HH:MM
+  birthCity?: string;
+  birthTimezone?: string;
+  // Bulk reorder
+  order?: string[];
+}
+
 export async function PATCH(request: Request) {
   try {
-    const { order } = (await request.json()) as { order?: string[] };
-    if (!Array.isArray(order) || order.length === 0) {
-      return NextResponse.json({ error: "order array required" }, { status: 400 });
+    const body = (await request.json()) as PatchBody;
+
+    // Single-chart update
+    if (body.chartId) {
+      const { chartId, name, gender, birthDate, birthTime, birthCity, birthTimezone } = body;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data: Record<string, any> = {};
+      if (name !== undefined) data.name = name.trim() || null;
+      if (gender !== undefined) data.gender = gender ?? null;
+      if (birthTime !== undefined) data.birthTime = birthTime;
+      if (birthCity !== undefined) data.birthCity = birthCity.trim() || null;
+      if (birthTimezone !== undefined) data.birthTimezone = birthTimezone.trim();
+      if (birthDate !== undefined) {
+        const [year, month, day] = birthDate.split("-").map(Number);
+        data.birthDate = new Date(Date.UTC(year, month - 1, day));
+      }
+      await prisma.birthChartData.update({ where: { id: chartId }, data });
+      return NextResponse.json({ success: true });
     }
 
-    // Update each chart's sortOrder in a single transaction.
+    // Bulk reorder
+    const { order } = body;
+    if (!Array.isArray(order) || order.length === 0) {
+      return NextResponse.json({ error: "order array or chartId required" }, { status: 400 });
+    }
     await prisma.$transaction(
       order.map((id, index) =>
-        prisma.birthChartData.update({
-          where: { id },
-          data: { sortOrder: index },
-        })
+        prisma.birthChartData.update({ where: { id }, data: { sortOrder: index } })
       )
     );
-
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Chart reorder failed:", error);
+    console.error("Chart update failed:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }

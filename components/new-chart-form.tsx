@@ -42,6 +42,7 @@ export default function NewChartForm({ onSuccess }: { onSuccess?: () => void } =
   const { selectChart } = useChart();
 
   const [name, setName] = useState("");
+  const [gender, setGender] = useState<"male" | "female" | "">("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [query, setQuery] = useState("");
@@ -103,6 +104,7 @@ export default function NewChartForm({ onSuccess }: { onSuccess?: () => void } =
             longitude: place.longitude,
             city: place.city,
             location: place.label,
+            gender: gender || undefined,
           },
         }),
       });
@@ -122,6 +124,7 @@ export default function NewChartForm({ onSuccess }: { onSuccess?: () => void } =
       // so it appears in the rail.
       selectChart(json.chartId);
       setName("");
+      setGender("");
       setDate("");
       setTime("");
       setQuery("");
@@ -168,6 +171,30 @@ export default function NewChartForm({ onSuccess }: { onSuccess?: () => void } =
             />
           </Field>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <Field label="Gender" hint="Required for Chinese luck pillars. Leave blank to skip.">
+          <div className="mt-1 flex gap-0">
+            {(["male", "female", ""] as const).map((g) => {
+              const label = g === "" ? "—" : g.charAt(0).toUpperCase() + g.slice(1);
+              const active = gender === g;
+              return (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setGender(g)}
+                  className={`datum flex-1 border px-3 py-2.5 text-[0.75rem] tracking-[0.1em] transition-colors first:border-r-0 last:border-l-0 ${active
+                    ? "border-patina bg-patina-deep text-patina"
+                    : "border-rule bg-surface text-bone-faint hover:border-rule-faint hover:text-bone"
+                    }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </Field>
       </div>
 
       <div className="mt-6">

@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useState,
   useSyncExternalStore,
   type ReactNode,
@@ -68,6 +69,12 @@ export function ChartProvider({
   children: ReactNode;
 }) {
   const [charts, setCharts] = useState<Chart[]>(initialCharts);
+
+  // Keep local state in sync when the server layout re-fetches (e.g. after
+  // router.refresh() following a new chart creation or deletion).
+  useEffect(() => {
+    setCharts(initialCharts);
+  }, [initialCharts]);
 
   const savedId = useSyncExternalStore(
     selection.subscribe,

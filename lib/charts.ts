@@ -63,6 +63,7 @@ export interface Chart {
   id: string;
   name: string;
   isDefault: boolean;
+  gender: string | null;
   birth: BirthData;
   big3: { sun: string; moon: string; rising: string };
   placements: Placement[];
@@ -308,6 +309,7 @@ export async function fetchCharts(): Promise<Chart[]> {
       id: row.id,
       name: row.name?.trim() || UNTITLED_CHART,
       isDefault: row.isDefault,
+      gender: row.gender ?? null,
       birth: {
         date: row.birthDate.toISOString().slice(0, 10),
         time: row.birthTime,
