@@ -72,7 +72,18 @@ const NAV: NavGroup[] = [
       { href: "/numerology/pinnacles", label: "Pinnacles" },
     ],
   },
-
+  {
+    label: "Gods",
+    items: [
+      { href: "/gods/greek", label: "Greek" },
+    ],
+  },
+  {
+    label: "Reference",
+    items: [
+      { href: "/symbols", label: "Symbols" },
+    ],
+  },
 ];
 
 const ALL_HREFS = NAV.flatMap((group) =>

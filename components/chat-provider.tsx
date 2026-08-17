@@ -516,6 +516,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           // What the conversation could see decides what it may write: a
           // West-only chat must not produce lessons about the four pillars.
           systems: systemsRef.current,
+          // chartId is the canonical storage key; chartName is passed only so
+          // the prompt reads "Chart: Boris Gotzev" rather than a UUID.
+          ...(chartRef.current?.id && { chartId: chartRef.current.id }),
           ...(chartRef.current?.name && { chartName: chartRef.current.name }),
         }),
       })

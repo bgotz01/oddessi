@@ -8,7 +8,6 @@ import { computeReading, type Gender } from "@/lib/chinese/pillars";
 import {
   SYSTEMS,
   SYSTEM_LABEL,
-  chartPrefix,
   isLegacy,
   parseSystems,
   readableScopes,
@@ -69,10 +68,10 @@ function buildNumerologyBlock(chart: Chart): string {
     `Life Path: ${name(reading.lifePath)} — ${POSITIONS.lifePath.asks}`,
     reading.nameNumbers
       ? [
-          `Expression: ${name(reading.nameNumbers.expression)}`,
-          `Soul Urge: ${name(reading.nameNumbers.soulUrge)}`,
-          `Personality: ${name(reading.nameNumbers.personality)}`,
-        ].join("\n")
+        `Expression: ${name(reading.nameNumbers.expression)}`,
+        `Soul Urge: ${name(reading.nameNumbers.soulUrge)}`,
+        `Personality: ${name(reading.nameNumbers.personality)}`,
+      ].join("\n")
       : "Expression, Soul Urge and Personality: WITHHELD. This chart is saved under a single word, and those three are taken from the full name given at birth. Do not estimate them, and say so if asked.",
     "",
     `Personal Year ${reading.personalYear.year}: ${name(reading.personalYear.number)} — ${reading.personalYear.number} of 9, the run having opened in ${reading.personalYear.run[0].year}.`,
@@ -136,8 +135,7 @@ async function buildChineseBlock(chart: Chart): Promise<string> {
     "--- Four Pillars (BaZi) ---",
     `Day Master: ${master.polarity} ${master.element} (${master.han} ${master.pinyin}) — the chart's subject.`,
     `Resource (the phase that generates it): ${generatedBy(master.element)}`,
-    `Strength: ${reading.strength.verdict} — ${reading.strength.supportive}% supportive, born ${
-      reading.strength.inSeason ? "in" : "out of"
+    `Strength: ${reading.strength.verdict} — ${reading.strength.supportive}% supportive, born ${reading.strength.inSeason ? "in" : "out of"
     } season in the ${BRANCHES[reading.pillars.month.branch].season} month.`,
     "",
     "Pillars:",
@@ -164,48 +162,34 @@ async function buildChineseBlock(chart: Chart): Promise<string> {
 }
 
 /**
- * Lessons distilled from past sessions about *this* chart, and nothing else.
+ * Lessons distilled about *this* chart, scoped by chartId.
  *
- * `/api/chat/summarize` writes every row namespaced
- * "<chart name> — <Category>", and this reads back only that chart's
- * prefix. The strictness is the point: several people's charts live in one
- * `council_memory` table, and a reading assembled from the wrong person's
- * lessons would be wrong in a way that is very hard to notice — it would simply
- * sound confidently off. No chart name, no memory.
- *
- * Then a second cut by scope, so a conversation narrowed to one system is only
- * handed that system's lessons plus the shared ones. See `lib/memory-scope.ts`.
+ * Both surfaces (Interface and Council) now write to the same rows under the
+ * chart's real id. The name-prefix scheme is gone. A second cut by scope
+ * ensures a West-only conversation is not handed Eastern lessons.
  */
 async function loadChartMemory(
-  chartName: string | undefined,
+  chartId: string | undefined,
   systems: ActiveSystems,
 ) {
-  const prefix = chartName?.trim() ? chartPrefix(chartName) : null;
-  if (!prefix) return [];
+  if (!chartId) return [];
 
   const rows = await prisma.councilMemory.findMany({
-    where: { category: { startsWith: prefix } },
+    where: { chartId },
     orderBy: { category: "asc" },
   });
 
-  // Second filter, and the point of this whole scheme: a conversation narrowed
-  // to one system must not be handed the other system's lessons. Otherwise a
-  // West-only reading quietly arrives carrying everything the Day Master taught
-  // us, which is exactly the cross-contamination the switch exists to prevent.
   const readable = readableScopes(systems);
 
   return rows
     .filter((row) => row.content.trim())
-    .map((row) => {
-      const category = row.category.slice(prefix.length);
-      return { category, scope: scopeOf(category), content: row.content };
-    })
+    .map((row) => ({
+      category: row.category,
+      scope: scopeOf(row.category),
+      content: row.content,
+    }))
     .filter((entry) => readable.includes(entry.scope))
     .map((entry) => ({
-      // The category name already says which system it belongs to
-      // ("Eastern Chart"), so the heading needs no further marking — except for
-      // rows written before the split, which are flagged so the model does not
-      // read an unlabelled mixture as authoritative about either system.
       category: isLegacy(entry.category)
         ? `${entry.category} (unsorted — may mix both systems)`
         : entry.category,
@@ -343,7 +327,7 @@ export async function POST(req: NextRequest) {
   const active = parseSystems(systems);
   const has = (system: System) => active.includes(system);
 
-  const memory = includeMemory ? await loadChartMemory(chart?.name, active) : [];
+  const memory = includeMemory ? await loadChartMemory(chart?.id, active) : [];
 
   // The four pillars need an ephemeris pass, so only compute them when asked.
   // A failure here must not take the whole chat down — the Western half is

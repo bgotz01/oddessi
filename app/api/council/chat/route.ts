@@ -36,7 +36,7 @@ const DEFAULT_MODEL = 'deepseek/deepseek-v4-flash';
 
 export async function POST(req: NextRequest) {
     try {
-        const { messages, model, systemPrompt, refIds, chart, includeMemory, memoryCategories } = await req.json();
+        const { messages, model, systemPrompt, refIds, chart, includeMemory, memoryCategories, memoryChartId } = await req.json();
 
         if (!messages || !Array.isArray(messages)) {
             return new Response(JSON.stringify({ error: 'Invalid request body' }), { status: 400 });
@@ -64,9 +64,24 @@ export async function POST(req: NextRequest) {
         }
 
         // Inject persistent memory (on by default; client sends false for a clean chat).
+        // Fetches the active chart's rows + the Shared (null) rows so both are available.
         // memoryCategories, when an array, narrows injection to that subset; otherwise all.
         if (includeMemory !== false) {
-            let rows = await prisma.councilMemory.findMany();
+            // chartId comes from the client as the currently-attached chart's id.
+            // null / absent = only Shared rows are fetched (no chart attached).
+            const chartId = (typeof memoryChartId === 'string' && memoryChartId !== 'null')
+                ? memoryChartId
+                : null;
+
+            let rows = await prisma.councilMemory.findMany({
+                where: {
+                    OR: [
+                        { chartId },
+                        { chartId: null },   // Shared is always included
+                    ],
+                },
+            });
+
             if (Array.isArray(memoryCategories)) {
                 const selected = new Set(memoryCategories);
                 rows = rows.filter((r) => selected.has(r.category));

@@ -4,8 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { COUNCIL_DEFAULT_MODELS } from "@/lib/models";
 import { interfaceMemorySystem } from "@/lib/prompts/interface";
 import {
-  buildCategory,
-  chartPrefix,
   parseSystems,
   scopeOf,
   readableScopes,
@@ -16,16 +14,14 @@ import {
 /**
  * POST /api/chat/summarize
  *
- * Distils an Interface chat transcript into CouncilMemory categories scoped to
- * the active chart, then automatically persists any new lessons back to the DB.
- * Called by the client when the user clears the chat (i.e. ends a session).
+ * Distils an Interface chat transcript into memory categories scoped to the
+ * active chart by its real chartId. Both the Interface and the Council now
+ * write to the same rows — no more name-prefix scheme.
  *
- * When `chartName` is supplied, memory categories are namespaced as
- * "<chartName> — <Category>", e.g. "Boris — The Chart". This keeps each
- * person's lessons separate while still living in the same CouncilMemory table
- * (and appearing in the Council memory panel, labelled by person).
+ * Body: { transcript, chartId?, chartName?, model?, systems? }
  *
- * Body: { transcript: string, chartName?: string, model?: string }
+ * `chartId` is the canonical key. `chartName` is kept for the prompt so the
+ * model sees a human-readable label; it is never used as a storage key.
  *
  * Returns: { ok: true, categoriesUpdated: string[] }
  */
@@ -69,22 +65,15 @@ function parseRoutes(raw: string): Route[] | null {
   return null;
 }
 
-/**
- * Full stored name for a route. Without a chart there is nobody to attribute
- * the lesson to, so it falls back to the bare category the council uses.
- */
-function storedName(category: string, chartName: string | null | undefined): string {
-  if (!chartName?.trim()) return category;
-  return buildCategory(chartName, category);
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const { transcript, chartName, model, systems } = (await req.json()) as {
+    const { transcript, chartId, chartName, model, systems } = (await req.json()) as {
       transcript?: string;
+      /** The chart's real DB id — the canonical storage key. */
+      chartId?: string | null;
+      /** Human-readable name for the prompt only. */
       chartName?: string;
       model?: string;
-      /** Which systems were attached while this conversation happened. */
       systems?: ActiveSystems | string;
     };
 
@@ -97,32 +86,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing transcript" }, { status: 400 });
     }
 
-    // Load existing memory rows scoped to this chart (prefix match) so the
-    // model can reconcile against what's already been distilled for this person.
-    const prefix = chartName?.trim() ? chartPrefix(chartName) : null;
-    const allMemory = await prisma.councilMemory.findMany({
+    // Resolve the actual chartId to use for storage. Prefer the explicit id;
+    // fall back to null (Shared) when no chart was active.
+    const resolvedChartId = chartId?.trim() || null;
+
+    // Load existing rows for this chart so the model can reconcile.
+    const existingRows = await prisma.councilMemory.findMany({
+      where: { chartId: resolvedChartId },
       orderBy: { category: "asc" },
     });
-    const scopedMemory = prefix
-      ? allMemory.filter((c) => c.category.startsWith(prefix))
-      : allMemory.filter((c) => !c.category.includes(" — ")); // unscoped rows only
 
-    // Only the categories this conversation may write into. Showing it the
-    // Eastern rows during a Western-only session would invite it to "reconcile"
-    // against material it never saw.
+    // Only show the distiller categories it may write into given the active systems.
     const readable = readableScopes(active);
-    const visible = scopedMemory.filter((c) => {
-      if (!prefix) return true;
-      return readable.includes(scopeOf(c.category.slice(prefix.length)));
-    });
+    const visible = existingRows.filter((c) =>
+      readable.includes(scopeOf(c.category)),
+    );
 
     const catBlock =
       visible.length > 0
         ? visible
-          .map((c) => {
-            const bare = prefix ? c.category.slice(prefix.length) : c.category;
-            return `### ${bare}\n${c.content.trim() || "(empty)"}`;
-          })
+          .map((c) => `### ${c.category}\n${c.content.trim() || "(empty)"}`)
           .join("\n\n")
         : "(no categories yet)";
 
@@ -169,11 +152,7 @@ export async function POST(req: NextRequest) {
           .map((l) => l.trim()),
       }))
       .filter((r) => r.category && r.lessons.length > 0)
-      // A category this conversation could not see is dropped, not rewritten.
-      // There is no honest home for an "Eastern Chart" lesson from a session
-      // that never had the pillars in front of it — the lesson is about
-      // something the model did not read.
-      .filter((r) => !chartName?.trim() || allowedNames.has(r.category.toLowerCase()));
+      .filter((r) => !resolvedChartId || allowedNames.has(r.category.toLowerCase()));
 
     if (routes.length === 0) {
       return NextResponse.json({ ok: true, categoriesUpdated: [] });
@@ -182,12 +161,8 @@ export async function POST(req: NextRequest) {
     const updated: string[] = [];
 
     for (const route of routes) {
-      // The model returns bare category names — attribute and scope them.
-      const fullCategory = storedName(route.category, chartName);
-
-      // Find the existing row by the full scoped name.
-      const existing = allMemory.find(
-        (c) => c.category.toLowerCase() === fullCategory.toLowerCase(),
+      const existing = existingRows.find(
+        (c) => c.category.toLowerCase() === route.category.toLowerCase(),
       );
 
       const currentContent = existing?.content ?? "";
@@ -196,13 +171,18 @@ export async function POST(req: NextRequest) {
         ? `${currentContent.trim()}\n${newBullets}`
         : newBullets;
 
-      await prisma.councilMemory.upsert({
-        where: { category: existing?.category ?? fullCategory },
-        update: { content: merged },
-        create: { category: fullCategory, content: merged },
-      });
+      if (existing) {
+        await prisma.councilMemory.update({
+          where: { id: existing.id },
+          data: { content: merged },
+        });
+      } else {
+        await prisma.councilMemory.create({
+          data: { chartId: resolvedChartId, category: route.category, content: merged },
+        });
+      }
 
-      updated.push(fullCategory);
+      updated.push(route.category);
     }
 
     return NextResponse.json({ ok: true, categoriesUpdated: updated });

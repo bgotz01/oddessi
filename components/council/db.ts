@@ -157,38 +157,66 @@ export interface MemoryRoute {
     lessons: string[];
 }
 
-export async function dbLoadMemory(): Promise<MemoryCategory[]> {
-    const res = await fetch('/api/council/memory');
+/**
+ * Encode a chartId for use in a URL query param.
+ * null → omitted (API treats absent param as Shared).
+ */
+function chartIdParam(chartId: string | null): string {
+    return chartId ? `?chartId=${encodeURIComponent(chartId)}` : '';
+}
+
+/**
+ * Load memory categories for a specific chart bucket.
+ * chartId = null → Shared pool (not tied to any chart).
+ */
+export async function dbLoadMemory(chartId: string | null = null): Promise<MemoryCategory[]> {
+    const res = await fetch(`/api/council/memory${chartIdParam(chartId)}`);
     const data = await res.json() as MemoryCategory[];
     return Array.isArray(data) ? data : [];
 }
 
-export async function dbSaveMemoryCategory(category: string, content: string): Promise<void> {
+export async function dbSaveMemoryCategory(
+    category: string,
+    content: string,
+    chartId: string | null = null,
+): Promise<void> {
     await fetch('/api/council/memory', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category, content }),
+        body: JSON.stringify({ chartId, category, content }),
     });
 }
 
-export async function dbCreateMemoryCategory(category: string): Promise<void> {
+export async function dbCreateMemoryCategory(
+    category: string,
+    chartId: string | null = null,
+): Promise<void> {
     await fetch('/api/council/memory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ category }),
+        body: JSON.stringify({ chartId, category }),
     });
 }
 
-export async function dbRenameMemoryCategory(from: string, to: string): Promise<void> {
+export async function dbRenameMemoryCategory(
+    from: string,
+    to: string,
+    chartId: string | null = null,
+): Promise<void> {
     await fetch('/api/council/memory', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from, to }),
+        body: JSON.stringify({ chartId, from, to }),
     });
 }
 
-export async function dbDeleteMemoryCategory(category: string): Promise<void> {
-    await fetch(`/api/council/memory?category=${encodeURIComponent(category)}`, { method: 'DELETE' });
+export async function dbDeleteMemoryCategory(
+    category: string,
+    chartId: string | null = null,
+): Promise<void> {
+    const params = new URLSearchParams({ category });
+    if (chartId) params.set('chartId', chartId);
+    await fetch(`/api/council/memory?${params}`, { method: 'DELETE' });
 }
 
 /** Distill new lessons from a transcript, routed into categories (empty if none). */
@@ -269,7 +297,10 @@ export async function streamChat(
         refIds?: string[];
         /** The chart under study. Omitted when the user has detached it for this chat. */
         chart?: Chart | null;
-        includeMemory?: boolean; memoryCategories?: string[];
+        includeMemory?: boolean;
+        memoryCategories?: string[];
+        /** The chart whose memory bucket to inject. null = Shared only. */
+        memoryChartId?: string | null;
     },
     onDelta: (delta: string) => void,
 ): Promise<StreamResult> {

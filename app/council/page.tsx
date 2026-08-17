@@ -194,14 +194,14 @@ export default function CouncilPage() {
     }, []);
 
     useEffect(() => {
-        dbLoadMemory().then((cats) => {
+        dbLoadMemory(chart?.id ?? null).then((cats) => {
             setMemoryCategories(cats);
             setSelectedMemoryCats(cats.map((c) => c.category)); // attach all by default
         }).catch(() => { });
-    }, []);
+    }, [chart?.id]);
 
     async function refreshMemory(): Promise<MemoryCategory[]> {
-        const cats = await dbLoadMemory();
+        const cats = await dbLoadMemory(chart?.id ?? null);
         setMemoryCategories(cats);
         // keep any still-existing selections; newly added categories join the selection
         setSelectedMemoryCats((prev) => {
@@ -450,20 +450,20 @@ export default function CouncilPage() {
             ? prev.map((c) => c.category === category ? { ...c, content } : c)
             : [...prev, { category, content }].sort((a, b) => a.category.localeCompare(b.category)));
         setSelectedMemoryCats((prev) => prev.includes(category) ? prev : [...prev, category]);
-        try { await dbSaveMemoryCategory(category, content); } catch { /* non-fatal */ }
+        try { await dbSaveMemoryCategory(category, content, chart?.id ?? null); } catch { /* non-fatal */ }
     }
 
     async function handleCreateCategory(name: string) {
-        try { await dbCreateMemoryCategory(name); await refreshMemory(); } catch { /* non-fatal */ }
+        try { await dbCreateMemoryCategory(name, chart?.id ?? null); await refreshMemory(); } catch { /* non-fatal */ }
     }
 
     async function handleRenameCategory(from: string, to: string) {
         setSelectedMemoryCats((prev) => prev.map((c) => c === from ? to : c));
-        try { await dbRenameMemoryCategory(from, to); await refreshMemory(); } catch { /* non-fatal */ }
+        try { await dbRenameMemoryCategory(from, to, chart?.id ?? null); await refreshMemory(); } catch { /* non-fatal */ }
     }
 
     async function handleDeleteCategory(category: string) {
-        try { await dbDeleteMemoryCategory(category); await refreshMemory(); } catch { /* non-fatal */ }
+        try { await dbDeleteMemoryCategory(category, chart?.id ?? null); await refreshMemory(); } catch { /* non-fatal */ }
     }
 
     function toggleMemoryCat(category: string) {
@@ -495,6 +495,7 @@ export default function CouncilPage() {
                     refIds,
                     chart: activeChart(),
                     includeMemory: memoryEnabled, memoryCategories: selectedMemoryCats,
+                    memoryChartId: chart?.id ?? null,
                 };
                 return streamChat(payload, (partial) => {
                     setModeMessages((prev) => prev.map((m, j) => {
@@ -577,7 +578,7 @@ export default function CouncilPage() {
         let usage: Usage | null = null;
         try {
             const result = await streamChat(
-                { messages, model: agents[agentIdx].model, systemPrompt: systemPromptBase(agents[agentIdx], agentIdx), refIds, chart: activeChart(), includeMemory: memoryEnabled, memoryCategories: selectedMemoryCats },
+                { messages, model: agents[agentIdx].model, systemPrompt: systemPromptBase(agents[agentIdx], agentIdx), refIds, chart: activeChart(), includeMemory: memoryEnabled, memoryCategories: selectedMemoryCats, memoryChartId: chart?.id ?? null },
                 (partial) => {
                     setCascadeTurns((prev) => prev.map((t, idx) => {
                         if (idx !== turnIdx) return t;
@@ -667,7 +668,7 @@ IMPORTANT: The user may address multiple agents in a single message. Only respon
             let usage: Usage | null = null;
             try {
                 const result = await streamChat(
-                    { messages, model: agents[i].model, systemPrompt: systemPromptBase(agents[i], i), refIds, chart: activeChart(), includeMemory: memoryEnabled, memoryCategories: selectedMemoryCats },
+                    { messages, model: agents[i].model, systemPrompt: systemPromptBase(agents[i], i), refIds, chart: activeChart(), includeMemory: memoryEnabled, memoryCategories: selectedMemoryCats, memoryChartId: chart?.id ?? null },
                     (partial) => {
                         setCascadeTurns((prev) => prev.map((t, idx) => {
                             if (idx !== turnIdx) return t;
@@ -758,7 +759,7 @@ IMPORTANT: The user may address multiple agents in a single message. Only respon
                 let usage: Usage | null = null;
                 try {
                     const result = await streamChat(
-                        { messages, model: agentSnapshot[i].model, systemPrompt: systemPromptForAgent(agentSnapshot[i], i), refIds, chart: activeChart(), includeMemory: memoryEnabled, memoryCategories: selectedMemoryCats },
+                        { messages, model: agentSnapshot[i].model, systemPrompt: systemPromptForAgent(agentSnapshot[i], i), refIds, chart: activeChart(), includeMemory: memoryEnabled, memoryCategories: selectedMemoryCats, memoryChartId: chart?.id ?? null },
                         (partial) => {
                             setLoopTurns((prev) => prev.map((t, idx) =>
                                 idx !== turnIdx ? t : { ...t, responses: [...responses, { agentIdx: i, content: partial }] }

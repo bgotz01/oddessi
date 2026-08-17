@@ -133,23 +133,19 @@ export function PinPassage({
     return () => scroller.removeEventListener("scroll", onScroll);
   }, [anchor, scrollerRef, readSelection]);
 
-  // `chartName` rather than `chart` in the dependencies: the callback only ever
-  // needs the name, and depending on the whole object would rebuild it every
-  // time anything else about the chart changed.
-  const chartName = chart?.name;
+  // The id alone in the dependency — the callback only needs it.
+  const chartId = chart?.id;
 
   const pin = useCallback(
     async (scope: MemoryScope) => {
-      if (!anchor || !chartName) return;
+      if (!anchor || !chartId) return;
       try {
         await fetch("/api/chat/memory", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chartName, scope, text: anchor.text }),
+          body: JSON.stringify({ chartId, scope, text: anchor.text }),
         });
         setSaved(scope);
-        // Long enough to register as confirmation, short enough not to sit in
-        // the way of the next thing you want to read.
         setTimeout(() => {
           setAnchor(null);
           document.getSelection()?.removeAllRanges();
@@ -158,11 +154,10 @@ export function PinPassage({
         setAnchor(null);
       }
     },
-    [anchor, chartName],
+    [anchor, chartId],
   );
 
   if (!anchor || !chart) return null;
-
   return (
     <div
       ref={barRef}
@@ -184,11 +179,10 @@ export function PinPassage({
               type="button"
               onClick={() => pin(s.scope)}
               title={s.title}
-              className={`datum border px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-[0.16em] transition-colors ${
-                s.scope === suggested
-                  ? "border-patina-dim text-patina hover:border-patina"
-                  : "border-rule text-bone-faint hover:text-bone"
-              }`}
+              className={`datum border px-1.5 py-0.5 text-[0.5625rem] uppercase tracking-[0.16em] transition-colors ${s.scope === suggested
+                ? "border-patina-dim text-patina hover:border-patina"
+                : "border-rule text-bone-faint hover:text-bone"
+                }`}
             >
               {s.label}
             </button>

@@ -175,12 +175,20 @@ export default function SessionsSidebar({
 
                     {/* The way out. This rail replaces the app's, so without it
                         the council is a dead end but for the logo. */}
-                    <Link
-                        href="/"
-                        className="datum shrink-0 border-t border-rule px-4 py-3 text-[0.5625rem] uppercase tracking-[0.22em] text-bone-faint transition-colors hover:text-bone"
-                    >
-                        ← Oddessi
-                    </Link>
+                    <div className="shrink-0 border-t border-rule divide-y divide-rule">
+                        <Link
+                            href="/council/memory"
+                            className="datum flex w-full border-l-2 border-transparent px-4 py-3 text-[0.5625rem] uppercase tracking-[0.22em] text-bone-faint transition-colors hover:border-gold-muted/40 hover:bg-surface-alt hover:text-gold-dim"
+                        >
+                            Memory
+                        </Link>
+                        <Link
+                            href="/"
+                            className="datum flex w-full px-4 py-3 text-[0.5625rem] uppercase tracking-[0.22em] text-bone-faint transition-colors hover:text-bone"
+                        >
+                            ← Oddessi
+                        </Link>
+                    </div>
                 </>
             )}
         </aside>

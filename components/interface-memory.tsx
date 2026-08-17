@@ -61,13 +61,13 @@ export function MemoryControl() {
   const wrapRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(() => {
-    const name = chart?.name;
-    if (!name) return;
-    fetch(`/api/chat/memory?chartName=${encodeURIComponent(name)}`)
+    const id = chart?.id;
+    if (!id) return;
+    fetch(`/api/chat/memory?chartId=${encodeURIComponent(id)}`)
       .then((r) => r.json())
       .then((rows: MemoryCategory[]) => setCategories(rows))
       .catch(() => setCategories([]));
-  }, [chart?.name]);
+  }, [chart?.id]);
 
   // Fetch when the panel opens, not on mount — most sessions never open it.
   useEffect(() => {
@@ -102,15 +102,15 @@ export function MemoryControl() {
     };
   }, [open]);
 
-  // The name alone, so the callback is not rebuilt whenever anything else about
+  // The id alone, so the callback is not rebuilt whenever anything else about
   // the chart changes.
-  const chartName = chart?.name;
+  const chartId = chart?.id;
 
   const unpin = useCallback(
     (category: string, index: number) => {
-      if (!chartName) return;
+      if (!chartId) return;
       const q = new URLSearchParams({
-        chartName,
+        chartId,
         category,
         index: String(index),
       });
@@ -118,7 +118,7 @@ export function MemoryControl() {
         .then(() => load())
         .catch(() => {/* the row stays; the panel will re-read next open */ });
     },
-    [chartName, load],
+    [chartId, load],
   );
 
   const attached = memoryEnabled && !!chart;
@@ -134,9 +134,8 @@ export function MemoryControl() {
             ? `Memory for ${chart.name} — ${attached ? "attached to each message" : "not attached"}`
             : "Select a chart to see its memory"
         }
-        className={`datum flex items-center gap-2 whitespace-nowrap border px-2 py-1 text-[0.625rem] uppercase tracking-[0.14em] transition-colors ${
-          open ? "border-patina text-patina" : "border-rule text-bone-faint hover:text-bone"
-        }`}
+        className={`datum flex items-center gap-2 whitespace-nowrap border px-2 py-1 text-[0.625rem] uppercase tracking-[0.14em] transition-colors ${open ? "border-patina text-patina" : "border-rule text-bone-faint hover:text-bone"
+          }`}
       >
         Memory
         {/* The same ring the council uses, so the attached state is legible
@@ -271,11 +270,7 @@ export function MemoryControl() {
                 lands on this person's topics rather than on the council page
                 with the modal shut, which is all it used to do. */}
             <a
-              href={
-                chart
-                  ? `/council?memory=${encodeURIComponent(chart.name)}`
-                  : "/council"
-              }
+              href="/council/memory"
               title={
                 chart
                   ? `Edit ${chart.name}'s memory in the council's editor`

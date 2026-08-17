@@ -117,7 +117,7 @@ function HouseBox({
             to one or two lines, and letting that decide where the rest of the
             card begins is what made the grid look ragged — every zone below
             here now starts on the same line in all twelve cards. */}
-        <span className="flex min-h-[6.75rem] flex-col">
+        <span className="flex min-h-[4.5rem] flex-col">
           <span
             className="inscription text-[1.5rem] leading-none"
             style={{ color: tone.color }}
@@ -132,18 +132,7 @@ function HouseBox({
             {getHouseTitle(cusp.number as House)}
           </span>
 
-          <span className="mt-auto flex items-center justify-center gap-1.5 pt-2">
-            <span
-              className="inline-block h-2 w-2 shrink-0"
-              style={{ background: tone.color }}
-            />
-            <span
-              className="datum text-[0.5625rem] tracking-[0.18em] uppercase"
-              style={{ color: tone.color }}
-            >
-              {type}
-            </span>
-          </span>
+
         </span>
 
         {/* Zone 2 — the sign on the cusp. Patina marks the symbolic layer. */}

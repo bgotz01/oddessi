@@ -161,13 +161,20 @@ model InterfacePreferences {
   @@map("interface_preferences")
 }
 
-// One row per named category — each a persistent markdown document of lessons
-// distilled from past sessions. Injected into chats by default (per-chat selectable).
+// One row per (chartId, category) pair — each a persistent markdown document
+// of lessons distilled from past sessions. chartId = null means the memory is
+// "Shared" and not tied to any single chart (used when comparing two charts or
+// for general working notes). Injected into chats by default (per-chat selectable).
 model CouncilMemory {
   id        String   @id @default(uuid())
-  category  String   @unique
+  /// Null means Shared — not tied to any single chart.
+  chartId   String?
+  category  String
   content   String   @default("")
   updatedAt DateTime @updatedAt
+
+  @@unique([chartId, category])
+  @@index([chartId])
 }
 
 // ─── Interface Chat ───────────────────────────────────────────────────────────

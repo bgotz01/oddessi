@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
-  buildCategory,
-  chartPrefix,
   isLegacy,
   isPinned,
   noteCategories,
@@ -11,26 +9,17 @@ import {
 } from "@/lib/memory-scope";
 
 /**
- * GET /api/chat/memory?chartName=<name>
+ * GET /api/chat/memory?chartId=<id>
  *
- * What has been distilled about one chart, for the Interface's memory panel.
- *
- * The scoping is the same rule `/api/chat` reads by: rows are namespaced
- * "<chart name> — <Category>" and only that prefix is returned. Filtering here
- * rather than in the browser matters — the alternative is shipping every
- * person's distilled memory to the client so it can hide most of it.
- *
- * Category names come back bare, without the prefix, because the prefix is
- * bookkeeping and repeating the chart's own name on every row in a panel that
- * is already about that chart reads as noise.
+ * Returns all memory rows for the given chart, for the Interface's memory panel.
+ * Category names are returned bare (no prefix) — they are already scoped by chartId.
  */
 export async function GET(req: NextRequest) {
-  const chartName = new URL(req.url).searchParams.get("chartName")?.trim();
-  if (!chartName) return NextResponse.json([]);
+  const chartId = new URL(req.url).searchParams.get("chartId")?.trim();
+  if (!chartId) return NextResponse.json([]);
 
-  const prefix = chartPrefix(chartName);
   const rows = await prisma.councilMemory.findMany({
-    where: { category: { startsWith: prefix } },
+    where: { chartId },
     orderBy: { category: "asc" },
   });
 
@@ -38,16 +27,13 @@ export async function GET(req: NextRequest) {
     rows
       .filter((row) => row.content.trim())
       .map((row) => {
-        const category = row.category.slice(prefix.length);
-        const scope = scopeOf(category);
-        const legacy = isLegacy(category);
+        const scope = scopeOf(row.category);
+        const legacy = isLegacy(row.category);
         return {
-          category,
+          category: row.category,
           scope,
-          /** Written before scoping existed — read as Shared. */
           legacy,
           content: row.content.trim(),
-          /** Bullets, as the distiller writes them — one lesson per line. */
           lessons: row.content
             .split("\n")
             .map((line) => line.replace(/^-\s*/, "").trim())
@@ -60,25 +46,19 @@ export async function GET(req: NextRequest) {
 /**
  * POST /api/chat/memory — pin a passage by hand.
  *
- * Body: { chartName, scope, text }
- *
- * Stored verbatim. The whole reason a pinned passage is worth more than a
- * distilled one is that the person judged *these words* worth keeping, so
- * nothing here trims, summarises or re-words it. Newlines are collapsed only
- * because the store is one-bullet-per-line and a passage spanning lines would
- * come back as several unrelated notes.
+ * Body: { chartId, scope, text }
  */
 export async function POST(req: NextRequest) {
-  const { chartName, scope, text } = (await req.json()) as {
-    chartName?: string;
+  const { chartId, scope, text } = (await req.json()) as {
+    chartId?: string;
     scope?: MemoryScope;
     text?: string;
   };
 
   const passage = text?.replace(/\s+/g, " ").trim();
-  if (!chartName?.trim() || !passage) {
+  if (!chartId?.trim() || !passage) {
     return NextResponse.json(
-      { error: "chartName and text are required" },
+      { error: "chartId and text are required" },
       { status: 400 },
     );
   }
@@ -88,39 +68,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unknown scope" }, { status: 400 });
   }
 
-  const category = buildCategory(chartName, target.name);
-  const existing = await prisma.councilMemory.findUnique({ where: { category } });
+  const existing = await prisma.councilMemory.findFirst({
+    where: { chartId, category: target.name },
+  });
 
-  // Appending rather than upserting a whole body, so two pins in a row cannot
-  // silently overwrite each other.
   const line = `- ${passage}`;
   const merged = existing?.content.trim()
     ? `${existing.content.trim()}\n${line}`
     : line;
 
-  await prisma.councilMemory.upsert({
-    where: { category },
-    update: { content: merged },
-    create: { category, content: merged },
-  });
+  if (existing) {
+    await prisma.councilMemory.update({
+      where: { id: existing.id },
+      data: { content: merged },
+    });
+  } else {
+    await prisma.councilMemory.create({
+      data: { chartId, category: target.name, content: merged },
+    });
+  }
 
   return NextResponse.json({ ok: true, category: target.name });
 }
 
 /**
- * DELETE /api/chat/memory?chartName=…&category=…&index=…
+ * DELETE /api/chat/memory?chartId=…&category=…&index=…
  *
- * Removes one pinned passage. Only pinned categories: a distilled lesson is
- * managed by the distiller and edited in the council's panel, and offering a
- * one-click delete for it here would be a second, competing editor.
+ * Removes one pinned passage by index within the category's bullet list.
  */
 export async function DELETE(req: NextRequest) {
   const url = new URL(req.url);
-  const chartName = url.searchParams.get("chartName")?.trim();
+  const chartId = url.searchParams.get("chartId")?.trim();
   const category = url.searchParams.get("category")?.trim();
   const index = Number(url.searchParams.get("index"));
 
-  if (!chartName || !category || !Number.isInteger(index)) {
+  if (!chartId || !category || !Number.isInteger(index)) {
     return NextResponse.json({ error: "Bad request" }, { status: 400 });
   }
   if (!isPinned(category)) {
@@ -130,8 +112,7 @@ export async function DELETE(req: NextRequest) {
     );
   }
 
-  const full = buildCategory(chartName, category);
-  const row = await prisma.councilMemory.findUnique({ where: { category: full } });
+  const row = await prisma.councilMemory.findFirst({ where: { chartId, category } });
   if (!row) return NextResponse.json({ ok: true });
 
   const lines = row.content.split("\n").filter((l) => l.trim());
@@ -141,10 +122,10 @@ export async function DELETE(req: NextRequest) {
   lines.splice(index, 1);
 
   if (lines.length === 0) {
-    await prisma.councilMemory.delete({ where: { category: full } });
+    await prisma.councilMemory.delete({ where: { id: row.id } });
   } else {
     await prisma.councilMemory.update({
-      where: { category: full },
+      where: { id: row.id },
       data: { content: lines.join("\n") },
     });
   }
