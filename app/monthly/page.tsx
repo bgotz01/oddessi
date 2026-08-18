@@ -9,6 +9,45 @@ const MONTH_NAMES = [
   "July", "August", "September", "October", "November", "December",
 ];
 
+// ── City → country color ──────────────────────────────────────────────────────
+// One dominant flag color per country, muted to suit the dark palette.
+
+const GEO_COLORS: Record<string, string> = {
+  // Colombia — yellow from the flag
+  "medellín": "#c9a23a",
+  // Brazil — green from the flag
+  "rio de janeiro": "#4a9e6b",
+  "são paulo": "#4a9e6b",
+  "sao paulo": "#4a9e6b",
+  // Thailand — deep blue stripe
+  "thailand": "#5b82b8",
+  // UAE — red from the flag
+  "dubai": "#b85b5b",
+  // Greece — blue from the flag
+  "greece": "#4a72a8",
+  // Montenegro — gold from the coat of arms
+  "montenegro": "#c9a23a",
+  // Spain — red from the flag
+  "madrid": "#c05a5a",
+  // Argentina — sky blue
+  "buenos aires": "#6aadd5",
+  // Mexico — green from the flag
+  "tulum": "#4a9e6b",
+  // Indonesia — white (lower half of the flag)
+  "bali": "#c8cdd8",
+  // USA — blue
+  "miami": "#5b82b8",
+};
+
+/**
+ * Resolves a color for a geography string. The geography field may contain
+ * multiple cities separated by " · " — use the first one for the color.
+ */
+function geoColor(geography: string): string {
+  const first = geography.split("·")[0].trim().toLowerCase();
+  return GEO_COLORS[first] ?? "#808898"; // bone-faint fallback
+}
+
 // ── Quarter row (3 months) ───────────────────────────────────────────────────
 
 function QuarterRow({ summaries }: { summaries: MonthlySummary[] }) {
@@ -61,6 +100,16 @@ function QuarterRow({ summaries }: { summaries: MonthlySummary[] }) {
                 </span>
               </div>
 
+              {/* Geography */}
+              {s.geography && (
+                <p
+                  className="datum text-[0.6875rem]"
+                  style={{ color: geoColor(s.geography) }}
+                >
+                  {s.geography}
+                </p>
+              )}
+
               {/* Primary project */}
               <div className="border-l-2 border-patina pl-3">
                 <span className="datum block text-[0.625rem] uppercase tracking-[0.18em] text-patina-dim mb-1">
@@ -97,7 +146,8 @@ function QuarterRow({ summaries }: { summaries: MonthlySummary[] }) {
       {/* ── Full-width expansion panel ── */}
       {active && (
         <div className="border-b border-rule bg-surface px-6 py-6">
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-4">
+          {/* Header */}
+          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-5">
             <span className="inscription text-[1rem] text-bone">
               {MONTH_NAMES[(active.month - 1) % 12]}
             </span>
@@ -110,9 +160,68 @@ function QuarterRow({ summaries }: { summaries: MonthlySummary[] }) {
               </span>
             </span>
           </div>
-          <p className="max-w-3xl text-[1.0625rem] leading-relaxed text-bone-soft">
-            {active.body}
-          </p>
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_auto]">
+            {/* Left — work body */}
+            <div>
+              <span className="datum block text-[0.5625rem] uppercase tracking-[0.22em] text-bone-faint/50 mb-2">
+                Work
+              </span>
+              <p className="text-[1.0625rem] leading-relaxed text-bone-soft">
+                {active.body}
+              </p>
+            </div>
+
+            {/* Right — meta column */}
+            <div className="flex flex-col gap-5 md:w-64 md:border-l md:border-rule md:pl-6">
+              {active.geography && (
+                <div>
+                  <span className="datum block text-[0.5625rem] uppercase tracking-[0.22em] text-bone-faint/50 mb-2">
+                    Geography
+                  </span>
+                  <p
+                    className="text-[1rem] leading-relaxed"
+                    style={{ color: geoColor(active.geography) }}
+                  >
+                    {active.geography}
+                  </p>
+                </div>
+              )}
+
+              {active.books && (
+                <div>
+                  <span className="datum block text-[0.5625rem] uppercase tracking-[0.22em] text-bone-faint/50 mb-2">
+                    Books
+                  </span>
+                  <ul className="space-y-1">
+                    {active.books.split("\n").map((b: string) => b.trim()).filter(Boolean).map((b: string) => (
+                      <li key={b} className="text-[1rem] leading-snug text-bone-soft">
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {active.personalNotes && (
+                <div>
+                  <span className="datum block text-[0.5625rem] uppercase tracking-[0.22em] text-bone-faint/50 mb-2">
+                    Notes
+                  </span>
+                  <p className="text-[1rem] leading-relaxed text-bone-soft">
+                    {active.personalNotes}
+                  </p>
+                </div>
+              )}
+
+              {/* Nothing filled in yet */}
+              {!active.geography && !active.books && !active.personalNotes && (
+                <p className="datum text-[0.625rem] text-bone-faint/40 uppercase tracking-[0.16em]">
+                  No personal data yet
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -161,6 +270,7 @@ function YearGroup({
 export default function MonthlyPage() {
   const [summaries, setSummaries] = useState<MonthlySummary[] | null>(null);
   const [error, setError] = useState(false);
+  const [activeYear, setActiveYear] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/monthly")
@@ -180,6 +290,9 @@ export default function MonthlyPage() {
       .map(([year, rows]) => ({ year: Number(year), summaries: rows }))
     : [];
 
+  const years = byYear.map((g) => g.year);
+  const visible = activeYear ? byYear.filter((g) => g.year === activeYear) : byYear;
+
   return (
     <div className="mx-auto w-full max-w-6xl px-8 pb-24">
       <PageTitle
@@ -187,6 +300,40 @@ export default function MonthlyPage() {
         title="Monthly"
         lede="What was being built each month, and the thinking behind it."
       />
+
+      {/* ── Year filter ── */}
+      {years.length > 0 && (
+        <div className="mb-10 flex flex-wrap items-baseline gap-x-0 gap-y-1 border-b border-rule pb-6">
+          <span className="datum mr-6 w-12 shrink-0 text-[0.5625rem] tracking-[0.28em] text-bone-faint/50 uppercase">
+            Year
+          </span>
+          <button
+            onClick={() => setActiveYear(null)}
+            className={[
+              "datum mr-5 pb-0.5 text-[0.625rem] tracking-[0.16em] uppercase transition-colors border-b",
+              activeYear === null
+                ? "border-patina text-patina"
+                : "border-transparent text-bone-faint hover:text-bone-soft",
+            ].join(" ")}
+          >
+            All
+          </button>
+          {years.map((y) => (
+            <button
+              key={y}
+              onClick={() => setActiveYear(y)}
+              className={[
+                "datum mr-5 pb-0.5 text-[0.625rem] tracking-[0.16em] uppercase transition-colors border-b",
+                activeYear === y
+                  ? "border-patina text-patina"
+                  : "border-transparent text-bone-faint hover:text-bone-soft",
+              ].join(" ")}
+            >
+              {y}
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && (
         <p className="text-bone-faint italic">Could not load summaries.</p>
@@ -196,7 +343,7 @@ export default function MonthlyPage() {
         <p className="datum text-[0.75rem] text-bone-faint">Loading…</p>
       )}
 
-      {byYear.map(({ year, summaries: rows }) => (
+      {visible.map(({ year, summaries: rows }) => (
         <YearGroup key={year} year={year} summaries={rows} />
       ))}
     </div>

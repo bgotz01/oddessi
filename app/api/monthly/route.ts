@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { year, month, primaryProject, projects, body: narrativeBody } = body;
+    const { year, month, primaryProject, projects, body: narrativeBody, geography, books, personalNotes } = body;
 
     if (
       typeof year !== "number" ||
@@ -37,6 +37,9 @@ export async function POST(request: Request) {
       primaryProject,
       projects,
       body: narrativeBody,
+      geography: geography ?? null,
+      books: books ?? null,
+      personalNotes: personalNotes ?? null,
     });
     return NextResponse.json(summary);
   } catch {

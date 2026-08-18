@@ -25,6 +25,9 @@ export async function upsertMonthlySummary(data: {
   primaryProject: string;
   projects: string;
   body: string;
+  geography?: string | null;
+  books?: string | null;
+  personalNotes?: string | null;
 }): Promise<MonthlySummary> {
   return prisma.monthlySummary.upsert({
     where: { year_month: { year: data.year, month: data.month } },
@@ -32,6 +35,9 @@ export async function upsertMonthlySummary(data: {
       primaryProject: data.primaryProject,
       projects: data.projects,
       body: data.body,
+      geography: data.geography ?? null,
+      books: data.books ?? null,
+      personalNotes: data.personalNotes ?? null,
     },
     create: data,
   });
