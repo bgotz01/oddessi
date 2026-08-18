@@ -209,6 +209,25 @@ model InterfaceChatMessage {
   @@map("interface_chat_messages")
 }
 
+// ─── Monthly Summaries ────────────────────────────────────────────────────────
+// One row per calendar month. Tracks what was being built and the intellectual
+// context around it. `year` + `month` (1-based) form the natural key.
+
+model MonthlySummary {
+  id             String   @id @default(cuid())
+  year           Int
+  month          Int      // 1 = January … 12 = December
+  primaryProject String   // the "primary project" tag shown in the header
+  projects       String   // short comma-separated list of projects / focus areas
+  body           String   // the longer narrative paragraph
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([year, month])
+  @@index([year])
+  @@map("monthly_summaries")
+}
+
 // Model price overrides + soft-removals, edited from the model pickers and
 // merged over the code defaults in lib/models.ts.
 model ModelPrice {

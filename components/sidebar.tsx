@@ -82,6 +82,7 @@ const NAV: NavGroup[] = [
     label: "Reference",
     items: [
       { href: "/symbols", label: "Symbols" },
+      { href: "/monthly", label: "Monthly" },
     ],
   },
 ];

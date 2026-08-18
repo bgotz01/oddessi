@@ -20,15 +20,54 @@ import { GLYPH_REGISTRY } from "@/components/symbols/glyphs";
 // Add an entry here whenever a new image lands in public/symbols/.
 
 const IMAGE_MAP: Record<string, string> = {
+  aegis: "aegis",
+  aegishjalmur: "Ægishjálmur",
+  ankh: "ankh",
+  "ankh-djed-was": "ankh-djed-was",
+  bull: "bull",
   caduceus: "caduceus",
   cornucopia: "cornucopia",
+  "crook-and-flail": "crook-and-flail",
+  djed: "djed",
+  eagle: "eagle",
+  "eye-of-horus": "eye-of-horus",
+  "eye-of-ra": "eye-of-ra",
+  "feather-of-maat": "feather-of-maat",
   gorgoneion: "gorgoneion",
   kantharos: "kantharos",
   labyrinth: "labyrinth",
+  lamassu: "lamassu",
+  laurel: "laurel",
+  lyre: "lyre",
   meander: "meander",
+  olive: "olive-branch",
   omphalos: "omphalos",
+  ouroboros: "ouroboros",
+  pentagram: "pentagram",
+  "philosophers-stone": "philosophers-stone",
+  phoenix: "phoenix",
+  rebis: "rebis",
+  "rod-and-ring": "rod-and-ring",
   "rod-of-asclepius": "rod-asclepius",
+  rosette: "Rosette",
+  scales: "scales",
+  scarab: "scarab",
+  serpent: "serpent",
+  shen: "shen-ring",
+  "solve-et-coagula": "solve-et-coagula",
+  "star-of-ishtar": "star-of-ishtar",
+  thunderbolt: "thunderbolt",
   thyrsus: "thyrsus",
+  "three-primes": "sulphur-mercury-salt-triad",
+  trident: "triden",
+  triquetra: "triquetra",
+  tyet: "tyet",
+  uraeus: "uraeus",
+  valknut: "valknut",
+  vegvisir: "vegvísir",
+  "was-sceptre": "was-sceptre",
+  "winged-sun": "winged-sun",
+  yggdrasil: "yggdrasil",
 };
 
 // ── Filter state ────────────────────────────────────────────────────────────
@@ -71,18 +110,30 @@ function useFilters() {
 
 function SymbolsContent() {
   const { tradition, type, meaning, set, clear, activeCount } = useFilters();
+  const [query, setQuery] = useState("");
 
-  const filtered = useMemo(
-    () =>
-      UNIQUE_SYMBOLS.filter((s) => {
-        if (tradition !== "All" && !s.traditions.includes(tradition))
-          return false;
-        if (type !== "All" && s.type !== type) return false;
-        if (meaning !== "All" && !s.meanings.includes(meaning)) return false;
-        return true;
-      }),
-    [tradition, type, meaning],
-  );
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return UNIQUE_SYMBOLS.filter((s) => {
+      if (tradition !== "All" && !s.traditions.includes(tradition))
+        return false;
+      if (type !== "All" && s.type !== type) return false;
+      if (meaning !== "All" && !s.meanings.includes(meaning)) return false;
+      if (q) {
+        const haystack = [
+          s.name,
+          ...(s.aliases ?? []),
+          s.meaning,
+          s.historical,
+          s.also ?? "",
+        ]
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [tradition, type, meaning, query]);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-8 pb-24">
@@ -102,6 +153,28 @@ function SymbolsContent() {
 
       {/* ── Filters ── */}
       <div className="mb-10 space-y-3 border-b border-rule pb-8">
+        {/* Search */}
+        <div className="flex items-baseline gap-x-0 pb-2">
+          <span className="datum mr-6 w-20 shrink-0 text-[0.5625rem] tracking-[0.28em] text-bone-faint/50 uppercase">
+            Search
+          </span>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="name, meaning, history…"
+            className="w-full max-w-xs border-b border-rule bg-transparent pb-0.5 text-[0.75rem] text-bone placeholder:text-bone-faint/30 focus:border-patina focus:outline-none"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="datum ml-3 text-[0.5625rem] tracking-[0.18em] text-bone-faint/50 uppercase transition-colors hover:text-patina"
+            >
+              ×
+            </button>
+          )}
+        </div>
+
         <TabRow
           label="Tradition"
           options={["All", ...TRADITIONS]}
@@ -127,9 +200,9 @@ function SymbolsContent() {
         <span className="datum text-[0.625rem] tracking-[0.22em] text-bone-faint uppercase">
           {filtered.length} {filtered.length === 1 ? "symbol" : "symbols"}
         </span>
-        {activeCount > 0 && (
+        {(activeCount > 0 || query) && (
           <button
-            onClick={clear}
+            onClick={() => { clear(); setQuery(""); }}
             className="datum text-[0.5625rem] tracking-[0.18em] text-bone-faint/60 uppercase transition-colors hover:text-patina"
           >
             Clear all
@@ -221,7 +294,7 @@ function SymbolCard({ symbol }: { symbol: OddessiSymbol }) {
               <img
                 src={`/symbols/symbol-${imageStem}.png`}
                 alt={symbol.name}
-                className="h-4/5 w-4/5 object-contain"
+                className="max-h-[65%] max-w-[65%] object-contain"
                 style={{ filter: "brightness(0.9) contrast(1.05)" }}
               />
             );
