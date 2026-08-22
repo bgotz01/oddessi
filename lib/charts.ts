@@ -341,3 +341,16 @@ export function formatBirth(birth: BirthData): string {
   });
   return `${d} · ${birth.time}`;
 }
+
+/**
+ * The bodies standing in a house, in zodiacal order. Angles are derived points
+ * rather than tenants, so they never count as occupants.
+ *
+ * Every view of a house needs this and they must all agree, so it lives here
+ * rather than being re-typed next to each grid and table.
+ */
+export function tenantsOf(placements: Placement[], house: number): Placement[] {
+  return placements
+    .filter((p) => !p.isAngle && p.houseNumber === house)
+    .sort((a, b) => (a.longitude ?? 0) - (b.longitude ?? 0));
+}

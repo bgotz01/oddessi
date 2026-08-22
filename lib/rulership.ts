@@ -1,4 +1,4 @@
-/**
+/** lib/rulership.ts
  * Which planet runs which sign — and therefore which planet answers for a house
  * whose cusp falls in that sign.
  *
@@ -38,6 +38,42 @@ export const MODERN_RULER: Record<string, string> = {
   Aquarius: "Uranus",
   Pisces: "Neptune",
 };
+
+/**
+ * Traditional rulership — the seven visible bodies only, each of the five
+ * non-luminaries holding two signs.
+ *
+ * This is the table dignity has always been judged on (via `PLANET_INFO`), so
+ * offering it for cusp rulership too lets the two stop disagreeing. Which one
+ * a chart is read by is not a detail: it changes a house's ruler, and with it
+ * both ruler strength and ruler activity — two thirds of that house's weight.
+ */
+export const TRADITIONAL_RULER: Record<string, string> = {
+  Aries: "Mars",
+  Taurus: "Venus",
+  Gemini: "Mercury",
+  Cancer: "Moon",
+  Leo: "Sun",
+  Virgo: "Mercury",
+  Libra: "Venus",
+  Scorpio: "Mars",
+  Sagittarius: "Jupiter",
+  Capricorn: "Saturn",
+  Aquarius: "Saturn",
+  Pisces: "Jupiter",
+};
+
+export type Rulership = "modern" | "traditional";
+
+export const RULER_TABLE: Record<Rulership, Record<string, string>> = {
+  modern: MODERN_RULER,
+  traditional: TRADITIONAL_RULER,
+};
+
+/** The body answering for a cusp, under the chosen convention. */
+export function rulerOfSign(sign: string, rulership: Rulership): string {
+  return RULER_TABLE[rulership][sign] ?? MODERN_RULER[sign] ?? "Sun";
+}
 
 export function signOfLongitude(longitude: number): string {
   const normalised = ((longitude % 360) + 360) % 360;

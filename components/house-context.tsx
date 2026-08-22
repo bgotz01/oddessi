@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import type { Chart } from "@/lib/charts";
 import { houseCircuits } from "@/lib/dominance";
+import { useScoring } from "@/components/scoring-context";
 import { HOUSE_TYPE_EXPLANATIONS } from "@/lib/astrology/houses/houses";
 import { HOUSE_TYPES, houseTypeStyle } from "@/lib/house-types";
 import { bodyGlyph } from "@/lib/symbols";
@@ -51,7 +53,10 @@ export function PlanetaryInfluences() {
 }
 
 export function HouseCircuits({ chart }: { chart: Chart }) {
-  const circuits = houseCircuits(chart);
+  // Rulership is configurable, and a circuit is made of rulers — reading them
+  // by a different table than the scores would put the two views in conflict.
+  const { config } = useScoring();
+  const circuits = houseCircuits(chart, config);
   if (circuits.length === 0) return null;
 
   return (
@@ -173,6 +178,45 @@ export function HouseTypeGuide() {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * The type guide, folded away behind its own heading. It explains a standing
+ * fact about every chart ever cast rather than anything about this one, so it
+ * sits next to the grid it explains but stays shut until asked for.
+ */
+export function ReadingTheGrid() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="mt-6 border-t border-rule-faint">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-baseline justify-between py-4 text-left transition-colors hover:text-bone"
+      >
+        <span className="datum text-[0.6875rem] tracking-[0.18em] text-bone-soft uppercase">
+          Reading The Grid
+        </span>
+        <span className="flex items-center gap-3">
+          <span className="datum text-[0.625rem] tracking-[0.14em] text-bone-faint uppercase">
+            angular · succedent · cadent
+          </span>
+          <span
+            className={`datum text-[0.875rem] text-bone-faint transition-transform ${open ? "rotate-90" : ""}`}
+          >
+            ›
+          </span>
+        </span>
+      </button>
+      {open ? (
+        <div className="pb-8">
+          <HouseTypeGuide />
+        </div>
+      ) : null}
     </div>
   );
 }

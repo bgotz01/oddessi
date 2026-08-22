@@ -2,11 +2,8 @@
 
 import { useState } from "react";
 import type { Chart, HouseCusp, Placement } from "@/lib/charts";
-import {
-  MODE_NOTE,
-  dominanceMode,
-  type HouseDominance,
-} from "@/lib/dominance";
+import { tenantsOf } from "@/lib/charts";
+import { modeNote, type HouseDominance } from "@/lib/dominance";
 import { getHouseTitle } from "@/lib/astrology/house-categories";
 import type { House } from "@/lib/astrology/house-categories";
 import { HOUSE_TYPES, houseTypeStyle } from "@/lib/house-types";
@@ -240,7 +237,7 @@ function HouseBox({
                   drop that card's whole stack out of line when all twelve are
                   expanded at once. */}
               <p className="mt-3 min-h-[3.5rem] text-[0.9375rem] leading-snug font-light text-bone-faint italic">
-                {MODE_NOTE[dominanceMode(dominance)]}
+                {modeNote(dominance)}
               </p>
             </div>
           ) : null}
@@ -255,21 +252,23 @@ export default function HousePositions({
   dominance,
   selected,
   onSelect,
+  onExplainWeight,
+  onEditScoring,
 }: {
   chart: Chart;
   dominance: HouseDominance[];
   /** The house the list below is showing, so the grid can mark it. */
   selected: number | null;
   onSelect: (house: number) => void;
+  /** Opens the modal explaining where the weight scores come from. */
+  onExplainWeight?: () => void;
+  /** Opens the editor for the scoring convention itself. */
+  onEditScoring?: () => void;
 }) {
   const [showScores, setShowScores] = useState(true);
   const [openRulers, setOpenRulers] = useState<ReadonlySet<number>>(new Set());
 
   const byHouse = new Map(dominance.map((d) => [d.house, d]));
-  const tenantsOf = (house: number) =>
-    chart.placements
-      .filter((p) => !p.isAngle && p.houseNumber === house)
-      .sort((a, b) => (a.longitude ?? 0) - (b.longitude ?? 0));
 
   // Only houses whose ruling body is actually in the chart have anything to
   // open, so they alone decide whether "all" is open.
@@ -316,6 +315,29 @@ export default function HousePositions({
           >
             {showScores ? "Hide scores" : "Show scores"}
           </button>
+          {/* The scores are the only thing on this grid that is not simply read
+              off the chart, so the arithmetic behind them is one click away
+              from the control that turns them on. */}
+          {onExplainWeight ? (
+            <button
+              type="button"
+              onClick={onExplainWeight}
+              className={`${button} text-bone-faint`}
+            >
+              How weight works
+            </button>
+          ) : null}
+          {/* The constants are conventions, not facts — reachable from the
+              same row that explains them. */}
+          {onEditScoring ? (
+            <button
+              type="button"
+              onClick={onEditScoring}
+              className={`${button} text-bone-faint`}
+            >
+              Scoring
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -326,7 +348,7 @@ export default function HousePositions({
           <HouseBox
             key={cusp.number}
             cusp={cusp}
-            tenants={tenantsOf(cusp.number)}
+            tenants={tenantsOf(chart.placements, cusp.number)}
             dominance={byHouse.get(cusp.number)}
             showScores={showScores}
             selected={selected === cusp.number}

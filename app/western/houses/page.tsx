@@ -2,580 +2,58 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageTitle, SectionHeading } from "@/components/primitives";
-import {
-  Block,
-  ListColumn,
-  OpenMark,
-  Pair,
-  Panel,
-  Prose,
-  Terms,
-} from "@/components/study-panel";
 import HousePositions from "@/components/house-positions";
+import HouseRow from "@/components/house-row";
+import HouseDrawer from "@/components/house-drawer";
+import HouseMatrix from "@/components/house-matrix";
+import DominanceModal from "@/components/DominanceModal";
 import {
   HouseCircuits,
-  HouseTypeGuide,
   PlanetaryInfluences,
+  ReadingTheGrid,
 } from "@/components/house-context";
 import { useChart } from "@/components/chart-context";
-import type { Chart, HouseCusp, Placement } from "@/lib/charts";
-import { formatBirth } from "@/lib/charts";
-import { houseDominance, type HouseDominance } from "@/lib/dominance";
-import {
-  bodyInHouse,
-  houseInfo,
-  houseTypeNote,
-  signOnCusp,
-} from "@/lib/interpretation";
+import { useChat } from "@/components/chat-provider";
+import type { Chart } from "@/lib/charts";
+import { formatBirth, tenantsOf } from "@/lib/charts";
+import { dominanceMode, houseCircuits, houseDominance, prominence } from "@/lib/dominance";
+import { useScoring } from "@/components/scoring-context";
+import ScoringEditor from "@/components/scoring-editor";
 import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
-import { houseTypeStyle } from "@/lib/house-types";
-import { bodyGlyph, signGlyph } from "@/lib/symbols";
-import DominanceModal from "@/components/DominanceModal";
-import { MODE_NOTE, dominanceMode } from "@/lib/dominance";
+import { houseEase, quadrantOf } from "@/lib/ease";
 
 /**
  * The twelve houses, following arc's order of operations: what bodies do to a
  * house, then all twelve at a glance with their dominance scores, then the
  * rulership circuits, then the type guide, then the long readings.
  *
- * The grid and the readings share one selection. Clicking a box scrolls to that
- * house's reading and opens it, so the wall of boxes is a way *into* the text
+ * The grid and the readings share one selection. Clicking a box opens that
+ * house's reading in the drawer, so the wall of boxes is a way *into* the text
  * rather than a separate widget sitting above it.
+ *
+ * Every place a weight is shown offers a way into `DominanceModal`, which is
+ * the only page that explains where the number came from. One modal, owned
+ * here, opened from the grid, the column header and each reading's weight
+ * block — a score with no route to its arithmetic is just an assertion.
  */
-
-function tenantsOf(placements: Placement[], house: number): Placement[] {
-  return placements
-    .filter((p) => !p.isAngle && p.houseNumber === house)
-    .sort((a, b) => (a.longitude ?? 0) - (b.longitude ?? 0));
-}
-
-function HouseReading({
-  cusp,
-  tenants,
-  dominance,
-  open,
-  onToggle,
-  anchorRef,
-}: {
-  cusp: HouseCusp;
-  tenants: Placement[];
-  dominance: HouseDominance | undefined;
-  open: boolean;
-  onToggle: () => void;
-  anchorRef: (el: HTMLDivElement | null) => void;
-}) {
-  const info = houseInfo(cusp.number);
-  const onCusp = signOnCusp(cusp.sign, cusp.number);
-  const typeNote = info ? houseTypeNote(info.element) : null;
-  const tone = houseTypeStyle(info?.element);
-
-  return (
-    <div ref={anchorRef} className="scroll-mt-4 border-b border-rule-faint">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-expanded={open}
-        className={`grid w-full grid-cols-[2.5rem_1fr_auto] items-baseline gap-4 py-4 text-left transition-colors md:grid-cols-[2.5rem_11rem_1fr_7rem_4rem_1rem] ${open ? "text-bone" : "hover:bg-surface-alt"
-          }`}
-      >
-        {/* Same type hue as the grid above, so a house is recognisable in both. */}
-        <span
-          className="inscription text-[0.875rem]"
-          style={{ color: tone.color }}
-        >
-          {cusp.roman}
-        </span>
-
-        <span className="inscription text-[0.8125rem] text-bone">
-          {getHouseTitle(cusp.number as House)}
-        </span>
-
-        <span className="hidden md:block">
-          <span className="glyph mr-2 text-bone-faint">
-            {signGlyph(cusp.sign)}
-          </span>
-          <span className="text-[0.9375rem] font-light text-bone">
-            {cusp.sign}
-          </span>
-        </span>
-
-        <span className="flex items-baseline justify-end gap-1.5">
-          {tenants.length === 0 ? (
-            <span className="datum text-[0.625rem] text-bone-faint">—</span>
-          ) : (
-            tenants.map((t) => (
-              <span
-                key={t.body}
-                title={`${t.body} in ${t.sign}`}
-                className="flex items-baseline gap-1"
-              >
-                <span className="glyph text-[0.9375rem] text-patina">
-                  {bodyGlyph(t.body)}
-                </span>
-                <span className="datum text-[0.5625rem] tracking-[0.1em] text-bone-soft uppercase hidden sm:inline">
-                  {t.body}
-                </span>
-              </span>
-            ))
-          )}
-        </span>
-
-        <span
-          className={`datum hidden text-[0.75rem] md:block md:text-right ${dominance && dominance.rank <= 3 ? "text-ember" : "text-bone-faint"
-            }`}
-          title="Dominance"
-        >
-          {dominance ? dominance.score.toFixed(1) : "—"}
-        </span>
-
-        <span className="hidden md:block md:text-right">
-          <OpenMark open={open} />
-        </span>
-      </button>
-
-      {open ? (
-        <div className="pb-8">
-          <Panel>
-            {info ? (
-              <div>
-                <p className="inscription mb-3 text-[0.8125rem] text-patina">
-                  {info.name}
-                </p>
-                <Prose>{info.description}</Prose>
-                <div className="mt-4">
-                  <Terms terms={info.lifeAreas} />
-                </div>
-              </div>
-            ) : null}
-
-            {dominance ? (
-              <Block
-                title="Weight"
-                aside={`rank ${dominance.rank} of 12 · ${dominance.score.toFixed(1)}`}
-              >
-                <div className="grid gap-px bg-rule sm:grid-cols-3">
-                  {[
-                    ["Occupancy", dominance.occupancy],
-                    ["Ruler strength", dominance.rulerStrength],
-                    ["Ruler activity", dominance.rulerActivity],
-                  ].map(([label, value]) => (
-                    <div key={String(label)} className="bg-void px-4 py-3">
-                      <p className="eyebrow">{label}</p>
-                      <p className="datum mt-1 text-[0.9375rem] text-bone">
-                        {(value as number).toFixed(1)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-                {dominance.reasons.length > 0 ? (
-                  <div className="mt-4">
-                    <ListColumn label="Because" items={dominance.reasons} />
-                  </div>
-                ) : null}
-                <p className="datum mt-4 text-[0.625rem] text-bone-faint">
-                  Ruled by {dominance.ruler}
-                  {dominance.rulerPlacement
-                    ? ` — in ${dominance.rulerPlacement.sign}, house ${dominance.rulerPlacement.house}`
-                    : ", which is not in this chart"}
-                  .
-                </p>
-              </Block>
-            ) : null}
-
-            {onCusp ? (
-              <Block
-                title={`${cusp.sign} on the cusp`}
-                aside={`${cusp.degree} ${cusp.sign}`}
-              >
-                <Prose>{onCusp.description}</Prose>
-                <div className="mt-4">
-                  <Prose>{onCusp.approach}</Prose>
-                </div>
-                <div className="mt-6">
-                  <Pair>
-                    <ListColumn label="Strengths" items={onCusp.strengths} />
-                    <ListColumn
-                      label="Costs"
-                      items={onCusp.challenges}
-                      tone="ember"
-                    />
-                  </Pair>
-                </div>
-                <div className="mt-6 border-l border-rule pl-4">
-                  <Prose>{onCusp.lifeExpression}</Prose>
-                </div>
-              </Block>
-            ) : null}
-
-            <Block
-              title="Tenants"
-              aside={
-                tenants.length === 0
-                  ? "empty"
-                  : `${tenants.length} ${tenants.length === 1 ? "body" : "bodies"}`
-              }
-            >
-              {tenants.length === 0 ? (
-                <Prose>
-                  {`Nothing sits in this house. That is the ordinary case — there
-                    are more houses than bodies — and it means the domain is run
-                    by its cusp sign and by wherever that sign's ruler has
-                    landed, rather than being worked on directly.`}
-                </Prose>
-              ) : (
-                <div className="space-y-8">
-                  {tenants.map((t) => {
-                    const inHouse = bodyInHouse(t.body, cusp.number);
-                    return (
-                      <div key={t.body}>
-                        <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                          <span className="glyph text-lg text-patina">
-                            {bodyGlyph(t.body)}
-                          </span>
-                          <span className="inscription text-[0.6875rem] text-bone">
-                            {t.body}
-                          </span>
-                          <span className="glyph text-bone-faint">
-                            {signGlyph(t.sign)}
-                          </span>
-                          <span className="text-[0.9375rem] font-light text-bone-soft italic">
-                            {t.sign}
-                          </span>
-                          <span className="datum text-[0.6875rem] text-bone-faint">
-                            {t.degree}
-                          </span>
-                          {t.retrograde ? (
-                            <span className="datum text-[0.625rem] text-ember">
-                              ℞
-                            </span>
-                          ) : null}
-                        </div>
-
-                        {inHouse ? (
-                          <div className="border-l border-rule pl-4">
-                            <p className="inscription mb-2 text-[0.6875rem] text-patina-dim">
-                              {inHouse.meaning}
-                            </p>
-                            <Prose>{inHouse.shortDescription}</Prose>
-                            <div className="mt-4">
-                              <Terms terms={inHouse.manifestation} />
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </Block>
-
-            {info && typeNote ? (
-              <Block title={`${info.element} house`} aside={info.modality}>
-                <div
-                  className="border-l-2 pl-4"
-                  style={{ borderColor: tone.color }}
-                >
-                  <Prose>{typeNote}</Prose>
-                </div>
-              </Block>
-            ) : null}
-          </Panel>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-/**
- * Right-side drawer that shows the full reading for a single house.
- * Clicking a grid card opens this instead of scrolling/expanding below.
- */
-function HouseDrawer({
-  cusp,
-  tenants,
-  dominance,
-  onClose,
-  onPrev,
-  onNext,
-}: {
-  cusp: HouseCusp;
-  tenants: Placement[];
-  dominance: HouseDominance | undefined;
-  onClose: () => void;
-  onPrev: () => void;
-  onNext: () => void;
-}) {
-  const info = houseInfo(cusp.number);
-  const onCusp = signOnCusp(cusp.sign, cusp.number);
-  const typeNote = info ? houseTypeNote(info.element) : null;
-  const tone = houseTypeStyle(info?.element);
-  const top3 = dominance !== undefined && dominance.rank <= 3;
-
-  useEffect(() => {
-    const fn = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-      if (e.key === "ArrowLeft") onPrev();
-      if (e.key === "ArrowRight") onNext();
-    };
-    window.addEventListener("keydown", fn);
-    return () => window.removeEventListener("keydown", fn);
-  }, [onClose, onPrev, onNext]);
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-40 bg-void/40"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Panel */}
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`House ${cusp.number} — ${getHouseTitle(cusp.number as House)}`}
-        className="fixed top-0 right-0 z-50 flex h-full w-full max-w-lg flex-col overflow-y-auto border-l border-rule bg-surface shadow-2xl"
-      >
-        {/* Header */}
-        <div className="shrink-0 border-b border-rule px-8 py-6">
-          <div className="flex items-start justify-between gap-6">
-            <div className="flex items-baseline gap-5">
-              <span
-                className="inscription text-[2.5rem] leading-none"
-                style={{ color: tone.color }}
-              >
-                {cusp.roman}
-              </span>
-              <div>
-                <p className="inscription text-[0.8125rem] text-bone-faint">
-                  House {cusp.number}
-                </p>
-                <p className="mt-1 text-[1.375rem] leading-tight text-bone">
-                  {getHouseTitle(cusp.number as House)}
-                </p>
-                <div className="mt-1.5 flex items-center gap-2">
-                  <span className="glyph text-[1.25rem] text-patina">
-                    {signGlyph(cusp.sign)}
-                  </span>
-                  <span className="text-[1.0625rem] font-light text-bone-soft">
-                    {cusp.sign}
-                  </span>
-                  <span className="datum text-[0.6875rem] text-bone-faint">
-                    {cusp.degree}
-                  </span>
-                </div>
-                {top3 && dominance ? (
-                  <p className="datum mt-1.5 text-[0.5625rem] tracking-[0.2em] text-ember uppercase">
-                    Rank {dominance.rank} of 12
-                  </p>
-                ) : null}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="datum mt-1 shrink-0 text-[0.625rem] tracking-[0.18em] text-bone-faint uppercase transition-colors hover:text-bone"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto">
-          <Panel>
-            {info ? (
-              <div>
-                <p className="inscription mb-3 text-[0.8125rem] text-patina">
-                  {info.name}
-                </p>
-                <Prose>{info.description}</Prose>
-                <div className="mt-4">
-                  <Terms terms={info.lifeAreas} />
-                </div>
-              </div>
-            ) : null}
-
-            {dominance ? (
-              <Block
-                title="Weight"
-                aside={`rank ${dominance.rank} of 12 · ${dominance.score.toFixed(1)}`}
-              >
-                <div className="grid gap-px bg-rule sm:grid-cols-3">
-                  {[
-                    ["Occupancy", dominance.occupancy],
-                    ["Ruler strength", dominance.rulerStrength],
-                    ["Ruler activity", dominance.rulerActivity],
-                  ].map(([label, value]) => (
-                    <div key={String(label)} className="bg-void px-4 py-3">
-                      <p className="eyebrow">{label}</p>
-                      <p className="datum mt-1 text-[0.9375rem] text-bone">
-                        {(value as number).toFixed(1)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-                {dominance.reasons.length > 0 ? (
-                  <div className="mt-4">
-                    <ListColumn label="Because" items={dominance.reasons} />
-                  </div>
-                ) : null}
-                <p className="datum mt-4 text-[0.625rem] text-bone-faint">
-                  Ruled by {dominance.ruler}
-                  {dominance.rulerPlacement
-                    ? ` — in ${dominance.rulerPlacement.sign}, house ${dominance.rulerPlacement.house}`
-                    : ", which is not in this chart"}
-                  .
-                </p>
-                {dominance ? (
-                  <p className="mt-3 text-[0.9375rem] leading-snug font-light text-bone-faint italic">
-                    {MODE_NOTE[dominanceMode(dominance)]}
-                  </p>
-                ) : null}
-              </Block>
-            ) : null}
-
-            {onCusp ? (
-              <Block
-                title={`${cusp.sign} on the cusp`}
-                aside={`${cusp.degree} ${cusp.sign}`}
-              >
-                <Prose>{onCusp.description}</Prose>
-                <div className="mt-4">
-                  <Prose>{onCusp.approach}</Prose>
-                </div>
-                <div className="mt-6">
-                  <Pair>
-                    <ListColumn label="Strengths" items={onCusp.strengths} />
-                    <ListColumn
-                      label="Costs"
-                      items={onCusp.challenges}
-                      tone="ember"
-                    />
-                  </Pair>
-                </div>
-                <div className="mt-6 border-l border-rule pl-4">
-                  <Prose>{onCusp.lifeExpression}</Prose>
-                </div>
-              </Block>
-            ) : null}
-
-            <Block
-              title="Tenants"
-              aside={
-                tenants.length === 0
-                  ? "empty"
-                  : `${tenants.length} ${tenants.length === 1 ? "body" : "bodies"}`
-              }
-            >
-              {tenants.length === 0 ? (
-                <Prose>
-                  {`Nothing sits in this house. That is the ordinary case — there
-                    are more houses than bodies — and it means the domain is run
-                    by its cusp sign and by wherever that sign's ruler has
-                    landed, rather than being worked on directly.`}
-                </Prose>
-              ) : (
-                <div className="space-y-8">
-                  {tenants.map((t) => {
-                    const inHouse = bodyInHouse(t.body, cusp.number);
-                    return (
-                      <div key={t.body}>
-                        <div className="mb-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                          <span className="glyph text-lg text-patina">
-                            {bodyGlyph(t.body)}
-                          </span>
-                          <span className="inscription text-[0.6875rem] text-bone">
-                            {t.body}
-                          </span>
-                          <span className="glyph text-bone-faint">
-                            {signGlyph(t.sign)}
-                          </span>
-                          <span className="text-[0.9375rem] font-light text-bone-soft italic">
-                            {t.sign}
-                          </span>
-                          <span className="datum text-[0.6875rem] text-bone-faint">
-                            {t.degree}
-                          </span>
-                          {t.retrograde ? (
-                            <span className="datum text-[0.625rem] text-ember">
-                              ℞
-                            </span>
-                          ) : null}
-                        </div>
-
-                        {inHouse ? (
-                          <div className="border-l border-rule pl-4">
-                            <p className="inscription mb-2 text-[0.6875rem] text-patina-dim">
-                              {inHouse.meaning}
-                            </p>
-                            <Prose>{inHouse.shortDescription}</Prose>
-                            <div className="mt-4">
-                              <Terms terms={inHouse.manifestation} />
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </Block>
-
-            {info && typeNote ? (
-              <Block title={`${info.element} house`} aside={info.modality}>
-                <div
-                  className="border-l-2 pl-4"
-                  style={{ borderColor: tone.color }}
-                >
-                  <Prose>{typeNote}</Prose>
-                </div>
-              </Block>
-            ) : null}
-          </Panel>
-        </div>
-
-        {/* Footer nav */}
-        <div className="mt-auto shrink-0 flex items-center justify-between border-t border-rule px-8 py-4">
-          <button
-            type="button"
-            onClick={onPrev}
-            className="datum text-[0.625rem] tracking-[0.18em] text-bone-faint uppercase transition-colors hover:text-patina"
-          >
-            ← Prev
-          </button>
-          <span className="datum text-[0.5625rem] tracking-[0.18em] text-bone-faint uppercase">
-            House {cusp.number} of 12
-          </span>
-          <button
-            type="button"
-            onClick={onNext}
-            className="datum text-[0.625rem] tracking-[0.18em] text-bone-faint uppercase transition-colors hover:text-patina"
-          >
-            Next →
-          </button>
-        </div>
-
-        {/* Accent bar matching the house type colour */}
-        <div
-          className="h-[3px] w-full shrink-0 opacity-60"
-          style={{ background: tone.color }}
-        />
-      </div>
-    </>
-  );
-}
 
 function Houses({ chart }: { chart: Chart }) {
   const [open, setOpen] = useState<number | null>(null);
   const [drawerHouse, setDrawerHouse] = useState<number | null>(null);
-  const [gridGuideOpen, setGridGuideOpen] = useState(false);
-  const [dominanceModalOpen, setDominanceModalOpen] = useState(false);
+  const [dominanceOpen, setDominanceOpen] = useState(false);
+  const [scoringOpen, setScoringOpen] = useState(false);
+  const { config } = useScoring();
+  const { setPageContext } = useChat();
   const anchors = useRef(new Map<number, HTMLDivElement | null>());
 
-  const dominance = useMemo(() => houseDominance(chart), [chart]);
-  const byHouse = new Map(dominance.map((d) => [d.house, d]));
+  const dominance = useMemo(
+    () => houseDominance(chart, config),
+    [chart, config],
+  );
+  const byHouse = useMemo(
+    () => new Map(dominance.map((d) => [d.house, d])),
+    [dominance],
+  );
 
   const toggle = (house: number) => {
     if (open === house) {
@@ -590,19 +68,124 @@ function Houses({ chart }: { chart: Chart }) {
     );
   };
 
-  const loudest = dominance.filter((d) => d.rank <= 3).sort((a, b) => a.rank - b.rank);
+  const loudest = dominance
+    .filter((d) => d.rank <= 3)
+    .sort((a, b) => a.rank - b.rank);
 
-  const drawerCusp = drawerHouse !== null
-    ? chart.houses.find((h) => h.number === drawerHouse) ?? null
-    : null;
-  const drawerTenants = drawerHouse !== null ? tenantsOf(chart.placements, drawerHouse) : [];
-  const drawerDominance = drawerHouse !== null ? byHouse.get(drawerHouse) : undefined;
+  const drawerCusp =
+    drawerHouse === null
+      ? null
+      : (chart.houses.find((h) => h.number === drawerHouse) ?? null);
 
   const stepDrawer = (delta: 1 | -1) => {
     if (drawerHouse === null) return;
-    const next = ((drawerHouse - 1 + delta + 12) % 12) + 1;
-    setDrawerHouse(next);
+    setDrawerHouse(((drawerHouse - 1 + delta + 12) % 12) + 1);
   };
+
+  const tenanted = chart.houses.filter(
+    (h) => tenantsOf(chart.placements, h.number).length > 0,
+  ).length;
+
+  const explainWeight = () => setDominanceOpen(true);
+
+  const scores = dominance.map((d) => d.score);
+  const tones = useMemo(() => houseEase(chart, config), [chart, config]);
+  const easeOf = useMemo(
+    () => new Map(tones.map((t) => [t.house, t])),
+    [tones],
+  );
+
+  /**
+   * Hand the chat the weights *and* the table that produced them. Without this
+   * the page was the only major one not calling setPageContext, so the chat
+   * could see neither the scores on screen nor how they were arrived at, and
+   * said so when asked. The constants come from lib/dominance rather than being
+   * restated here, so the two cannot drift apart.
+   */
+  useEffect(() => {
+    setPageContext({
+      _description: "Houses — the twelve cusps, their tenants and their dominance weights",
+      _note:
+        "Dominance is this app's own measure, not a standard astrological one, so " +
+        "answer from the numbers below rather than from general astrological " +
+        "reasoning about which houses matter. score = occupancy + rulerStrength + " +
+        "rulerActivity, using the `scoring` tables here; the arithmetic is fully " +
+        "reproducible from them, so recompute rather than guess. Two cautions. " +
+        "First, `rank` is an ordinal over a continuous score: charts usually have " +
+        "a few clear leaders and then a pack separated by less than a point, so " +
+        "quote the score gap before treating a rank difference as meaningful. " +
+        "Second, `mode` names which component led, not how prominent the house " +
+        "is — a last-placed house can still be led by its ruler's placement. " +
+        "Rulerships are modern (Pisces→Neptune, Scorpio→Pluto, Aquarius→Uranus); " +
+        "under traditional rulership a house's ruler, and so two thirds of its " +
+        "score, would often differ. Say so when it changes the reading. " +
+        "`ease` is a SEPARATE axis from weight and the two must never be " +
+        "conflated: weight is how much of the chart runs through a house, ease " +
+        "is whether what runs there flows or grinds, computed from the aspects " +
+        "and sign dignity of the house's tenants and its ruler using the " +
+        "`easeScoring` tables. A high weight says nothing about ease and vice " +
+        "versa — cross them via `quadrant`. A `easeBand` of \"sparse\" means too " +
+        "few contacts to judge, which is NOT the same as balanced. Ease has " +
+        "three components: aspects, dignity and tenancy (who physically sits " +
+        "in the house, by benefic/malefic nature, with malefics blunted when " +
+        "well dignified). The whole convention in `scoring` is user-editable " +
+        "and may differ from the app's defaults — read it rather than assuming " +
+        "any constant, and name the preset when the reading depends on it.",
+      chart: chart.name,
+      houses: dominance.map((d) => {
+        const cusp = chart.houses.find((h) => h.number === d.house)!;
+        return {
+          house: d.house,
+          title: getHouseTitle(d.house as House),
+          cuspSign: cusp.sign,
+          cuspDegree: cusp.degree,
+          tenants: tenantsOf(chart.placements, d.house).map((t) => ({
+            body: t.body,
+            sign: t.sign,
+            degree: t.degree,
+            retrograde: t.retrograde,
+            bodyWeight: config.weight.body[t.body] ?? 0,
+          })),
+          score: d.score,
+          rank: d.rank,
+          prominence: prominence(d.rank),
+          mode: dominanceMode(d, config),
+          occupancy: d.occupancy,
+          rulerStrength: d.rulerStrength,
+          rulerActivity: d.rulerActivity,
+          ruler: d.ruler,
+          rulerIn: d.rulerPlacement
+            ? `${d.rulerPlacement.sign}, house ${d.rulerPlacement.houseNumber}`
+            : null,
+          reasons: d.reasons,
+          ease: easeOf.get(d.house)?.ease ?? 0,
+          easeBand: easeOf.get(d.house)?.band ?? "sparse",
+          easeFromAspects: easeOf.get(d.house)?.fromAspects ?? 0,
+          easeFromDignity: easeOf.get(d.house)?.fromDignity ?? 0,
+          easeFromTenancy: easeOf.get(d.house)?.fromTenancy ?? 0,
+          easyContacts: easeOf.get(d.house)?.soft ?? 0,
+          hardContacts: easeOf.get(d.house)?.hard ?? 0,
+          easeNotes: easeOf.get(d.house)?.notes ?? [],
+          easeConfidence: easeOf.get(d.house)?.confidence ?? 0,
+          easeReadFrom: easeOf.get(d.house)?.constituents ?? [],
+          quadrant: quadrantOf(d.rank, easeOf.get(d.house)?.band ?? "sparse"),
+        };
+      }),
+      // Mutual reception loops, shown further down the same page.
+      circuits: houseCircuits(chart),
+      // The convention in force, verbatim. It is user-editable, so the chat
+      // must read the live tables rather than assume the shipped defaults.
+      scoring: {
+        preset: config.id,
+        presetLabel: config.label,
+        weight: config.weight,
+        ease: config.ease,
+      },
+    });
+
+    return () => setPageContext(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chart.id, dominance, tones, config]);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-8 pb-24">
@@ -628,36 +211,28 @@ function Houses({ chart }: { chart: Chart }) {
         <HousePositions
           chart={chart}
           dominance={dominance}
+          onEditScoring={() => setScoringOpen(true)}
           selected={drawerHouse}
-          onSelect={(house) => setDrawerHouse(house === drawerHouse ? null : house)}
+          onSelect={(house) =>
+            setDrawerHouse(house === drawerHouse ? null : house)
+          }
+          onExplainWeight={explainWeight}
         />
+        <ReadingTheGrid />
+      </section>
 
-        {/* Reading The Grid — collapsible, lives close to the grid it explains */}
-        <div className="mt-6 border-t border-rule-faint">
-          <button
-            type="button"
-            onClick={() => setGridGuideOpen((v) => !v)}
-            aria-expanded={gridGuideOpen}
-            className="flex w-full items-baseline justify-between py-4 text-left transition-colors hover:text-bone"
-          >
-            <span className="datum text-[0.6875rem] tracking-[0.18em] text-bone-soft uppercase">
-              Reading The Grid
-            </span>
-            <span className="flex items-center gap-3">
-              <span className="datum text-[0.625rem] tracking-[0.14em] text-bone-faint uppercase">
-                angular · succedent · cadent
-              </span>
-              <span className={`datum text-[0.875rem] text-bone-faint transition-transform ${gridGuideOpen ? "rotate-90" : ""}`}>
-                ›
-              </span>
-            </span>
-          </button>
-          {gridGuideOpen && (
-            <div className="pb-8">
-              <HouseTypeGuide />
-            </div>
-          )}
-        </div>
+      <section className="mb-16">
+        <SectionHeading aside="weight × ease">
+          The Two Axes
+        </SectionHeading>
+        <HouseMatrix
+          dominance={dominance}
+          tones={tones}
+          selected={drawerHouse}
+          onSelect={(house) =>
+            setDrawerHouse(house === drawerHouse ? null : house)
+          }
+        />
       </section>
 
       <section className="mb-16">
@@ -673,56 +248,73 @@ function Houses({ chart }: { chart: Chart }) {
       </section>
 
       <section>
-        <SectionHeading
-          aside={`${chart.houses.filter((h) => tenantsOf(chart.placements, h.number).length > 0).length} of 12 tenanted`}
-        >
+        <SectionHeading aside={`${tenanted} of 12 tenanted`}>
           The Twelve
         </SectionHeading>
         <div className="border-t border-rule">
-          {/* Column headers — mirror the row grid exactly */}
+          {/* Column headers — mirror the row grid in HouseRow exactly. */}
           <div className="grid grid-cols-[2.5rem_1fr_auto] items-baseline gap-4 border-b border-rule-faint py-2 md:grid-cols-[2.5rem_11rem_1fr_7rem_4rem_1rem]">
-            <span className="datum text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase">House</span>
-            <span className="datum text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase">Domain</span>
-            <span className="datum hidden text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase md:block">Sign</span>
-            <span className="datum text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase text-right">Tenants</span>
+            <span className="datum text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase">
+              House
+            </span>
+            <span className="datum text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase">
+              Domain
+            </span>
+            <span className="datum hidden text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase md:block">
+              Sign
+            </span>
+            <span className="datum text-right text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase">
+              Tenants
+            </span>
             <button
               type="button"
-              onClick={() => setDominanceModalOpen(true)}
-              title="How dominance is calculated"
-              className="datum hidden text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase text-right transition-colors hover:text-patina md:block"
+              onClick={explainWeight}
+              title="How weight is calculated"
+              className="datum hidden text-right text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase transition-colors hover:text-patina md:block"
             >
               Weight ?
             </button>
             <span className="hidden md:block" />
           </div>
           {chart.houses.map((cusp) => (
-            <HouseReading
+            <HouseRow
               key={cusp.number}
               cusp={cusp}
               tenants={tenantsOf(chart.placements, cusp.number)}
               dominance={byHouse.get(cusp.number)}
               open={open === cusp.number}
+              scores={scores}
+              ease={easeOf.get(cusp.number)}
               onToggle={() => toggle(cusp.number)}
               anchorRef={(el) => anchors.current.set(cusp.number, el)}
+              onExplainWeight={explainWeight}
             />
           ))}
         </div>
       </section>
 
-      {dominanceModalOpen && (
-        <DominanceModal onClose={() => setDominanceModalOpen(false)} />
-      )}
+      {dominanceOpen ? (
+        <DominanceModal onClose={() => setDominanceOpen(false)} />
+      ) : null}
 
-      {drawerCusp !== null && (
+      {scoringOpen ? (
+        <ScoringEditor onClose={() => setScoringOpen(false)} />
+      ) : null}
+
+      {drawerCusp ? (
         <HouseDrawer
           cusp={drawerCusp}
-          tenants={drawerTenants}
-          dominance={drawerDominance}
+          tenants={tenantsOf(chart.placements, drawerCusp.number)}
+          dominance={byHouse.get(drawerCusp.number)}
+          scores={scores}
+          ease={easeOf.get(drawerCusp.number)}
           onClose={() => setDrawerHouse(null)}
           onPrev={() => stepDrawer(-1)}
           onNext={() => stepDrawer(1)}
+          onExplainWeight={explainWeight}
+          keysActive={!dominanceOpen}
         />
-      )}
+      ) : null}
     </div>
   );
 }

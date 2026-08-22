@@ -16,42 +16,27 @@
  */
 
 import type { Chart, Placement } from "@/lib/charts";
-import { MODERN_RULER, signOfLongitude } from "@/lib/rulership";
-
-/** Weight by body. Nodes and Chiron are reference points, not actors — zero. */
-const BODY_WEIGHT: Record<string, number> = {
-  Sun: 10,
-  Moon: 10,
-  Mercury: 8,
-  Venus: 8,
-  Mars: 8,
-  Jupiter: 6,
-  Saturn: 6,
-  Uranus: 4,
-  Neptune: 4,
-  Pluto: 4,
-  "North Node": 0,
-  "South Node": 0,
-  Chiron: 0,
-  Lilith: 0,
-};
-
-const ASPECT_WEIGHT: Record<string, number> = {
-  conjunction: 3,
-  opposition: 2.5,
-  square: 2.5,
-  trine: 2,
-  sextile: 1.5,
-};
+import { rulerOfSign, signOfLongitude } from "@/lib/rulership";
+import {
+  DEFAULT_SCORING as DEFAULTS,
+  type ScoringConfig as Config,
+  type WeightConfig as W,
+} from "@/lib/scoring";
 
 /**
- * Each extra body in a house counts for less. Without this a five-planet
- * stellium wins every chart it appears in, which tells you nothing.
+ * The tables that used to live here now live in `lib/scoring`, so weight and
+ * ease argue from one editable source rather than two hand-kept copies. They
+ * are re-exported because several callers still read them directly, and
+ * because a constant's home moving is not a reason to churn every import.
  */
-const DIMINISHING = [1.0, 0.7, 0.5, 0.3, 0.3, 0.3];
+export {
+  DEFAULT_SCORING,
+  type ScoringConfig,
+  type WeightConfig,
+} from "@/lib/scoring";
 
-const ANGULAR = [1, 4, 7, 10];
-const SUCCEDENT = [2, 5, 8, 11];
+export const ANGULAR = [1, 4, 7, 10];
+export const SUCCEDENT = [2, 5, 8, 11];
 
 export interface HouseDominance {
   house: number;
@@ -79,23 +64,22 @@ function separation(a: number, b: number): number {
 }
 
 /** Bodies in a house, heaviest first, angles excluded. */
-function tenants(chart: Chart, house: number): Placement[] {
+function tenants(chart: Chart, house: number, w: W): Placement[] {
   return chart.placements
     .filter((p) => !p.isAngle && p.houseNumber === house)
-    .sort((a, b) => (BODY_WEIGHT[b.body] ?? 0) - (BODY_WEIGHT[a.body] ?? 0));
+    .sort((a, b) => (w.body[b.body] ?? 0) - (w.body[a.body] ?? 0));
 }
 
-function occupancyScore(occupants: Placement[]): number {
+function occupancyScore(occupants: Placement[], w: W): number {
   let score = occupants.reduce(
-    (sum, p, i) => sum + (BODY_WEIGHT[p.body] ?? 0) * (DIMINISHING[i] ?? 0.2),
+    (sum, p, i) =>
+      sum + (w.body[p.body] ?? 0) * (w.diminishing[i] ?? w.diminishingTail),
     0,
   );
 
   // Stellium bonus, on top of the diminished sum and deliberately modest.
-  const weighted = occupants.filter((p) => (BODY_WEIGHT[p.body] ?? 0) > 0).length;
-  if (weighted >= 5) score += 7;
-  else if (weighted >= 4) score += 5;
-  else if (weighted >= 3) score += 3;
+  const weighted = occupants.filter((p) => (w.body[p.body] ?? 0) > 0).length;
+  score += w.stelliumBonus.find(([count]) => weighted >= count)?.[1] ?? 0;
 
   return round1(score);
 }
@@ -110,39 +94,45 @@ function anglesOf(chart: Chart): number[] {
   return out;
 }
 
-function rulerStrengthScore(chart: Chart, ruler: Placement | null): number {
+function rulerStrengthScore(chart: Chart, ruler: Placement | null, w: W): number {
   if (!ruler || ruler.houseNumber === null) return 0;
 
   const angular = ANGULAR.includes(ruler.houseNumber);
-  let score = angular ? 8 : SUCCEDENT.includes(ruler.houseNumber) ? 5 : 3;
+  let score = angular
+    ? w.placement.angular
+    : SUCCEDENT.includes(ruler.houseNumber)
+      ? w.placement.succedent
+      : w.placement.cadent;
 
   // A ruler sitting on any of the four angles is amplified — but less so if it
   // is already drawing the angular-house bonus, or it gets paid twice over.
   if (ruler.longitude !== null) {
     const orbs = anglesOf(chart).map((a) => separation(ruler.longitude!, a));
     const closest = orbs.length ? Math.min(...orbs) : Infinity;
-    if (closest <= 5) score += angular ? 4 : 5;
-    else if (closest <= 8) score += angular ? 2 : 3;
+    const bonus = w.angleBonus.find((b) => closest <= b.within);
+    if (bonus) score += angular ? bonus.angular : bonus.otherwise;
   }
 
   return round1(score);
 }
 
-function rulerActivityScore(chart: Chart, ruler: string): number {
+function rulerActivityScore(chart: Chart, ruler: string, w: W): number {
   let score = 0;
 
   for (const aspect of chart.aspects) {
     if (aspect.planet1 !== ruler && aspect.planet2 !== ruler) continue;
     const orb = Math.abs(aspect.orb);
-    if (orb > 6) continue;
+    if (orb > w.orbLimit) continue;
 
-    score += ASPECT_WEIGHT[aspect.type.toLowerCase()] ?? 2;
-    score += Math.max(0, 6 - orb) * 0.3; // tighter is stronger
+    score += w.aspect[aspect.type.toLowerCase()] ?? w.aspectDefault;
+    score += Math.max(0, w.orbLimit - orb) * w.orbTightness; // tighter is stronger
     const other = aspect.planet1 === ruler ? aspect.planet2 : aspect.planet1;
-    if ((other === "Sun" || other === "Moon") && orb <= 4) score += 2;
+    if ((other === "Sun" || other === "Moon") && orb <= w.luminary.within) {
+      score += w.luminary.bonus;
+    }
   }
 
-  return Math.min(round1(score), 15);
+  return Math.min(round1(score), w.activityCap);
 }
 
 function reasonsFor(
@@ -190,16 +180,20 @@ function reasonsFor(
 }
 
 /** All twelve, in house order, each carrying its rank among the twelve. */
-export function houseDominance(chart: Chart): HouseDominance[] {
+export function houseDominance(
+  chart: Chart,
+  config: Config = DEFAULTS,
+): HouseDominance[] {
+  const w = config.weight;
   const rows = chart.houses.map((cusp) => {
-    const occupants = tenants(chart, cusp.number);
-    const ruler = MODERN_RULER[signOfLongitude(cusp.longitude)] ?? "Sun";
+    const occupants = tenants(chart, cusp.number, w);
+    const ruler = rulerOfSign(signOfLongitude(cusp.longitude), config.rulership);
     const rulerPlacement =
       chart.placements.find((p) => p.body === ruler && !p.isAngle) ?? null;
 
-    const occupancy = occupancyScore(occupants);
-    const rulerStrength = rulerStrengthScore(chart, rulerPlacement);
-    const rulerActivity = rulerActivityScore(chart, ruler);
+    const occupancy = occupancyScore(occupants, w);
+    const rulerStrength = rulerStrengthScore(chart, rulerPlacement, w);
+    const rulerActivity = rulerActivityScore(chart, ruler, w);
 
     return {
       house: cusp.number,
@@ -242,26 +236,80 @@ export type DominanceMode =
   | "mixed";
 
 /**
- * Kept to a similar length on purpose — these sit at the foot of twelve cards
- * in a row, and a note that wraps to four lines where its neighbour takes two
- * drags that card's whole layout out of line with the rest.
+ * How prominent a house actually is, as a band over its rank.
+ *
+ * The mode says which component *led*; it says nothing about whether the house
+ * is loud. Reading it as though it did is how the twelfth-ranked house in a
+ * chart ended up captioned "Loud because its ruler is strongly placed" — true
+ * about the arithmetic, plainly false about the house. The bands match the
+ * grid's own encoding: the top three are the only ones it colours.
  */
-export const MODE_NOTE: Record<DominanceMode, string> = {
-  concentrated: "Loud because bodies are sitting in it.",
-  anchored: "Loud because its ruler is strongly placed.",
-  networked: "Loud because its ruler is wired to everything.",
-  mixed: "Loud from more than one direction at once.",
+export type Prominence = "loud" | "present" | "quiet";
+
+export function prominence(rank: number): Prominence {
+  if (rank <= 3) return "loud";
+  if (rank <= 8) return "present";
+  return "quiet";
+}
+
+/**
+ * What each mode means, with no claim about volume. This is the wording the
+ * calculation modal lists, where the modes are being defined rather than
+ * applied to any particular house.
+ */
+export const MODE_GLOSS: Record<DominanceMode, string> = {
+  concentrated: "The bodies sitting in the house carry it.",
+  anchored: "Its ruler's placement carries it.",
+  networked: "Its ruler's aspect traffic carries it.",
+  mixed: "No single component carries it.",
 };
 
-export function dominanceMode(d: HouseDominance): DominanceMode {
+/**
+ * Mode × prominence. Kept to a similar length on purpose — these sit at the
+ * foot of twelve cards in a row, and a note that wraps to four lines where its
+ * neighbour takes two drags that card's whole layout out of line with the rest.
+ */
+export const MODE_NOTE: Record<DominanceMode, Record<Prominence, string>> = {
+  concentrated: {
+    loud: "Loud because bodies are sitting in it.",
+    present: "Carried by the bodies sitting in it.",
+    quiet: "Quiet; what it has comes from its tenants.",
+  },
+  anchored: {
+    loud: "Loud because its ruler is strongly placed.",
+    present: "Carried by where its ruler is placed.",
+    quiet: "Quiet; what it has is its ruler's placement.",
+  },
+  networked: {
+    loud: "Loud because its ruler is wired to everything.",
+    present: "Carried by its ruler's aspect traffic.",
+    quiet: "Quiet; what it has is its ruler's aspects.",
+  },
+  mixed: {
+    loud: "Loud from more than one direction at once.",
+    present: "Fed from more than one direction at once.",
+    quiet: "Quiet, with no one component leading.",
+  },
+};
+
+export function dominanceMode(
+  d: HouseDominance,
+  config: Config = DEFAULTS,
+): DominanceMode {
   const ranked = [
     ["concentrated", d.occupancy],
     ["anchored", d.rulerStrength],
     ["networked", d.rulerActivity],
   ] as const;
   const [first, second] = [...ranked].sort((a, b) => b[1] - a[1]);
-  if (first[1] > 0 && first[1] - second[1] <= first[1] * 0.15) return "mixed";
+  if (first[1] > 0 && first[1] - second[1] <= first[1] * config.weight.mixedMargin)
+    return "mixed";
   return first[0];
+}
+
+/** The note as it should be shown for a specific house. */
+export function modeNote(d: HouseDominance): string {
+  return MODE_NOTE[dominanceMode(d)][prominence(d.rank)];
 }
 
 /**
@@ -273,10 +321,13 @@ export interface Circuit {
   rulers: string[];
 }
 
-export function houseCircuits(chart: Chart): Circuit[] {
+export function houseCircuits(
+  chart: Chart,
+  config: Config = DEFAULTS,
+): Circuit[] {
   const map = new Map<number, { ruler: string; livesIn: number }>();
   for (const cusp of chart.houses) {
-    const ruler = MODERN_RULER[signOfLongitude(cusp.longitude)] ?? "Sun";
+    const ruler = rulerOfSign(signOfLongitude(cusp.longitude), config.rulership);
     const placement = chart.placements.find(
       (p) => p.body === ruler && !p.isAngle,
     );

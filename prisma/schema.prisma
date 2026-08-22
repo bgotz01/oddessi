@@ -161,6 +161,23 @@ model InterfacePreferences {
   @@map("interface_preferences")
 }
 
+// The house-scoring convention, as one editable document.
+//
+// Stored whole rather than as columns because it is a set of tunable tables —
+// body weights, aspect character, benefic/malefic ratings, component shares —
+// that is expected to grow. Columns would mean a migration every time an
+// argument about the model gains a new term, which is the opposite of the
+// point. `preset` records which of the shipped sets it started from, so the
+// UI can say whether it has since been hand-edited.
+model ScoringPreferences {
+  id        String   @id @default("default")
+  preset    String
+  config    Json
+  updatedAt DateTime @updatedAt
+
+  @@map("scoring_preferences")
+}
+
 // One row per (chartId, category) pair — each a persistent markdown document
 // of lessons distilled from past sessions. chartId = null means the memory is
 // "Shared" and not tied to any single chart (used when comparing two charts or

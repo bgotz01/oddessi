@@ -46,6 +46,7 @@ const NAV: NavGroup[] = [
     items: [
       { href: "/western/planets", label: "Planets" },
       { href: "/western/houses", label: "Houses" },
+      { href: "/western/flow-grind", label: "Flow & Grind" },
       {
         href: "/western/cycles",
         label: "Cycles",

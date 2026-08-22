@@ -25,7 +25,7 @@
 import type { Chart } from "@/lib/charts";
 import type { Reading } from "@/lib/chinese/pillars";
 import { balance, type Balance } from "@/lib/balance";
-import { dominanceMode, houseDominance, MODE_NOTE } from "@/lib/dominance";
+import { dominanceMode, houseDominance, modeNote } from "@/lib/dominance";
 import { BRANCHES, STEMS, generatedBy } from "@/lib/chinese/almanac";
 
 /**
@@ -122,7 +122,7 @@ export function compare(chart: Chart, reading: Reading): ComparisonRow[] {
     western: {
       answer: top ? `House ${top.house}` : "Not enough chart to say",
       basis: top
-        ? `${MODE_NOTE[dominanceMode(top)]} Ruled by ${top.ruler}; score ${top.score} of the twelve.`
+        ? `${modeNote(top)} Ruled by ${top.ruler}; score ${top.score} of the twelve.`
         : "No house cusps stored for this chart.",
     },
     chinese: {
@@ -132,7 +132,7 @@ export function compare(chart: Chart, reading: Reading): ComparisonRow[] {
       } season in the ${monthBranch.season} month.`,
     },
     ask: top
-      ? `On the comparison page: the Western chart concentrates on house ${top.house} (${MODE_NOTE[dominanceMode(top)].toLowerCase()} ruler ${top.ruler}), while the BaZi calls the Day Master ${reading.strength.verdict.toLowerCase()} at ${reading.strength.supportive}% supportive, born ${reading.strength.inSeason ? "in" : "out of"} season. Read each on its own terms first, then say whether they are pointing at the same thing or at two different things.`
+      ? `On the comparison page: the Western chart concentrates on house ${top.house} (${modeNote(top).toLowerCase()} ruler ${top.ruler}), while the BaZi calls the Day Master ${reading.strength.verdict.toLowerCase()} at ${reading.strength.supportive}% supportive, born ${reading.strength.inSeason ? "in" : "out of"} season. Read each on its own terms first, then say whether they are pointing at the same thing or at two different things.`
       : `On the comparison page: the BaZi calls the Day Master ${reading.strength.verdict.toLowerCase()}. What does that mean for this chart?`,
   };
 
