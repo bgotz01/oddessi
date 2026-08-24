@@ -12,7 +12,7 @@ import { bodyGlyph, signGlyph } from "@/lib/symbols";
 
 /**
  * The twelve houses as a wall of boxes — the fastest read of a chart's shape,
- * because it shows all twelve at the same size and lets the eye find the loud
+ * because it shows all twelve at the same size and lets the eye find the heavy
  * ones instead of reading twelve paragraphs to work it out.
  *
  * Exactly one thing on this grid is allowed to be coloured: the three most
@@ -108,7 +108,7 @@ function HouseBox({
       >
         {/* Zone 1 — which house, in its type's hue. Kept off ember even at the
             top of the ranking: the numeral answers "what kind", the frame and
-            the flag answer "how loud".
+            the flag answer "how heavy".
 
             Fixed height, with the type row pushed to its foot. House titles run
             to one or two lines, and letting that decide where the rest of the
@@ -292,7 +292,7 @@ export default function HousePositions({
     <div>
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-4">
         <p className="text-[0.9375rem] font-light text-bone-soft">
-          Every house at the same size, so the loud ones have to earn it.
+          Every house at the same size, so the heavy ones have to earn it.
         </p>
         <div className="flex flex-wrap gap-2">
           <button

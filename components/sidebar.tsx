@@ -47,6 +47,11 @@ const NAV: NavGroup[] = [
       { href: "/western/planets", label: "Planets" },
       { href: "/western/houses", label: "Houses" },
       { href: "/western/flow-grind", label: "Flow & Grind" },
+      // Sits with the other natal readings rather than under Cycles, because it
+      // reads the birth chart and nothing else. It is the one Western page with
+      // no score on it — a direction has no magnitude — which is why it stands
+      // as its own entry instead of a section on Houses.
+      { href: "/western/growth", label: "Growth" },
       {
         href: "/western/cycles",
         label: "Cycles",

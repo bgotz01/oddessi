@@ -1,8 +1,9 @@
-/**
+/** 
+ * lib/dominance.ts
  * House dominance — which life areas the chart actually leans on.
  *
  * A house gets weight from three independent places, and keeping them separate
- * is the point: a house can be loud because bodies are sitting in it
+ * is the point: a house can be heavy because bodies are sitting in it
  * (occupancy), because its ruler is well placed (ruler strength), or because
  * its ruler is heavily aspected and therefore constantly being triggered by
  * everything else (ruler activity). Three houses can reach the same total by
@@ -18,6 +19,7 @@
 import type { Chart, Placement } from "@/lib/charts";
 import { rulerOfSign, signOfLongitude } from "@/lib/rulership";
 import {
+  WEIGHT_HEAVY_ABOVE,
   DEFAULT_SCORING as DEFAULTS,
   type ScoringConfig as Config,
   type WeightConfig as W,
@@ -236,26 +238,35 @@ export type DominanceMode =
   | "mixed";
 
 /**
- * How prominent a house actually is, as a band over its rank.
+ * How much of the chart a house actually carries.
  *
- * The mode says which component *led*; it says nothing about whether the house
- * is loud. Reading it as though it did is how the twelfth-ranked house in a
- * chart ended up captioned "Loud because its ruler is strongly placed" — true
- * about the arithmetic, plainly false about the house. The bands match the
- * grid's own encoding: the top three are the only ones it colours.
+ * Read off the score against fixed thresholds, not off the rank. Rank is an
+ * ordinal over a continuous score: it guarantees a heaviest three in every
+ * chart whether or not any of them carries much, and in the middle of a chart
+ * the gaps between adjacent ranks are routinely under a point. The plot's
+ * heavy/light line is `WEIGHT_HEAVY_ABOVE`, and this has to agree with it or
+ * the prose and the picture say different things about the same house.
+ *
+ * Heavy and light, not loud and quiet. What is measured is how much of the
+ * chart runs through a house, which is not the same as how visible it is — a
+ * heavily emphasised twelfth is structurally central and thoroughly private at
+ * the same time.
  */
-export type Prominence = "loud" | "present" | "quiet";
+export type Prominence = "heavy" | "present" | "light";
 
-export function prominence(rank: number): Prominence {
-  if (rank <= 3) return "loud";
-  if (rank <= 8) return "present";
-  return "quiet";
+/** Below this a house is carrying very little of the chart. */
+export const WEIGHT_LIGHT_BELOW = 15;
+
+export function prominence(score: number): Prominence {
+  if (score >= WEIGHT_HEAVY_ABOVE) return "heavy";
+  if (score >= WEIGHT_LIGHT_BELOW) return "present";
+  return "light";
 }
 
 /**
- * What each mode means, with no claim about volume. This is the wording the
- * calculation modal lists, where the modes are being defined rather than
- * applied to any particular house.
+ * What each mode means, with no claim about how much rides on it. This is the
+ * wording the calculation modal lists, where the modes are being defined
+ * rather than applied to any particular house.
  */
 export const MODE_GLOSS: Record<DominanceMode, string> = {
   concentrated: "The bodies sitting in the house carry it.",
@@ -271,24 +282,24 @@ export const MODE_GLOSS: Record<DominanceMode, string> = {
  */
 export const MODE_NOTE: Record<DominanceMode, Record<Prominence, string>> = {
   concentrated: {
-    loud: "Loud because bodies are sitting in it.",
+    heavy: "Heavy with the bodies sitting in it.",
     present: "Carried by the bodies sitting in it.",
-    quiet: "Quiet; what it has comes from its tenants.",
+    light: "Light; what it has comes from its tenants.",
   },
   anchored: {
-    loud: "Loud because its ruler is strongly placed.",
+    heavy: "Heavy because its ruler is strongly placed.",
     present: "Carried by where its ruler is placed.",
-    quiet: "Quiet; what it has is its ruler's placement.",
+    light: "Light; what it has is its ruler's placement.",
   },
   networked: {
-    loud: "Loud because its ruler is wired to everything.",
+    heavy: "Heavy because its ruler is wired to everything.",
     present: "Carried by its ruler's aspect traffic.",
-    quiet: "Quiet; what it has is its ruler's aspects.",
+    light: "Light; what it has is its ruler's aspects.",
   },
   mixed: {
-    loud: "Loud from more than one direction at once.",
+    heavy: "Heavy from more than one direction at once.",
     present: "Fed from more than one direction at once.",
-    quiet: "Quiet, with no one component leading.",
+    light: "Light, with no one component leading.",
   },
 };
 
@@ -309,7 +320,7 @@ export function dominanceMode(
 
 /** The note as it should be shown for a specific house. */
 export function modeNote(d: HouseDominance): string {
-  return MODE_NOTE[dominanceMode(d)][prominence(d.rank)];
+  return MODE_NOTE[dominanceMode(d)][prominence(d.score)];
 }
 
 /**

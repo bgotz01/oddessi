@@ -1,9 +1,18 @@
 //components/house-matrix.tsx
 "use client";
 
+import { useState } from "react";
+
 import type { HouseDominance } from "@/lib/dominance";
-import { QUADRANT, type HouseEase, type EaseBand } from "@/lib/ease";
-import { useScoring } from "@/components/scoring-context";
+import {
+  QUADRANT,
+  easeLabel,
+  easePoints,
+  quadrantOf,
+  type HouseEase,
+  type EaseBand,
+} from "@/lib/ease";
+import { WEIGHT_AXIS_MAX, WEIGHT_HEAVY_ABOVE } from "@/lib/scoring";
 import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 
 /**
@@ -14,10 +23,10 @@ import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
  * runs there flows or grinds. Ranked separately they read as two lists; crossed
  * they read as a shape, and the corners are the only cells worth naming.
  *
- * The bottom-left corner is the reason this view exists. A quiet house with a
- * bad ease is invisible to any single ranking — it is neither loud enough to be
- * flagged nor pleasant enough to be fine — and it is routinely the most useful
- * thing on the page.
+ * The bottom-left corner is the reason this view exists. A light house with a
+ * bad ease is invisible to any single ranking — it is neither heavy enough to
+ * be flagged nor pleasant enough to be fine — and it is routinely the most
+ * useful thing on the page.
  *
  * Every encoding here is pigment, size or contrast, never a glow: the house
  * rule is that light comes from colour, not from blur. Ease therefore drives
@@ -31,29 +40,49 @@ import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
  * position.
  */
 
-/** Ease is plotted on a fixed domain so two charts can be held side by side. */
+/**
+ * Ease is plotted on a fixed domain, exactly as weight is, so two charts — or
+ * two presets of the same chart — can be laid side by side.
+ */
 const EASE_DOMAIN = 0.6;
+/** Percent of the plot's height one full EASE_DOMAIN either way occupies. */
+const EASE_SPAN_PCT = 40;
 
 /** Markers run from this many pixels at the chart's lightest house to its loudest. */
 const MARKER_MIN = 22;
 const MARKER_MAX = 42;
 
 /**
+ * Plot height in pixels rather than a Tailwind class, because the pull bars
+ * have to stop at each marker's edge and that means comparing a percentage
+ * position against a pixel box. One source for both, so they cannot drift.
+ */
+const PLOT_PX = 416;
+
+/**
  * Hue says which way a corner leans, strength says how loudly.
  *
- * Engine and Millstone are the loud pair and take the accent at full
- * strength; Clear and Snag say the same thing about a house that little
+ * Engine and High Pressure are the heavy pair and take the accent at full
+ * strength; Comfort and Friction say the same thing about a house that little
  * depends on, so they take it softened. Reading down a column gives you the
  * ease direction, reading across a row gives you how much rides on it.
  */
-const QUADRANT_TINT: Record<
-  "engine" | "millstone" | "clear" | "snag",
+export const QUADRANT_TINT: Record<
+  "engine" | "pressure" | "comfort" | "friction",
   { text: string; rule: string }
 > = {
   engine: { text: "text-patina", rule: "border-patina" },
-  clear: { text: "text-patina/70", rule: "border-patina/45" },
-  millstone: { text: "text-ember", rule: "border-ember" },
-  snag: { text: "text-ember/70", rule: "border-ember/45" },
+  comfort: { text: "text-patina/70", rule: "border-patina/45" },
+  pressure: { text: "text-ember", rule: "border-ember" },
+  friction: { text: "text-ember/70", rule: "border-ember/45" },
+};
+
+/** The band's own colour, for text that is not inside a marker. */
+const BAND_TEXT: Record<EaseBand, string> = {
+  flowing: "text-patina",
+  grinding: "text-ember",
+  balanced: "text-bone-soft",
+  sparse: "text-bone-faint",
 };
 
 const BAND_STYLE: Record<EaseBand, { box: string; text: string }> = {
@@ -72,7 +101,7 @@ function CornerLabel({
 }) {
   return (
     <span
-      className={`datum pointer-events-none absolute text-[0.5625rem] tracking-[0.18em] uppercase ${QUADRANT_TINT[corner].text} ${className}`}
+      className={`datum pointer-events-none absolute text-[0.6875rem] tracking-[0.2em] uppercase ${QUADRANT_TINT[corner].text} ${className}`}
     >
       {QUADRANT[corner].label}
     </span>
@@ -84,28 +113,55 @@ export default function HouseMatrix({
   tones,
   selected,
   onSelect,
+  chartName,
+  baseline,
 }: {
   dominance: HouseDominance[];
   tones: HouseEase[];
   selected: number | null;
   onSelect: (house: number) => void;
+  /**
+   * Whose chart this is, set inside the frame.
+   *
+   * Both axes are absolute, so the plot is meant to be compared against another
+   * person's — and a comparison is worthless if a screenshot of one cannot be
+   * told from a screenshot of the other. It belongs in the figure, not only in
+   * the page heading above it.
+   */
+  chartName?: string;
+  /**
+   * Half-width of the baseline band, in ease units — the config's band
+   * threshold. Passed rather than read from the store so the plot stays
+   * presentational: it draws what it is handed.
+   */
+  baseline: number;
 }) {
-  const { config } = useScoring();
-  const EASE_BAND = config.ease.band;
+  /**
+   * The native `title` attribute was doing this job: a second's delay before it
+   * appears, no styling, and it cannot show the components that make up either
+   * number. Everything a house is scored on fits in a small panel, so show it.
+   */
+  const [hover, setHover] = useState<number | null>(null);
+
   const byHouse = new Map(tones.map((t) => [t.house, t]));
-  const scores = dominance.map((d) => d.score);
-  const low = Math.min(...scores);
-  const high = Math.max(...scores);
-  const span = high - low || 1;
+
+  /**
+   * Absolute, not per-chart. Both position and marker size read off the same
+   * fixed scale, so a preset that lowers every score visibly moves everything
+   * left and shrinks it, instead of silently rescaling the frame and looking
+   * identical.
+   */
+  const share = (score: number) =>
+    Math.max(0, Math.min(1, score / WEIGHT_AXIS_MAX));
 
   // Padded so a house at either extreme is not drawn half outside the frame.
-  const x = (score: number) => 9 + ((score - low) / span) * 82;
+  const x = (score: number) => 5 + share(score) * 90;
   const y = (ease: number) => {
     const clamped = Math.max(-EASE_DOMAIN, Math.min(EASE_DOMAIN, ease));
-    return 50 - (clamped / EASE_DOMAIN) * 40;
+    return 50 - (clamped / EASE_DOMAIN) * EASE_SPAN_PCT;
   };
   const size = (score: number) =>
-    MARKER_MIN + ((score - low) / span) * (MARKER_MAX - MARKER_MIN);
+    MARKER_MIN + share(score) * (MARKER_MAX - MARKER_MIN);
 
   /**
    * Two houses can land on nearly the same point — a chart with houses at 34.7
@@ -151,13 +207,8 @@ export default function HouseMatrix({
     if (!moved) break;
   }
 
-  // The weight axis has no natural midpoint, so the loud/quiet cuts are drawn
-  // where the ranking itself puts them rather than at an invented halfway mark.
-  const sorted = [...dominance].sort((a, b) => a.rank - b.rank);
-  const loudEdge = sorted[2]?.score;
-  const quietEdge = sorted[8]?.score;
-
   const zero = y(0);
+  const hovered = placed.find((m) => m.d.house === hover);
 
   return (
     <div>
@@ -179,101 +230,257 @@ export default function HouseMatrix({
             beside the axis rather than above and below the frame keeps them
             from being read as captions on the chart itself.
           */}
-          <div className="flex h-[26rem] w-14 shrink-0 flex-col justify-between py-1 text-right sm:w-16">
-            <span className="datum text-[0.625rem] tracking-[0.16em] text-patina uppercase">
-              ↑ Flow
+          {/* Both ends carry their value, as the weight axis does — without a
+              number the reader cannot tell how far a marker has actually
+              travelled, only that it has. Stacked rather than inline because
+              the gutter is too narrow for label and figure on one line. */}
+          <div
+            className="flex w-14 shrink-0 flex-col justify-between py-1 text-right sm:w-16"
+            style={{ height: `${PLOT_PX}px` }}
+          >
+            <span className="flex flex-col gap-0.5">
+              <span className="datum text-[0.625rem] tracking-[0.16em] text-patina uppercase">
+                ↑ Flow
+              </span>
+              <span className="datum text-[0.5625rem] tracking-[0.12em] text-bone-faint">
+                +{easePoints(EASE_DOMAIN)}
+              </span>
             </span>
+
             <span className="datum text-[0.6875rem] tracking-[0.18em] text-bone uppercase">
               Ease
             </span>
-            <span className="datum text-[0.625rem] tracking-[0.16em] text-ember uppercase">
-              ↓ Grind
+
+            <span className="flex flex-col gap-0.5">
+              <span className="datum text-[0.5625rem] tracking-[0.12em] text-bone-faint">
+                −{easePoints(EASE_DOMAIN)}
+              </span>
+              <span className="datum text-[0.625rem] tracking-[0.16em] text-ember uppercase">
+                ↓ Grind
+              </span>
             </span>
           </div>
 
           <div className="min-w-0 flex-1">
-            <div className="relative h-[26rem] w-full overflow-hidden border border-bone-faint/35 bg-surface">
-              {/* Ground. Ease colours the field itself, so which half a house
+            {/* The plot clips its own contents so the tinted halves stop at the
+              frame; the tooltip must not be clipped with them, so it lives in
+              this wrapper instead — same box, no overflow rule. */}
+            <div className="relative">
+              <div
+                className="relative w-full overflow-hidden border border-bone-faint/35 bg-surface"
+                style={{ height: `${PLOT_PX}px` }}
+              >
+                {/* Ground. Ease colours the field itself, so which half a house
                   sits in is legible before its marker is. */}
-              <span
-                aria-hidden
-                className="absolute inset-x-0 top-0 bg-gradient-to-t from-transparent to-patina/15"
-                style={{ height: `${zero}%` }}
-              />
-              <span
-                aria-hidden
-                className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent to-ember/15"
-                style={{ top: `${zero}%` }}
-              />
-
-              {/* Band edges. Inside these two lines a house is balanced. */}
-              {[EASE_BAND, -EASE_BAND].map((t) => (
                 <span
-                  key={t}
                   aria-hidden
-                  className="absolute right-0 left-0 border-t border-dashed border-bone-faint/30"
-                  style={{ top: `${y(t)}%` }}
+                  className="absolute inset-x-0 top-0 bg-gradient-to-t from-transparent to-patina/15"
+                  style={{ height: `${zero}%` }}
                 />
-              ))}
+                <span
+                  aria-hidden
+                  className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent to-ember/15"
+                  style={{ top: `${zero}%` }}
+                />
 
-              {/* The zero line, solid because it is the only true axis here. */}
+                {/*
+                The baseline band: inside it a house is tilted toward neither
+                flow nor struggle. Drawn as a muted strip rather than a pair of
+                dashed edges, because what matters is that a marker is *in* the
+                neutral zone, not exactly where its edges fall.
+              */}
               <span
                 aria-hidden
-                className="absolute right-0 left-0 border-t border-bone-faint/60"
-                style={{ top: `${zero}%` }}
+                className="absolute inset-x-0 bg-void/45"
+                style={{
+                  top: `${y(baseline)}%`,
+                  height: `${y(-baseline) - y(baseline)}%`,
+                }}
               />
 
-              {/* Loud / quiet cuts. */}
-              {[loudEdge, quietEdge].map((s, i) =>
-                s === undefined ? null : (
-                  <span
-                    key={i}
-                    aria-hidden
-                    className="absolute top-0 bottom-0 border-l border-dashed border-bone-faint/30"
-                    style={{ left: `${x(s)}%` }}
-                  />
-                ),
-              )}
+              {/* One line per axis, each marking the boundary its corners are
+                  decided by: ease zero across, the heavy threshold down. Band
+                  edges and rank cuts were four more dashed lines saying things
+                  the marker colours and the corner labels already say. */}
+                <span
+                  aria-hidden
+                  className="absolute right-0 left-0 border-t border-bone-faint/50"
+                  style={{ top: `${zero}%` }}
+                />
+                <span
+                  aria-hidden
+                  className="absolute top-0 bottom-0 border-l border-bone-faint/50"
+                  style={{ left: `${x(WEIGHT_HEAVY_ABOVE)}%` }}
+                />
 
-              <CornerLabel corner="clear" className="top-3 left-3" />
-              <CornerLabel corner="engine" className="top-3 right-3" />
-              <CornerLabel corner="snag" className="bottom-3 left-3" />
-              <CornerLabel corner="millstone" className="right-3 bottom-3" />
+                {chartName ? (
+                  <span className="inscription pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 text-[0.6875rem] tracking-[0.1em] text-bone-faint">
+                    {chartName}
+                  </span>
+                ) : null}
 
-              {placed.map(({ d, ease, px, py }) => {
-                const isSelected = selected === d.house;
-                const style = BAND_STYLE[ease.band];
-                const box = size(d.score);
+                <CornerLabel corner="comfort" className="top-3 left-3" />
+                <CornerLabel corner="engine" className="top-3 right-3" />
+                <CornerLabel corner="friction" className="bottom-3 left-3" />
+                <CornerLabel corner="pressure" className="right-3 bottom-3" />
 
-                return (
-                  <button
-                    key={d.house}
-                    type="button"
-                    onClick={() => onSelect(d.house)}
-                    aria-pressed={isSelected}
-                    title={`House ${d.house} — ${getHouseTitle(d.house as House)} · weight ${d.score.toFixed(1)} (rank ${d.rank}) · ease ${ease.ease.toFixed(2)} (${ease.band})`}
-                    className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center border-2 transition-colors ${isSelected
-                      ? "border-patina bg-patina-deep"
-                      : `${style.box} hover:bg-surface-alt`
-                      }`}
-                    style={{
-                      left: `${px}%`,
-                      top: `${py}%`,
-                      width: `${box}px`,
-                      height: `${box}px`,
-                    }}
-                  >
-                    <span
-                      className={`inscription leading-none ${isSelected ? "text-bone" : style.text}`}
-                      style={{ fontSize: `${Math.round(box * 0.42)}px` }}
+                {/*
+                The two forces behind each net, drawn as a bar the marker sits
+                inside. The patina end is where the house would land on its easy
+                contacts alone, the ember end on its hard ones alone — so a
+                house torn between them shows a long bar across the centre line
+                while a house nothing touches shows none. Both read zero.
+              */}
+                {placed.map(({ d, ease, px, py }) => {
+                  const isSelected = selected === d.house;
+                  const style = BAND_STYLE[ease.band];
+                  const box = size(d.score);
+
+                  return (
+                    <button
+                      key={d.house}
+                      type="button"
+                      onClick={() => onSelect(d.house)}
+                      aria-pressed={isSelected}
+                      aria-label={`House ${d.house}, ${getHouseTitle(d.house as House)}: weight ${d.score.toFixed(1)}, ease ${easeLabel(ease.ease)}, ${ease.band}`}
+                      onMouseEnter={() => setHover(d.house)}
+                      onMouseLeave={() =>
+                        setHover((h) => (h === d.house ? null : h))
+                      }
+                      onFocus={() => setHover(d.house)}
+                      onBlur={() => setHover((h) => (h === d.house ? null : h))}
+                      className={`absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center border-2 transition-colors ${isSelected
+                        ? "border-patina bg-patina-deep"
+                        : `${style.box} hover:bg-surface-alt`
+                        }`}
+                      style={{
+                        left: `${px}%`,
+                        top: `${py}%`,
+                        width: `${box}px`,
+                        height: `${box}px`,
+                      }}
                     >
-                      {d.house}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+                      <span
+                        className={`inscription leading-none ${isSelected ? "text-bone" : style.text}`}
+                        style={{ fontSize: `${Math.round(box * 0.42)}px` }}
+                      >
+                        {d.house}
+                      </span>
+                    </button>
+                  );
+                })}
 
+              </div>
+
+              {hovered ? (
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute z-10 w-56 border border-bone-faint/40 bg-void px-4 py-3"
+                  style={{
+                    /*
+                     * Opens away from whichever edge the marker is nearest.
+                     * Vertically it only centres on the marker in the middle
+                     * band: near the top or bottom it pins its own edge to the
+                     * marker's instead, because centring a panel two thirds the
+                     * height of the plot on a marker near the rim always hangs
+                     * off it.
+                     */
+                    left:
+                      hovered.px > 55 ? undefined : `calc(${hovered.px}% + 30px)`,
+                    right:
+                      hovered.px > 55
+                        ? `calc(${100 - hovered.px}% + 30px)`
+                        : undefined,
+                    top: hovered.py > 60 ? undefined : `${hovered.py}%`,
+                    bottom: hovered.py > 60 ? `${100 - hovered.py}%` : undefined,
+                    transform:
+                      hovered.py > 60
+                        ? "translateY(50%)"
+                        : hovered.py < 40
+                          ? "translateY(-14px)"
+                          : "translateY(-50%)",
+                  }}
+                >
+                  <p className="inscription text-[0.8125rem] leading-tight text-bone">
+                    {hovered.d.house} · {getHouseTitle(hovered.d.house as House)}
+                  </p>
+
+                  <div className="mt-3 flex items-baseline justify-between border-t border-rule pt-2">
+                    <span className="datum text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase">
+                      Weight
+                    </span>
+                    <span className="datum text-[0.8125rem] text-bone">
+                      {hovered.d.score.toFixed(1)}
+                    </span>
+                  </div>
+                  <div className="mt-1 space-y-0.5">
+                    {(
+                      [
+                        ["occupancy", hovered.d.occupancy],
+                        ["ruler strength", hovered.d.rulerStrength],
+                        ["ruler activity", hovered.d.rulerActivity],
+                      ] as const
+                    ).map(([label, v]) => (
+                      <div key={label} className="flex items-baseline justify-between">
+                        <span className="datum text-[0.5625rem] tracking-[0.1em] text-bone-faint uppercase">
+                          {label}
+                        </span>
+                        <span className="datum text-[0.625rem] text-bone-soft">
+                          {v.toFixed(1)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-3 flex items-baseline justify-between border-t border-rule pt-2">
+                    <span className="datum text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase">
+                      Ease
+                    </span>
+                    <span className={`datum text-[0.8125rem] ${BAND_TEXT[hovered.ease.band]}`}>
+                      {easeLabel(hovered.ease.ease)}
+                    </span>
+                  </div>
+                  <div className="mt-1 space-y-0.5">
+                    {(
+                      [
+                        ["aspects", hovered.ease.fromAspects],
+                        ["dignity", hovered.ease.fromDignity],
+                        ["tenancy", hovered.ease.fromTenancy],
+                      ] as const
+                    ).map(([label, v]) => (
+                      <div key={label} className="flex items-baseline justify-between">
+                        <span className="datum text-[0.5625rem] tracking-[0.1em] text-bone-faint uppercase">
+                          {label}
+                        </span>
+                        <span className="datum text-[0.625rem] text-bone-soft">
+                          {easeLabel(v)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Contact counts, not a derived spread. A net of zero from
+                    nine-and-eight is a different house from a net of zero from
+                    one-and-one, and the raw counts say so without needing a
+                    normalised figure that can invert. */}
+                  <div className="mt-2 flex items-baseline justify-between border-t border-rule pt-2">
+                    <span className="datum text-[0.5625rem] tracking-[0.1em] text-bone-faint uppercase">
+                      contacts
+                    </span>
+                    <span className="datum text-[0.625rem]">
+                      <span className="text-patina">{hovered.ease.soft} easy</span>
+                      <span className="text-bone-faint"> / </span>
+                      <span className="text-ember">{hovered.ease.hard} hard</span>
+                    </span>
+                  </div>
+
+                  <p className="datum mt-3 border-t border-rule pt-2 text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase">
+                    {hovered.ease.band} ·{" "}
+                    {QUADRANT[quadrantOf(hovered.d.score, hovered.ease.band)].label}
+                  </p>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -282,53 +489,21 @@ export default function HouseMatrix({
         <div className="pl-[4.5rem] sm:pl-[5.25rem]">
           <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-rule pt-2">
             <span className="datum text-[0.5625rem] tracking-[0.14em] text-bone-soft uppercase">
-              ← Light · {low.toFixed(1)}
+              ← Light · 0
             </span>
             <span className="datum text-[0.6875rem] tracking-[0.18em] text-bone uppercase">
               Weight
             </span>
             <span className="datum text-[0.5625rem] tracking-[0.14em] text-bone-soft uppercase">
-              Heavy · {high.toFixed(1)} →
+              Heavy · {WEIGHT_AXIS_MAX} →
             </span>
           </div>
           <p className="datum mt-1 text-center text-[0.5625rem] tracking-[0.14em] text-bone-faint uppercase">
-            also the size of each box
+            how much attention does it demand · line at {WEIGHT_HEAVY_ABOVE} ·
+            baseline band ±{easePoints(baseline)}
           </p>
         </div>
       </div>
-
-      {/* Corners, tinted the same as their labels on the plot. */}
-      <div className="mt-6 grid gap-x-6 gap-y-4 sm:grid-cols-2">
-        {(["engine", "millstone", "clear", "snag"] as const).map((q) => (
-          <div
-            key={q}
-            className={`border-l-2 pl-4 ${QUADRANT_TINT[q].rule}`}
-          >
-            <div className="flex items-baseline justify-between gap-3">
-              <p
-                className={`datum text-[0.625rem] tracking-[0.18em] uppercase ${QUADRANT_TINT[q].text}`}
-              >
-                {QUADRANT[q].label}
-              </p>
-              <p className="datum text-[0.5625rem] tracking-[0.14em] text-bone-faint uppercase">
-                {QUADRANT[q].coords}
-              </p>
-            </div>
-            <p className="mt-1 text-[0.875rem] text-bone-soft">
-              {QUADRANT[q].gloss}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <p className="mt-5 text-[0.875rem] leading-relaxed text-bone-faint">
-        Green leans easy and orange leans hard; the full-strength pair are the
-        houses much of the chart depends on, the softened pair the ones little
-        rides on. The opposites are the diagonals, not the neighbours —
-        Millstone and Clear sit opposite on both axes, as do Engine and Snag,
-        while Millstone and Snag sit at the same end of Ease and differ only in
-        how much rides on them.
-      </p>
 
       {/* What the two measures are. Kept to the end deliberately: the chart is
           readable from its own labels, and a definition list above it made the

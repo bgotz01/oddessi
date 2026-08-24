@@ -3,7 +3,7 @@
 import { Block, ListColumn, Pair, Panel, Prose, Terms } from "@/components/study-panel";
 import type { HouseCusp, Placement } from "@/lib/charts";
 import { modeNote, type HouseDominance } from "@/lib/dominance";
-import { type HouseEase } from "@/lib/ease";
+import { easeLabel, type HouseEase } from "@/lib/ease";
 import { useScoring } from "@/components/scoring-context";
 import {
   bodyInHouse,
@@ -177,7 +177,7 @@ function EaseBlock({ ease }: { ease: HouseEase }) {
         : "bg-rule";
 
   return (
-    <Block title="Ease" aside={`${ease.band} · ${ease.ease.toFixed(2)}`}>
+    <Block title="Ease" aside={`${ease.band} · ${easeLabel(ease.ease)}`}>
       {ease.band === "sparse" ? (
         <Prose>
           {`Almost nothing in the chart touches this house — too few contacts to
@@ -222,19 +222,23 @@ function EaseBlock({ ease }: { ease: HouseEase }) {
             </span>
           </div>
 
-          <div className="mt-4 grid gap-px bg-rule sm:grid-cols-2">
-            <div className="bg-void px-4 py-3">
-              <p className="eyebrow">From aspects</p>
-              <p className="datum mt-1 text-[0.9375rem] text-bone">
-                {ease.fromAspects.toFixed(2)}
-              </p>
-            </div>
-            <div className="bg-void px-4 py-3">
-              <p className="eyebrow">From dignity</p>
-              <p className="datum mt-1 text-[0.9375rem] text-bone">
-                {ease.fromDignity.toFixed(2)}
-              </p>
-            </div>
+          {/* All three, and they sum to the score above — tenancy was missing
+              here, left over from when the model had only two components. */}
+          <div className="mt-4 grid gap-px bg-rule sm:grid-cols-3">
+            {(
+              [
+                ["From aspects", ease.fromAspects],
+                ["From dignity", ease.fromDignity],
+                ["From tenancy", ease.fromTenancy],
+              ] as const
+            ).map(([label, value]) => (
+              <div key={label} className="bg-void px-4 py-3">
+                <p className="eyebrow">{label}</p>
+                <p className="datum mt-1 text-[0.9375rem] text-bone">
+                  {easeLabel(value)}
+                </p>
+              </div>
+            ))}
           </div>
         </>
       )}

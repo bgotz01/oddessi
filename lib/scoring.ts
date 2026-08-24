@@ -1,4 +1,5 @@
 /**
+ * lib/scoring.ts
  * Scoring — every number the house models argue from, in one place.
  *
  * Weight and ease used to keep their own constants, which meant the tables that
@@ -80,16 +81,51 @@ export interface EaseConfig {
   /**
    * Below this much *evidence* there is nothing to read.
    *
-   * Evidence counts all three components, not aspects alone. An exalted planet
-   * physically sitting in a house is a reading even if nothing aspects it, and
-   * calling that "sparse" was the model refusing to look at what it could see.
+   * Evidence counts every enabled component, not aspects alone. An exalted
+   * planet physically sitting in a house is a reading even if nothing aspects
+   * it, and calling that "sparse" was the model refusing to look at what it
+   * could see.
+   *
+   * Carried over at 6 from when it meant aspect mass alone, which is a
+   * different quantity — a single Mars tenant now contributes 8 on its own, so
+   * any house holding a personal planet is effectively never sparse. That is
+   * probably right, but it is an untested new calibration rather than an
+   * inherited one, and wants a few dozen charts behind it before it is trusted.
    */
   sparseBelow: number;
 }
 
+/**
+ * The weight axis, as an absolute scale rather than a per-chart one.
+ *
+ * Plotting a chart against its own min and max meant the axis rescaled every
+ * time a preset changed the scores, so a house could appear to move right while
+ * its score had actually fallen — the others had simply fallen further. Nothing
+ * could be compared to anything. A fixed ceiling costs a little horizontal
+ * range and buys comparability between presets and between charts.
+ *
+ * 50 is a practical ceiling, not a theoretical one: the arithmetic can reach
+ * about 67 for a five-planet house with an angular, heavily aspected ruler, but
+ * nothing near that occurs in an ordinary chart. Anything above is pinned to
+ * the end rather than allowed to stretch the axis for everyone else.
+ */
+export const WEIGHT_AXIS_MAX = 50;
+
+/**
+ * At or above this, a house carries a lot in absolute terms.
+ *
+ * Half of the axis, and deliberately not a rank cut. Rank guarantees that every
+ * chart has a heaviest three houses whether or not any of them carries much;
+ * an absolute line lets a flat chart honestly show none, and lets two charts be
+ * held against each other.
+ */
+export const WEIGHT_HEAVY_ABOVE = 25;
+
 export interface ScoringConfig {
   id: string;
   label: string;
+  /** Two or three words for a switcher tile, where the full note will not fit. */
+  summary: string;
   note: string;
   /**
    * Which table answers for a cusp. Not a detail: swapping it changes a
@@ -229,6 +265,7 @@ export const PRESETS: ScoringConfig[] = [
   {
     id: "tenancy",
     label: "Baseline",
+    summary: "modern · tenancy on",
     note:
       "Modern rulership, neutral outer planets, and tenancy counted: who lives " +
       "in a house registers even when unaspected, tempered by how well the sign " +
@@ -238,23 +275,9 @@ export const PRESETS: ScoringConfig[] = [
     ease: clone(BASE_EASE),
   },
   {
-    id: "no-tenancy",
-    label: "Without tenancy",
-    note:
-      "Ease from aspects and dignity only, as before tenancy existed. An " +
-      "unaspected Saturn in a neutral sign reads as nothing at all. Kept as the " +
-      "control: it is what every reading before today was made against.",
-    rulership: "modern",
-    weight: clone(BASE_WEIGHT),
-    ease: {
-      ...clone(BASE_EASE),
-      share: { aspects: 0.65, dignity: 0.35, tenancy: 0 },
-      temperMalefics: 0,
-    },
-  },
-  {
     id: "traditional",
-    label: "Traditional rulership",
+    label: "Traditional",
+    summary: "traditional rulership",
     note:
       "Scorpio answers to Mars, Aquarius to Saturn, Pisces to Jupiter. Changes " +
       "which body carries a house and so moves two thirds of its weight — by " +
@@ -266,7 +289,8 @@ export const PRESETS: ScoringConfig[] = [
   },
   {
     id: "psychological",
-    label: "Modern psychological",
+    label: "Modern Psychological",
+    summary: "outers given valence",
     note:
       "Gives Uranus, Neptune and Pluto a disruptive valence rather than none. " +
       "An interpretive addition tradition never made, so it sits here instead " +
@@ -285,8 +309,25 @@ export const PRESETS: ScoringConfig[] = [
     },
   },
   {
+    id: "no-tenancy",
+    label: "No Tenancy",
+    summary: "aspects + dignity only",
+    note:
+      "Ease from aspects and dignity only, as before tenancy existed. An " +
+      "unaspected Saturn in a neutral sign reads as nothing at all. Kept as the " +
+      "control: it is what every reading before today was made against.",
+    rulership: "modern",
+    weight: clone(BASE_WEIGHT),
+    ease: {
+      ...clone(BASE_EASE),
+      share: { aspects: 0.65, dignity: 0.35, tenancy: 0 },
+      temperMalefics: 0,
+    },
+  },
+  {
     id: "tenancy-heavy",
-    label: "Tenancy first",
+    label: "Tenancy First",
+    summary: "tenancy 50 %",
     note:
       "Who lives in a house outweighs what they are wired to. The least " +
       "forgiving of a badly placed malefic, and the sharpest test of whether a " +
@@ -311,12 +352,40 @@ export function copyScoring(config: ScoringConfig): ScoringConfig {
   return clone(config);
 }
 
-/** Whether a config still matches the preset it claims to be. */
+/**
+ * A stringify that sorts keys, so two identical configs compare equal whatever
+ * order their keys happen to be in.
+ *
+ * Plain `JSON.stringify` is order-sensitive and the config makes a round trip
+ * through a Postgres `jsonb` column, which normalises key order on write. A
+ * config that had merely been saved and reloaded therefore compared unequal to
+ * the preset it was an exact copy of, and every stored config reported itself
+ * as hand-edited.
+ */
+function canonical(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  const entries = Object.entries(value as Record<string, unknown>)
+    .filter(([, v]) => v !== undefined)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(",")}}`;
+}
+
+/**
+ * Whether a config still matches the preset it claims to be.
+ *
+ * `rulership` has to be in the comparison: it is not a display field, it picks
+ * which body answers for every cusp, and leaving it out let a config switched
+ * from modern to traditional keep reporting itself as unmodified. `label` and
+ * `note` stay out — they are prose about the preset, not part of it.
+ */
 export function matchesPreset(config: ScoringConfig): boolean {
   const preset = presetById(config.id);
   if (!preset) return false;
-  return (
-    JSON.stringify({ weight: preset.weight, ease: preset.ease }) ===
-    JSON.stringify({ weight: config.weight, ease: config.ease })
-  );
+  const shape = (c: ScoringConfig) => ({
+    rulership: c.rulership,
+    weight: c.weight,
+    ease: c.ease,
+  });
+  return canonical(shape(preset)) === canonical(shape(config));
 }

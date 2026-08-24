@@ -5,12 +5,12 @@
  * deliberately valence-free: three bodies in a house score the same whether
  * they are comfortable there or not, and `rulerStrength` never inspects a
  * ruler's sign at all. That is the right design for an amplitude measure and
- * the wrong one for the question people actually ask, which is whether a loud
- * house is loud like an engine or loud like a grinding gear.
+ * the wrong one for the question people actually ask, which is whether a heavy
+ * house is heavy like an engine or heavy under pressure.
  *
  * This module answers only the second question, and answers it separately so
  * neither axis can contaminate the other. Crossing them is the whole point: a
- * *quiet* house with a bad ease is the cell no single ranking can show, and it
+ * *light* house with a bad ease is the cell no single ranking can show, and it
  * is usually the most useful thing on the page.
  *
  * Everything below is a stated convention, not a fact about the sky. The
@@ -20,6 +20,7 @@
 
 import type { Chart, Placement } from "@/lib/charts";
 import {
+  WEIGHT_HEAVY_ABOVE,
   DEFAULT_SCORING as DEFAULTS,
   type EaseConfig as E,
   type ScoringConfig as Config,
@@ -34,6 +35,29 @@ import { rulerOfSign, signOfLongitude } from "@/lib/rulership";
  */
 export { DEFAULT_SCORING, type EaseConfig, type ScoringConfig } from "@/lib/scoring";
 
+/**
+ * Ease is computed as a normalised mean in −1 … +1, and shown multiplied by
+ * this.
+ *
+ * Two decimals of a fraction sitting beside a weight of 38.0 reads as a
+ * rounding error rather than as the other half of the reading — the numbers
+ * are equally important and looked nothing alike. On a −100 … +100 scale the
+ * two columns are siblings, and the unit explains itself: 100 is entirely one
+ * way. The maths is untouched; this is presentation only.
+ */
+export const EASE_DISPLAY_SCALE = 100;
+
+/** Ease as it is shown: a whole number on the −100 … +100 scale. */
+export function easePoints(ease: number): number {
+  return Math.round(ease * EASE_DISPLAY_SCALE);
+}
+
+/** With its sign always written, so a positive value cannot be misread. */
+export function easeLabel(ease: number): string {
+  const n = easePoints(ease);
+  return n > 0 ? `+${n}` : `${n}`;
+}
+
 export type EaseBand = "flowing" | "balanced" | "grinding" | "sparse";
 
 export interface HouseEase {
@@ -41,10 +65,26 @@ export interface HouseEase {
   /** −1 (grinding) … +1 (flowing). */
   ease: number;
   band: EaseBand;
-  /** The three contributions, each already normalised to −1 … +1. */
+  /**
+   * What each component actually contributed, share applied and normalised, so
+   * the three sum to `ease` exactly — the same relationship weight's occupancy,
+   * ruler strength and ruler activity have to its score.
+   *
+   * Showing the raw component instead was misleading: a tenancy of +80 sat
+   * above a total of +19 and looked like it could not be right, when the
+   * component was simply about to be multiplied by its 0.30 share.
+   */
   fromAspects: number;
   fromDignity: number;
   fromTenancy: number;
+  /**
+   * The unweighted character of each component, −1 … +1: how flowing this
+   * house's aspects are regardless of how much aspects count for. Useful for
+   * asking why a contribution is what it is, so kept alongside it.
+   */
+  characterAspects: number;
+  characterDignity: number;
+  characterTenancy: number;
   /** Counts, for showing the working. */
   hard: number;
   soft: number;
@@ -56,7 +96,13 @@ export interface HouseEase {
   confidence: number;
   /** The bodies this reading is built from, named once each. */
   constituents: string[];
-  /** True when the ruler also occupies the house, and so counted twice. */
+  /**
+   * True when the ruler also occupies the house and takes the reinforcement.
+   *
+   * The boost lands on its aspect and dignity contribution, never on its
+   * tenancy nature: ruling the room you live in makes your condition and your
+   * network more relevant to it, it does not make you more Mars-like.
+   */
   rulerIsTenant: boolean;
   notes: string[];
 }
@@ -246,13 +292,17 @@ export function houseEase(
       e.share.dignity * (dignityMass > 0 ? 1 : 0) +
       e.share.tenancy * (tenancyMass > 0 ? 1 : 0);
 
-    const ease =
-      applied === 0
-        ? 0
-        : (e.share.aspects * fromAspects +
-          e.share.dignity * fromDignity +
-          e.share.tenancy * fromTenancy) /
-        applied;
+    // Each component's share of the finished number, so the parts add up to
+    // the whole on screen instead of the reader having to apply the shares.
+    const contribution = (share: number, value: number) =>
+      applied === 0 ? 0 : (share * value) / applied;
+
+    const partAspects = contribution(e.share.aspects, fromAspects);
+    const partDignity = contribution(e.share.dignity, fromDignity);
+    const partTenancy = contribution(e.share.tenancy, fromTenancy);
+
+    const ease = partAspects + partDignity + partTenancy;
+
 
     if (rulerIsTenant) {
       notes.push(`${ruler} both rules and occupies it`);
@@ -263,21 +313,32 @@ export function houseEase(
     }
 
     /**
-     * Confidence is evidence, not agreement. All three components contribute:
-     * a house whose tenants are heavy and well- or badly-dignified has plenty
-     * to go on even if none of them is aspected. Reading confidence off aspect
+     * Confidence is evidence, not agreement. Every component contributes: a
+     * house whose tenants are heavy and well- or badly-dignified has plenty to
+     * go on even if none of them is aspected. Reading confidence off aspect
      * mass alone let an exalted planet sitting in a house be called "no
      * reading", which was the model declining to look at what it could see.
+     *
+     * Only components the config actually enables count, so a preset that
+     * switches tenancy off is a true control: tenants stop deciding the score
+     * *and* stop lending it the confidence to escape "sparse".
      */
-    const confidence = round2(aspectMass + tenancyMass + dignityEvidence);
+    const confidence = round2(
+      (e.share.aspects > 0 ? aspectMass : 0) +
+        (e.share.tenancy > 0 ? tenancyMass : 0) +
+        (e.share.dignity > 0 ? dignityEvidence : 0),
+    );
 
     return {
       house: cusp.number,
       ease: round2(ease),
       band: easeBand(ease, confidence, e),
-      fromAspects: round2(fromAspects),
-      fromDignity: round2(fromDignity),
-      fromTenancy: round2(fromTenancy),
+      fromAspects: round2(partAspects),
+      fromDignity: round2(partDignity),
+      fromTenancy: round2(partTenancy),
+      characterAspects: round2(fromAspects),
+      characterDignity: round2(fromDignity),
+      characterTenancy: round2(fromTenancy),
       hard,
       soft,
       confidence,
@@ -291,19 +352,28 @@ export function houseEase(
 /**
  * The four corners of weight × ease.
  *
- * Two matched pairs, because an earlier set ("Grind" against "Sore spot") read
- * as though those were opposites when they are the same ease at different
- * volumes. The opposites are the *diagonals*. Engine and Millstone are the
- * heavy pair, Clear and Snag the light one, so the weight axis is legible from
- * the names alone.
+ * The names encode the *ease* axis, not the weight one: High Pressure and
+ * Friction are plainly the same character at different volumes, as are Engine
+ * and Comfort. "High" carries the weight axis on the harder pair, so the two
+ * resistance words cannot be mistaken for each other at a glance. An earlier set paired them the other way — Engine and Millstone as
+ * heavy machinery, Clear and Snag as small things — which left nothing in the
+ * words to say that Millstone and Snag were the same tone, and that is exactly
+ * what people got wrong about them.
  *
- * "Grind" is now the low end of the ease axis rather than a corner name — a
- * corner and an axis end sharing a word made the chart unreadable.
+ * The opposites are still the diagonals. High Pressure and Comfort are opposed
+ * on both axes, as are Engine and Friction.
  *
  * Only the corners are named. The middle of either axis is genuinely
  * unremarkable and inventing a label for it would dress up a non-finding.
  */
-export type Quadrant = "engine" | "millstone" | "clear" | "snag" | "middle";
+export type Quadrant =
+  | "engine"
+  | "pressure"
+  | "comfort"
+  | "friction"
+  | "steady"
+  | "background"
+  | "untouched";
 
 export const QUADRANT: Record<
   Quadrant,
@@ -312,41 +382,63 @@ export const QUADRANT: Record<
   engine: {
     label: "Engine",
     coords: "heavy · flow",
-    gloss: "Does a lot of the work, and does it well.",
-    opposite: "snag",
+    gloss: "Carries a lot, and works smoothly.",
+    opposite: "friction",
   },
-  millstone: {
-    label: "Millstone",
+  pressure: {
+    label: "High Pressure",
     coords: "heavy · grind",
-    gloss: "Does a lot of the work, and it is hard going.",
-    opposite: "clear",
+    gloss: "Carries a lot, but takes effort.",
+    opposite: "comfort",
   },
-  clear: {
-    label: "Clear",
+  comfort: {
+    label: "Comfort",
     coords: "light · flow",
-    gloss: "Not much happens here, and it goes fine.",
-    opposite: "millstone",
+    gloss: "Not central, but works easily.",
+    opposite: "pressure",
   },
-  snag: {
-    label: "Snag",
+  friction: {
+    label: "Friction",
     coords: "light · grind",
-    gloss: "Not much happens here, but it still nags.",
+    gloss: "Not central, but tends to be difficult.",
     opposite: "engine",
   },
-  middle: {
-    label: "Middle",
-    coords: "neither end of either axis",
-    gloss: "Neither prominent enough nor sharp enough to call either way.",
-    opposite: "middle",
+  /**
+   * The two cells on the centre line, and the one off the reading entirely.
+   *
+   * A house sitting at ease zero was showing a dash, which read as missing data
+   * rather than as a finding — and it is a finding: a heavy house pulling
+   * neither way is doing a great deal of work without any of it being
+   * characteristic. That is worth a name.
+   */
+  steady: {
+    label: "Steady",
+    coords: "heavy · baseline",
+    gloss:
+      "A major theme, but tilted toward neither flow nor struggle.",
+    opposite: "background",
+  },
+  background: {
+    label: "Background",
+    coords: "light · baseline",
+    gloss: "Stays in the background and does not demand much.",
+    opposite: "steady",
+  },
+  untouched: {
+    label: "Untouched",
+    coords: "too little to read",
+    gloss: "Almost nothing aspects or dignifies what is here.",
+    opposite: "untouched",
   },
 };
 
-export function quadrantOf(rank: number, band: EaseBand): Quadrant {
-  const heavy = rank <= 3;
-  const light = rank >= 9;
-  if (heavy && band === "flowing") return "engine";
-  if (heavy && band === "grinding") return "millstone";
-  if (light && band === "flowing") return "clear";
-  if (light && band === "grinding") return "snag";
-  return "middle";
+export function quadrantOf(score: number, band: EaseBand): Quadrant {
+  const heavy = score >= WEIGHT_HEAVY_ABOVE;
+  // Sparse first: with too little evidence, which side of the weight line a
+  // house falls on is the only thing that can be said, and it is not the
+  // question the corner is answering.
+  if (band === "sparse") return "untouched";
+  if (band === "flowing") return heavy ? "engine" : "comfort";
+  if (band === "grinding") return heavy ? "pressure" : "friction";
+  return heavy ? "steady" : "background";
 }

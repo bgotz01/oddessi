@@ -21,12 +21,12 @@ export function SectionHeading({
   onToggle?: () => void;
 }) {
   const row = (
-    <div className="flex items-baseline justify-between gap-6 pb-3">
-      <h2 className="inscription flex items-baseline gap-3 text-[0.8125rem] text-bone">
+    <div className="flex items-baseline justify-between gap-6 pb-3.5">
+      <h2 className="inscription flex items-baseline gap-3 text-[1.0625rem] tracking-[0.14em] text-bone">
         {onToggle ? (
           <span
             aria-hidden
-            className="glyph inline-block text-[0.625rem] text-patina-dim transition-transform group-hover:text-patina"
+            className="glyph inline-block text-[0.75rem] text-patina-dim transition-transform group-hover:text-patina"
             style={open ? { transform: "rotate(90deg)" } : undefined}
           >
             ▸
@@ -54,24 +54,34 @@ export function SectionHeading({
       ) : (
         row
       )}
-      <div className="h-px bg-rule" />
+      <div className="h-px bg-rule-faint" />
     </div>
   );
 }
 
-/** A page title block: eyebrow, name, and a rule. */
+/**
+ * A page title block: eyebrow, name, and a rule.
+ *
+ * `aside` rides the eyebrow line, right-aligned, for a page-level control that
+ * has earned a place at the top without earning a block of its own.
+ */
 export function PageTitle({
   eyebrow,
   title,
   lede,
+  aside,
 }: {
   eyebrow: string;
   title: string;
   lede?: string;
+  aside?: ReactNode;
 }) {
   return (
     <div className="pt-16 pb-12">
-      <p className="eyebrow mb-4">{eyebrow}</p>
+      <div className="mb-4 flex items-baseline justify-between gap-6">
+        <p className="eyebrow">{eyebrow}</p>
+        {aside}
+      </div>
       <h1 className="inscription text-[2rem] leading-tight text-bone">
         {title}
       </h1>

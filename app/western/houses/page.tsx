@@ -5,8 +5,7 @@ import { PageTitle, SectionHeading } from "@/components/primitives";
 import HousePositions from "@/components/house-positions";
 import HouseRow from "@/components/house-row";
 import HouseDrawer from "@/components/house-drawer";
-import HouseMatrix from "@/components/house-matrix";
-import DominanceModal from "@/components/DominanceModal";
+import ScoringDetails from "@/components/scoring-details";
 import {
   HouseCircuits,
   PlanetaryInfluences,
@@ -19,8 +18,9 @@ import { formatBirth, tenantsOf } from "@/lib/charts";
 import { dominanceMode, houseCircuits, houseDominance, prominence } from "@/lib/dominance";
 import { useScoring } from "@/components/scoring-context";
 import ScoringEditor from "@/components/scoring-editor";
+import PresetSwitcher from "@/components/preset-switcher";
 import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
-import { houseEase, quadrantOf } from "@/lib/ease";
+import { easePoints, houseEase, quadrantOf } from "@/lib/ease";
 
 /**
  * The twelve houses, following arc's order of operations: what bodies do to a
@@ -31,7 +31,7 @@ import { houseEase, quadrantOf } from "@/lib/ease";
  * house's reading in the drawer, so the wall of boxes is a way *into* the text
  * rather than a separate widget sitting above it.
  *
- * Every place a weight is shown offers a way into `DominanceModal`, which is
+ * Every place a weight is shown offers a way into `ScoringDetails`, which is
  * the only page that explains where the number came from. One modal, owned
  * here, opened from the grid, the column header and each reading's weight
  * block — a score with no route to its arithmetic is just an assertion.
@@ -68,7 +68,7 @@ function Houses({ chart }: { chart: Chart }) {
     );
   };
 
-  const loudest = dominance
+  const heaviest = dominance
     .filter((d) => d.rank <= 3)
     .sort((a, b) => a.rank - b.rank);
 
@@ -125,7 +125,12 @@ function Houses({ chart }: { chart: Chart }) {
         "and sign dignity of the house's tenants and its ruler using the " +
         "`easeScoring` tables. A high weight says nothing about ease and vice " +
         "versa — cross them via `quadrant`. A `easeBand` of \"sparse\" means too " +
-        "few contacts to judge, which is NOT the same as balanced. Ease has " +
+        "few contacts to judge, which is NOT the same as balanced. Ease and its " +
+        "components are on a −100 … +100 scale, where 100 is entirely one way; " +
+        "quote them in those units, as the page does. The three `easeFrom*` " +
+        "values are contributions and sum to `ease`; the `*Character` values " +
+        "are the same components before their shares apply, so they do not sum " +
+        "to anything — never add them. Ease has " +
         "three components: aspects, dignity and tenancy (who physically sits " +
         "in the house, by benefic/malefic nature, with malefics blunted when " +
         "well dignified). The whole convention in `scoring` is user-editable " +
@@ -148,7 +153,7 @@ function Houses({ chart }: { chart: Chart }) {
           })),
           score: d.score,
           rank: d.rank,
-          prominence: prominence(d.rank),
+          prominence: prominence(d.score),
           mode: dominanceMode(d, config),
           occupancy: d.occupancy,
           rulerStrength: d.rulerStrength,
@@ -158,17 +163,21 @@ function Houses({ chart }: { chart: Chart }) {
             ? `${d.rulerPlacement.sign}, house ${d.rulerPlacement.houseNumber}`
             : null,
           reasons: d.reasons,
-          ease: easeOf.get(d.house)?.ease ?? 0,
+          ease: easePoints(easeOf.get(d.house)?.ease ?? 0),
           easeBand: easeOf.get(d.house)?.band ?? "sparse",
-          easeFromAspects: easeOf.get(d.house)?.fromAspects ?? 0,
-          easeFromDignity: easeOf.get(d.house)?.fromDignity ?? 0,
-          easeFromTenancy: easeOf.get(d.house)?.fromTenancy ?? 0,
+          easeFromAspects: easePoints(easeOf.get(d.house)?.fromAspects ?? 0),
+          easeFromDignity: easePoints(easeOf.get(d.house)?.fromDignity ?? 0),
+          easeFromTenancy: easePoints(easeOf.get(d.house)?.fromTenancy ?? 0),
+          // Unweighted character of each component, before its share applies.
+          easeAspectCharacter: easePoints(easeOf.get(d.house)?.characterAspects ?? 0),
+          easeDignityCharacter: easePoints(easeOf.get(d.house)?.characterDignity ?? 0),
+          easeTenancyCharacter: easePoints(easeOf.get(d.house)?.characterTenancy ?? 0),
           easyContacts: easeOf.get(d.house)?.soft ?? 0,
           hardContacts: easeOf.get(d.house)?.hard ?? 0,
           easeNotes: easeOf.get(d.house)?.notes ?? [],
           easeConfidence: easeOf.get(d.house)?.confidence ?? 0,
           easeReadFrom: easeOf.get(d.house)?.constituents ?? [],
-          quadrant: quadrantOf(d.rank, easeOf.get(d.house)?.band ?? "sparse"),
+          quadrant: quadrantOf(d.score, easeOf.get(d.house)?.band ?? "sparse"),
         };
       }),
       // Mutual reception loops, shown further down the same page.
@@ -201,17 +210,19 @@ function Houses({ chart }: { chart: Chart }) {
       <section className="mb-16">
         <SectionHeading
           aside={
-            loudest.length
-              ? `loudest: ${loudest.map((d) => `${d.house}`).join(" · ")}`
+            heaviest.length
+              ? `heaviest: ${heaviest.map((d) => `${d.house}`).join(" · ")}`
               : undefined
           }
         >
           House Positions
         </SectionHeading>
+        <div className="mb-6">
+          <PresetSwitcher onEdit={() => setScoringOpen(true)} />
+        </div>
         <HousePositions
           chart={chart}
           dominance={dominance}
-          onEditScoring={() => setScoringOpen(true)}
           selected={drawerHouse}
           onSelect={(house) =>
             setDrawerHouse(house === drawerHouse ? null : house)
@@ -219,20 +230,6 @@ function Houses({ chart }: { chart: Chart }) {
           onExplainWeight={explainWeight}
         />
         <ReadingTheGrid />
-      </section>
-
-      <section className="mb-16">
-        <SectionHeading aside="weight × ease">
-          The Two Axes
-        </SectionHeading>
-        <HouseMatrix
-          dominance={dominance}
-          tones={tones}
-          selected={drawerHouse}
-          onSelect={(house) =>
-            setDrawerHouse(house === drawerHouse ? null : house)
-          }
-        />
       </section>
 
       <section className="mb-16">
@@ -269,7 +266,7 @@ function Houses({ chart }: { chart: Chart }) {
             <button
               type="button"
               onClick={explainWeight}
-              title="How weight is calculated"
+              title="Scoring details"
               className="datum hidden text-right text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase transition-colors hover:text-patina md:block"
             >
               Weight ?
@@ -294,7 +291,7 @@ function Houses({ chart }: { chart: Chart }) {
       </section>
 
       {dominanceOpen ? (
-        <DominanceModal onClose={() => setDominanceOpen(false)} />
+        <ScoringDetails onClose={() => setDominanceOpen(false)} />
       ) : null}
 
       {scoringOpen ? (

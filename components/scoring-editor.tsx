@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useScoring } from "@/components/scoring-context";
 import { PRESETS, copyScoring, type ScoringConfig } from "@/lib/scoring";
+import { EASE_DISPLAY_SCALE } from "@/lib/ease";
 
 /**
  * The scoring constants, editable.
@@ -89,8 +90,20 @@ function Table({
   );
 }
 
+type Tab = "ease" | "weight" | "rulership";
+
+const TABS: { id: Tab; label: string; aside: string }[] = [
+  { id: "ease", label: "Ease", aside: "flow or grind" },
+  { id: "weight", label: "Weight", aside: "light or heavy" },
+  { id: "rulership", label: "Rulership", aside: "who answers for a cusp" },
+];
+
 export default function ScoringEditor({ onClose }: { onClose: () => void }) {
   const { config, preset, edited, applyPreset, update, reset } = useScoring();
+  // Sixty-odd fields in one column was a scroll marathon where nothing could be
+  // compared against anything. Presets stay pinned above the tabs, because
+  // switching between them is the thing this panel is actually for.
+  const [tab, setTab] = useState<Tab>("ease");
 
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
@@ -123,7 +136,7 @@ export default function ScoringEditor({ onClose }: { onClose: () => void }) {
         role="dialog"
         aria-modal="true"
         aria-label="Scoring"
-        className="fixed top-1/2 left-1/2 z-[70] flex max-h-[86vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 flex-col border border-rule bg-surface shadow-2xl"
+        className="fixed top-1/2 left-1/2 z-[70] flex max-h-[90vh] w-full max-w-5xl -translate-x-1/2 -translate-y-1/2 flex-col border border-rule bg-surface shadow-2xl"
       >
         <div className="flex shrink-0 items-center justify-between border-b border-rule px-6 py-4">
           <div>
@@ -155,7 +168,7 @@ export default function ScoringEditor({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="flex-1 space-y-8 overflow-y-auto px-6 py-6">
-          {/* Presets */}
+          {/* Presets — pinned, because comparing them is the point */}
           <section>
             <div className="mb-3 flex items-baseline justify-between border-b border-rule-faint pb-2">
               <h3 className="eyebrow text-patina">Presets</h3>
@@ -163,7 +176,7 @@ export default function ScoringEditor({ onClose }: { onClose: () => void }) {
                 {edited ? "edited" : "unmodified"}
               </span>
             </div>
-            <div className="space-y-px">
+            <div className="grid grid-cols-2 gap-px bg-rule sm:grid-cols-3 lg:grid-cols-5">
               {PRESETS.map((p) => {
                 const active = config.id === p.id;
                 return (
@@ -172,68 +185,61 @@ export default function ScoringEditor({ onClose }: { onClose: () => void }) {
                     type="button"
                     onClick={() => applyPreset(p.id)}
                     aria-pressed={active}
-                    className={`block w-full border-l-2 px-4 py-3 text-left transition-colors ${active
-                      ? "border-patina bg-surface-alt"
-                      : "border-rule hover:bg-surface-alt"
+                    className={`flex h-full flex-col gap-1.5 px-4 py-3 text-left transition-colors ${active ? "bg-surface-alt" : "bg-void hover:bg-surface"
                       }`}
                   >
-                    <div className="flex items-baseline justify-between gap-3">
+                    <span className="flex items-baseline justify-between gap-2">
                       <span
-                        className={`datum text-[0.625rem] tracking-[0.18em] uppercase ${active ? "text-patina" : "text-bone-soft"
+                        className={`datum text-[0.625rem] leading-tight tracking-[0.14em] uppercase ${active ? "text-patina" : "text-bone-soft"
                           }`}
                       >
                         {p.label}
                       </span>
                       {active && edited ? (
-                        <span className="datum text-[0.5625rem] tracking-[0.14em] text-ember uppercase">
-                          modified
+                        <span className="datum shrink-0 text-[0.5625rem] tracking-[0.1em] text-ember uppercase">
+                          mod
                         </span>
                       ) : null}
-                    </div>
-                    <p className="mt-1 text-[0.875rem] leading-snug text-bone-faint">
-                      {p.note}
-                    </p>
+                    </span>
+                    <span className="text-[0.8125rem] leading-snug text-bone-faint">
+                      {p.summary}
+                    </span>
                   </button>
                 );
               })}
             </div>
+            {preset ? (
+              <p className="mt-3 text-[0.875rem] leading-relaxed text-bone-soft">
+                {preset.note}
+              </p>
+            ) : null}
           </section>
 
-          {/* Rulership — the largest single swing available */}
-          <section>
-            <div className="mb-3 flex items-baseline justify-between border-b border-rule-faint pb-2">
-              <h3 className="eyebrow text-patina">Rulership</h3>
-              <span className="datum text-[0.5625rem] tracking-[0.14em] text-bone-faint uppercase">
-                which body answers for a cusp
-              </span>
-            </div>
-            <p className="mb-3 text-[0.875rem] leading-relaxed text-bone-soft">
-              Two thirds of a house&rsquo;s weight comes from its ruler, so this
-              moves more than any coefficient below. Modern gives Scorpio to
-              Pluto, Aquarius to Uranus and Pisces to Neptune; traditional keeps
-              all three with the visible bodies — the same table dignity is
-              already judged on.
-            </p>
-            <div className="flex gap-px">
-              {(["modern", "traditional"] as const).map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => edit((d) => void (d.rulership = r))}
-                  aria-pressed={config.rulership === r}
-                  className={`flex-1 border px-4 py-2.5 transition-colors ${config.rulership === r
-                    ? "border-patina bg-surface-alt text-patina"
-                    : "border-rule text-bone-soft hover:bg-surface-alt"
-                    }`}
-                >
-                  <span className="datum text-[0.625rem] tracking-[0.18em] uppercase">
-                    {r}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
+          {/* Tabs */}
+          <div className="flex gap-px border-b border-rule">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTab(t.id)}
+                aria-pressed={tab === t.id}
+                className={`flex flex-col gap-0.5 border-b-2 px-5 py-2.5 text-left transition-colors ${tab === t.id
+                  ? "border-patina text-patina"
+                  : "border-transparent text-bone-faint hover:text-bone-soft"
+                  }`}
+              >
+                <span className="datum text-[0.6875rem] tracking-[0.18em] uppercase">
+                  {t.label}
+                </span>
+                <span className="datum text-[0.5625rem] tracking-[0.12em] uppercase opacity-70">
+                  {t.aside}
+                </span>
+              </button>
+            ))}
+          </div>
 
+          {tab === "ease" ? (
+            <div className="space-y-8">
           {/* Ease shares — the argument that matters most */}
           <section>
             <div className="mb-3 flex items-baseline justify-between border-b border-rule-faint pb-2">
@@ -285,10 +291,14 @@ export default function ScoringEditor({ onClose }: { onClose: () => void }) {
                   edit((d) => void (d.ease.rulerIsTenantReinforcement = v))
                 }
               />
+              {/* Stored as a fraction, edited in the units the pages show. */}
               <Num
-                label="Band threshold"
-                value={e.band}
-                onChange={(v) => edit((d) => void (d.ease.band = v))}
+                label="Band threshold (±)"
+                value={Math.round(e.band * EASE_DISPLAY_SCALE)}
+                step={1}
+                onChange={(v) =>
+                  edit((d) => void (d.ease.band = v / EASE_DISPLAY_SCALE))
+                }
               />
               <Num
                 label="Sparse below (evidence)"
@@ -323,7 +333,11 @@ export default function ScoringEditor({ onClose }: { onClose: () => void }) {
               )
             }
           />
+            </div>
+          ) : null}
 
+          {tab === "weight" ? (
+            <div className="space-y-8">
           <Table
             title="Weight · bodies"
             aside="occupancy"
@@ -395,6 +409,66 @@ export default function ScoringEditor({ onClose }: { onClose: () => void }) {
               ranking is really being decided by occupancy and ruler placement.
             </p>
           </section>
+            </div>
+          ) : null}
+
+          {tab === "rulership" ? (
+            <div className="space-y-8">
+          <section>
+            <div className="mb-3 flex items-baseline justify-between border-b border-rule-faint pb-2">
+              <h3 className="eyebrow text-patina">Rulership</h3>
+              <span className="datum text-[0.5625rem] tracking-[0.14em] text-bone-faint uppercase">
+                which body answers for a cusp
+              </span>
+            </div>
+            <p className="mb-4 text-[0.9375rem] leading-relaxed text-bone-soft">
+              Two thirds of a house&rsquo;s weight comes from its ruler, so this
+              moves more than any coefficient on the other tabs. Modern gives
+              Scorpio to Pluto, Aquarius to Uranus and Pisces to Neptune;
+              traditional keeps all three with the visible bodies — the same
+              table dignity is already judged on. Worth testing against charts
+              you know before touching a single number elsewhere.
+            </p>
+            <div className="grid gap-px bg-rule sm:grid-cols-2">
+              {(
+                [
+                  {
+                    id: "modern" as const,
+                    label: "Modern",
+                    note: "Scorpio → Pluto · Aquarius → Uranus · Pisces → Neptune",
+                  },
+                  {
+                    id: "traditional" as const,
+                    label: "Traditional",
+                    note: "Scorpio → Mars · Aquarius → Saturn · Pisces → Jupiter",
+                  },
+                ]
+              ).map((r) => (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => edit((d) => void (d.rulership = r.id))}
+                  aria-pressed={config.rulership === r.id}
+                  className={`flex flex-col gap-1.5 px-5 py-4 text-left transition-colors ${config.rulership === r.id
+                    ? "bg-surface-alt"
+                    : "bg-void hover:bg-surface"
+                    }`}
+                >
+                  <span
+                    className={`datum text-[0.6875rem] tracking-[0.18em] uppercase ${config.rulership === r.id ? "text-patina" : "text-bone-soft"
+                      }`}
+                  >
+                    {r.label}
+                  </span>
+                  <span className="text-[0.875rem] leading-snug text-bone-faint">
+                    {r.note}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+            </div>
+          ) : null}
 
           <p className="text-[0.75rem] leading-relaxed text-bone-faint">
             Changes apply immediately and are kept in this browser. They do not

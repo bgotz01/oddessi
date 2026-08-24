@@ -1,3 +1,4 @@
+//components/scoring-context.tsx
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";

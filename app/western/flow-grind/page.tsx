@@ -2,17 +2,25 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { PageTitle, SectionHeading } from "@/components/primitives";
-import HouseMatrix from "@/components/house-matrix";
+import HouseMatrix, { QUADRANT_TINT } from "@/components/house-matrix";
 import HouseDrawer from "@/components/house-drawer";
-import DominanceModal from "@/components/DominanceModal";
+import ScoringDetails from "@/components/scoring-details";
 import ScoringEditor from "@/components/scoring-editor";
+import PresetSwitcher from "@/components/preset-switcher";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import { useScoring } from "@/components/scoring-context";
 import type { Chart } from "@/lib/charts";
 import { tenantsOf } from "@/lib/charts";
 import { houseDominance } from "@/lib/dominance";
-import { QUADRANT, houseEase, quadrantOf, type EaseBand } from "@/lib/ease";
+import {
+  QUADRANT,
+  easeLabel,
+  easePoints,
+  houseEase,
+  quadrantOf,
+  type EaseBand,
+} from "@/lib/ease";
 import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 
 /**
@@ -58,9 +66,9 @@ function FlowGrind({ chart }: { chart: Chart }) {
   );
 
   /**
-   * Rows for the corner lists, sorted the way each corner is read: the loud
-   * corners by weight, the quiet ones by how far from neutral their ease is.
-   * A Snag is interesting for being sharp, not for being big.
+   * Rows for the corner lists, sorted the way each corner is read: the heavy
+   * corners by weight, the light ones by how far from neutral their ease is.
+   * Friction is interesting for being sharp, not for being big.
    */
   const rows = dominance.map((d) => {
     const ease = easeOf.get(d.house);
@@ -72,17 +80,25 @@ function FlowGrind({ chart }: { chart: Chart }) {
       rank: d.rank,
       ease: ease?.ease ?? 0,
       band,
-      quadrant: quadrantOf(d.rank, band),
+      quadrant: quadrantOf(d.score, band),
     };
   });
 
-  const corners = (["engine", "millstone", "clear", "snag"] as const).map(
+  /** The centre band and the no-reading case, listed under the four corners. */
+  const middles = (["steady", "background", "untouched"] as const).map((q) => ({
+    key: q,
+    houses: rows
+      .filter((r) => r.quadrant === q)
+      .sort((a, b) => b.score - a.score),
+  }));
+
+  const corners = (["engine", "pressure", "comfort", "friction"] as const).map(
     (q) => ({
       key: q,
       houses: rows
         .filter((r) => r.quadrant === q)
         .sort((a, b) =>
-          q === "engine" || q === "millstone"
+          q === "engine" || q === "pressure"
             ? b.score - a.score
             : Math.abs(b.ease) - Math.abs(a.ease),
         ),
@@ -106,12 +122,15 @@ function FlowGrind({ chart }: { chart: Chart }) {
         "Two independent measures. `weight` is how much of the chart runs " +
         "through a house; `ease` is whether what runs there flows or grinds, " +
         "from the aspects, sign dignity and tenancy of the house's bodies and " +
-        "its ruler. Neither implies the other, and a house can be quiet and " +
-        "grinding (a Snag) or loud and flowing (an Engine). The corners are " +
+        "its ruler. Neither implies the other, and a house can be light and " +
+        "grinding (Friction) or heavy and flowing (an Engine). The corners are " +
         "opposed along the diagonals, not between neighbours. The scoring " +
         "convention is user-editable — read `preset` and do not assume the " +
         "app's defaults. An `easeBand` of \"sparse\" means too few contacts to " +
-        "judge, which is not the same as balanced.",
+        "judge, which is not the same as balanced. `ease` is on a −100 … +100 " +
+        "scale, where 100 is entirely one way; quote it in those units, as the " +
+        "page does. Where a component breakdown is given, the `from*` values " +
+        "are contributions and sum to `ease`.",
       chart: chart.name,
       preset: `${config.label}${edited ? " (modified)" : ""}`,
       houses: rows.map((r) => ({
@@ -119,7 +138,7 @@ function FlowGrind({ chart }: { chart: Chart }) {
         title: r.title,
         weight: r.score,
         weightRank: r.rank,
-        ease: r.ease,
+        ease: easePoints(r.ease),
         easeBand: r.band,
         quadrant: r.quadrant,
         quadrantMeans: QUADRANT[r.quadrant].gloss,
@@ -136,7 +155,7 @@ function FlowGrind({ chart }: { chart: Chart }) {
         title="Flow & Grind"
         lede="Two questions a single ranking cannot hold at once: how much of the
               chart runs through a house, and whether what runs there has an easy
-              time of it. A loud house is not a good one, and a quiet house is
+              time of it. A heavy house is not a good one, and a light house is
               not a safe one — the corners are where the two disagree."
       />
 
@@ -147,26 +166,28 @@ function FlowGrind({ chart }: { chart: Chart }) {
           The Two Axes
         </SectionHeading>
 
-        <div className="mb-5 flex flex-wrap gap-2">
+        {/* The switcher sits directly above the plot: the comparison only
+            works if a chart you know can be flicked between conventions and
+            watched, rather than reasoned about one at a time. */}
+        <div className="mb-6">
+          <PresetSwitcher onEdit={() => setScoringOpen(true)} />
+        </div>
+
+        <div className="mb-5">
           <button
             type="button"
             onClick={() => setDominanceOpen(true)}
             className="datum border border-rule px-3 py-1.5 text-[0.625rem] tracking-[0.18em] text-bone-faint uppercase transition-colors hover:border-rule-faint hover:text-bone-soft"
           >
-            How it is calculated
-          </button>
-          <button
-            type="button"
-            onClick={() => setScoringOpen(true)}
-            className="datum border border-rule px-3 py-1.5 text-[0.625rem] tracking-[0.18em] text-bone-faint uppercase transition-colors hover:border-rule-faint hover:text-bone-soft"
-          >
-            Scoring
+            Scoring Details
           </button>
         </div>
 
         <HouseMatrix
           dominance={dominance}
           tones={eases}
+          chartName={chart.name}
+          baseline={config.ease.band}
           selected={drawerHouse}
           onSelect={(house) =>
             setDrawerHouse(house === drawerHouse ? null : house)
@@ -178,12 +199,20 @@ function FlowGrind({ chart }: { chart: Chart }) {
           which houses actually landed in each cell, including the empty ones —
           a corner with nothing in it is a finding about the chart. */}
       <section className="mb-16">
-        <SectionHeading aside="what landed where">The Corners</SectionHeading>
+        <SectionHeading aside="what landed where">The 4 Corners</SectionHeading>
+        {/* Tinted exactly as the plot's own corner labels are: hue for which
+            way the corner leans, strength for how much rides on it. The two
+            have to agree on sight or the list reads as a separate idea. */}
         <div className="grid gap-px bg-rule sm:grid-cols-2">
           {corners.map(({ key, houses }) => (
-            <div key={key} className="bg-void px-5 py-4">
+            <div
+              key={key}
+              className={`border-l-2 bg-void px-5 py-4 ${QUADRANT_TINT[key].rule}`}
+            >
               <div className="flex items-baseline justify-between gap-3 border-b border-rule-faint pb-2">
-                <p className="datum text-[0.625rem] tracking-[0.18em] text-bone uppercase">
+                <p
+                  className={`datum text-[0.625rem] tracking-[0.18em] uppercase ${QUADRANT_TINT[key].text}`}
+                >
                   {QUADRANT[key].label}
                 </p>
                 <p className="datum text-[0.5625rem] tracking-[0.14em] text-bone-faint uppercase">
@@ -218,8 +247,7 @@ function FlowGrind({ chart }: { chart: Chart }) {
                       <span className="datum shrink-0 text-[0.625rem] text-bone-faint">
                         {r.score.toFixed(1)} ·{" "}
                         <span className={BAND_TEXT[r.band]}>
-                          {r.ease > 0 ? "+" : ""}
-                          {r.ease.toFixed(2)}
+                          {easeLabel(r.ease)}
                         </span>
                       </span>
                     </button>
@@ -229,6 +257,80 @@ function FlowGrind({ chart }: { chart: Chart }) {
             </div>
           ))}
         </div>
+        {/*
+          The band between the corners, joined to them rather than set apart:
+          same hairline grid, same card, a neutral left rule where the corners
+          carry a tinted one. It is a continuation of the same reading, not a
+          second idea, and most houses in most charts live here.
+        */}
+        <div className="mt-px bg-rule px-5 py-2">
+          <p className="datum text-[0.5625rem] tracking-[0.2em] text-bone-faint uppercase">
+            The baseline band
+          </p>
+        </div>
+        <div className="mt-px">
+          <div className="grid gap-px bg-rule sm:grid-cols-3">
+            {middles.map(({ key, houses }) => (
+              <div
+                key={key}
+                className="border-l-2 border-bone-faint/35 bg-void px-5 py-4"
+              >
+                <div className="flex items-baseline justify-between gap-3 border-b border-rule-faint pb-2">
+                  <p className="datum text-[0.625rem] tracking-[0.18em] text-bone-soft uppercase">
+                    {QUADRANT[key].label}
+                  </p>
+                  <p className="datum text-[0.5625rem] tracking-[0.14em] text-bone-faint uppercase">
+                    {QUADRANT[key].coords}
+                  </p>
+                </div>
+                <p className="mt-2 text-[0.875rem] leading-snug text-bone-soft">
+                  {QUADRANT[key].gloss}
+                </p>
+
+                {houses.length === 0 ? (
+                  <p className="datum mt-3 text-[0.625rem] tracking-[0.14em] text-bone-faint uppercase">
+                    None in this chart
+                  </p>
+                ) : (
+                  <div className="mt-3 space-y-px">
+                    {houses.map((r) => (
+                      <button
+                        key={r.house}
+                        type="button"
+                        onClick={() => setDrawerHouse(r.house)}
+                        className="flex w-full items-baseline justify-between gap-3 py-1.5 text-left transition-colors hover:text-bone"
+                      >
+                        <span className="flex items-baseline gap-2.5">
+                          <span className="inscription text-[0.75rem] text-bone-faint">
+                            {r.house}
+                          </span>
+                          <span className="text-[0.9375rem] font-light text-bone">
+                            {r.title}
+                          </span>
+                        </span>
+                        <span className="datum shrink-0 text-[0.625rem] text-bone-faint">
+                          {r.score.toFixed(1)} ·{" "}
+                          <span className={BAND_TEXT[r.band]}>
+                            {easeLabel(r.ease)}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="mt-4 text-[0.875rem] leading-relaxed text-bone-faint">
+          Green leans easy and orange leans hard; the full-strength pair are the
+          houses much of the chart depends on, the softened pair the ones little
+          rides on. The opposites are the diagonals, not the neighbours —
+          High Pressure and Comfort sit opposite on both axes, as do Engine and
+          Friction, while High Pressure and Friction sit at the same end of Ease
+          and differ only in how much rides on them.
+        </p>
       </section>
 
       {/* Everything, so the middle is accounted for too. */}
@@ -266,24 +368,24 @@ function FlowGrind({ chart }: { chart: Chart }) {
                 <span
                   className={`datum text-right text-[0.75rem] ${BAND_TEXT[r.band]}`}
                 >
-                  {r.ease > 0 ? "+" : ""}
-                  {r.ease.toFixed(2)}
+                  {easeLabel(r.ease)}
                 </span>
                 <span className="datum text-right text-[0.5625rem] tracking-[0.14em] text-bone-faint uppercase">
-                  {r.quadrant === "middle" ? "—" : QUADRANT[r.quadrant].label}
+                  {QUADRANT[r.quadrant].label}
                 </span>
               </button>
             ))}
         </div>
         <p className="mt-4 text-[0.875rem] leading-relaxed text-bone-faint">
           Sorted by ease, hardest first — the ordering the weight ranking cannot
-          show. Read by {preset ? preset.label.toLowerCase() : config.id}
+          show. Every house is named, including the ones on the centre line:
+          sitting at zero is a reading, not a gap. Read by {preset ? preset.label.toLowerCase() : config.id}
           {edited ? ", hand-edited" : ""}.
         </p>
       </section>
 
       {dominanceOpen ? (
-        <DominanceModal onClose={() => setDominanceOpen(false)} />
+        <ScoringDetails onClose={() => setDominanceOpen(false)} />
       ) : null}
 
       {scoringOpen ? (
