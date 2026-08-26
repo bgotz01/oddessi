@@ -6,7 +6,7 @@ import HouseMatrix, { QUADRANT_TINT } from "@/components/house-matrix";
 import HouseDrawer from "@/components/house-drawer";
 import ScoringDetails from "@/components/scoring-details";
 import ScoringEditor from "@/components/scoring-editor";
-import PresetSwitcher from "@/components/preset-switcher";
+import ChartPresets from "@/components/chart-presets";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import { useScoring } from "@/components/scoring-context";
@@ -170,7 +170,7 @@ function FlowGrind({ chart }: { chart: Chart }) {
             works if a chart you know can be flicked between conventions and
             watched, rather than reasoned about one at a time. */}
         <div className="mb-6">
-          <PresetSwitcher onEdit={() => setScoringOpen(true)} />
+          <ChartPresets onEdit={() => setScoringOpen(true)} />
         </div>
 
         <div className="mb-5">

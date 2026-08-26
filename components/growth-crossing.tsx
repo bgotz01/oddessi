@@ -23,6 +23,13 @@ import { T, type ChapterKey } from "@/components/growth-ui";
  * drawer holds the reading. Naming the bodies is what keeps this from being a
  * badge: "Mars" is already a claim a reader of this chart can recognise, where
  * "this chart has a crossing" is trivia.
+ *
+ * The single body's demand used to trail the names here, and it was the one
+ * thing on the line that said nothing: "A way of arriving that fits the move"
+ * is the dictionary's headline for the Ascendant, true of every chart with that
+ * crossing and readable only as a paraphrase of the name beside it. The demand
+ * still leads its Block in the drawer, where the conflict and the arena follow
+ * it and it is actually doing work.
  */
 export default function GrowthCrossing({
   t,
@@ -48,15 +55,6 @@ export default function GrowthCrossing({
       <span className={`${T.tiny} text-bone-soft`}>
         {bodies.map((c) => c.body).join(" · ")}
       </span>
-
-      {/* The demand only when there is one body to attribute it to. Two bodies
-          make two demands, and the honest summary of two demands is their
-          names — which are already above. */}
-      {t.crossing.single ? (
-        <span className={`${T.tiny} text-bone-faint`}>
-          {bodies[0].interpretation.demand}
-        </span>
-      ) : null}
 
       <span
         className={`${T.tiny} text-bone-faint transition-colors group-hover:text-patina`}

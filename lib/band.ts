@@ -41,6 +41,24 @@ export interface Band {
    * The single-system charts leave it undefined and get no banners.
    */
   group?: string;
+  /**
+   * What the band IS, carried structurally rather than spelled into `subtitle`.
+   *
+   * `subtitle` is display text — "House 9", "□ Square Saturn" — and reading a
+   * band's identity back out of it means parsing a string that exists to be
+   * looked at. Fine for the explorer's kind filter, which only has to tell
+   * three shapes apart; not fine for anything that has to ask "is this a
+   * transit through house 9 specifically", because the answer then depends on
+   * how the label happens to be punctuated.
+   *
+   * Optional because the fields are populated only where the source row has
+   * them: a return has no house and no natal target, a house transit has no
+   * aspect. Absent means the question does not apply to this kind of band.
+   */
+  kind?: "house-transit" | "aspect-cycle" | "planetary-return";
+  houseNumber?: number;
+  natalPlanet?: string;
+  aspectType?: string;
 }
 
 export function statusOfBand(band: Band, now: Date): BandStatus {

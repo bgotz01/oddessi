@@ -35,13 +35,29 @@ export interface LifeCyclePeriods {
 
 export interface LifeCycleOptions {
     natalChart: BirthChart;
-    lookbackYears?: number; // How far back to look (default: 15)
-    lookaheadYears?: number; // How far ahead to look (default: 10)
+    /**
+     * Unused. The span runs from birth — see SPAN_YEARS.
+     *
+     * Kept only because callers still pass it; it was silently ignored before
+     * this comment existed, which is how the window came to start at a
+     * hardcoded year 2000 while three call sites believed they were setting it.
+     */
+    lookbackYears?: number;
+    /** Floor for the end of the span, past today. The span may exceed it. */
+    lookaheadYears?: number;
     includeJupiter?: boolean; // Include Jupiter cycles (default: true)
     includeMinorAspects?: boolean; // Include sextiles, trines (default: false)
     unlimitedUpcoming?: boolean; // Return all upcoming cycles without limit (default: false)
     unlimitedCompleted?: boolean; // Return all completed cycles without limit (default: false)
 }
+
+/**
+ * How far past birth to compute, in years.
+ *
+ * Ninety, because the Activation page reads a life as eighty-four — the Uranus
+ * return — and a transit running at the end of that grid needs room to finish.
+ */
+const SPAN_YEARS = 90;
 
 /**
  * Calculate major life cycles - the long-term themes and periods that shape life chapters
@@ -69,9 +85,20 @@ export async function calculateLifeCycles(options: LifeCycleOptions): Promise<Li
         cyclePlanets.push(Planet.Jupiter); // 12-year cycle, 1 year per house
     }
 
-    // Major natal points for aspect cycles
+    // Major natal points for aspect cycles.
+    //
+    // The North Node earns its place here even though it is not a body. It is
+    // the point the whole Growth model is read from, and without it the cache
+    // could say a transit was crossing the node's HOUSE but never that it was
+    // hitting the node itself — a much weaker claim, and the one the Timing
+    // section was reduced to making.
+    //
+    // Only the north node is sampled. The nodes are an axis, so every aspect to
+    // one is an aspect to the other: conjunct the north IS opposite the south,
+    // and a square hits both at once. Adding the south node would double the
+    // rows and every one of them would be a restatement.
     const majorNatalPoints = natalChart.planets.filter(p =>
-        [Planet.Sun, Planet.Moon, Planet.Mercury, Planet.Venus, Planet.Mars].includes(p.planet as Planet)
+        [Planet.Sun, Planet.Moon, Planet.Mercury, Planet.Venus, Planet.Mars, Planet.NorthNode].includes(p.planet as Planet)
     );
 
     // Add Ascendant and Midheaven if available
@@ -79,9 +106,32 @@ export async function calculateLifeCycles(options: LifeCycleOptions): Promise<Li
         // Add angles as natal points for aspect cycles
     }
 
+    // The span is BIRTH-RELATIVE, not a fixed stretch of calendar.
+    //
+    // It used to start at a hardcoded 1 January 2000 — `lookbackYears` was
+    // destructured and then never read — and end a couple of decades past the
+    // present, which gave every chart the same window regardless of when its
+    // owner was born. For someone born in 1986 that covered ages 14 to 65: it
+    // missed the first nodal return entirely and stopped two decades short of
+    // the end. For someone born in 2001 it wasted eleven years computing a sky
+    // nobody was alive under, and still ran out at 50.
+    //
+    // A life is the right unit. Ninety years from birth covers the whole
+    // eighty-four-year grid the Activation page draws, for every chart, with
+    // margin — and computes nothing before the person existed. The end is
+    // floored at `lookaheadYears` past today so a chart whose owner is already
+    // past ninety still gets a forward window instead of none.
     const now = new Date();
-    const startDate = new Date(2000, 0, 1); // Look back to 2000 to catch starts of long cycles
-    const endDate = new Date(now.getFullYear() + lookaheadYears, 11, 31);
+    const birth = new Date(`${natalChart.birthData.date}T12:00:00Z`);
+    const startDate = Number.isFinite(birth.getTime())
+        ? birth
+        : new Date(2000, 0, 1);
+
+    const endOfLife = new Date(startDate);
+    endOfLife.setFullYear(endOfLife.getFullYear() + SPAN_YEARS);
+    const endOfLookahead = new Date(now.getFullYear() + lookaheadYears, 11, 31);
+    const endDate =
+        endOfLife > endOfLookahead ? endOfLife : endOfLookahead;
 
     console.log(`Life cycles calculation: ${startDate.getFullYear()} to ${endDate.getFullYear()}`);
 
@@ -355,7 +405,7 @@ async function calculateAspectCycles(
 
     for (const natalPoint of natalPoints) {
         for (const aspectType of aspectsToCheck) {
-            const cycle = await calculateSingleAspectCycle(
+            const passes = await calculateAspectPasses(
                 transitingPlanet,
                 natalPoint,
                 aspectType,
@@ -365,9 +415,7 @@ async function calculateAspectCycles(
                 sw
             );
 
-            if (cycle) {
-                cycles.push(cycle);
-            }
+            cycles.push(...passes);
         }
     }
 
@@ -375,9 +423,26 @@ async function calculateAspectCycles(
 }
 
 /**
- * Calculate a single aspect cycle (e.g., "Pluto square Sun" period)
+ * Every pass a transiting planet makes of one aspect to one natal point.
+ *
+ * This used to return at most ONE cycle. The scan opened on first contact, and
+ * the moment the planet left orb it `break`ed out of the loop — so a fifty-year
+ * window recorded a single Jupiter square Venus and then went silent about the
+ * four that followed. It was not visible as a bug because the row that survived
+ * was always a real transit; what was missing was everything after it. The
+ * symptom downstream was an ephemeris that appeared to run dry: Jupiter aspects
+ * stopped in 2011 and Saturn's in 2028, which read like a row cap in the
+ * generator and was actually the first pass being the only pass.
+ *
+ * It matters much more now than it did. A node aspect that is only ever
+ * reported once is worth very little — the point of putting the nodes in the
+ * cache is to catch Saturn crossing the axis at 29 AND at 58.
+ *
+ * Retrograde re-entries are merged rather than emitted as separate passes,
+ * using the same envelope-plus-segments shape the house transits produce, so
+ * the timeline draws one transit with gaps in it instead of three transits.
  */
-async function calculateSingleAspectCycle(
+async function calculateAspectPasses(
     transitingPlanet: Planet,
     natalPoint: any,
     aspectType: AspectType,
@@ -385,71 +450,120 @@ async function calculateSingleAspectCycle(
     endDate: Date,
     currentDate: Date,
     sw: any
-): Promise<LifeCycle | null> {
+): Promise<LifeCycle[]> {
     const aspectAngle = ASPECT_DEFINITIONS[aspectType]?.angle;
-    if (aspectAngle === undefined) return null;
+    if (aspectAngle === undefined) return [];
 
-    const orb = getAspectCycleOrb(transitingPlanet, aspectType);
-    let inAspect = false;
-    let cycleStart: Date | null = null;
-    let cycleEnd: Date | null = null;
-    let exactDate: Date | null = null;
-    let closestOrb = Infinity;
+    const orb = getAspectCycleOrb(transitingPlanet, aspectType, natalPoint.planet as Planet);
 
     // Sample weekly for aspect cycles
     const weeklyInterval = 7 * 24 * 60 * 60 * 1000;
 
+    // 1. Every stretch the planet spends inside orb, with its most exact moment.
+    type Window = { start: Date; end: Date; exact: Date; closestOrb: number };
+    const windows: Window[] = [];
+    let open: Window | null = null;
+    let failureCount = 0;
+
     for (let time = startDate.getTime(); time <= endDate.getTime(); time += weeklyInterval) {
         const sampleDate = new Date(time);
 
+        let planetPosition: { longitude: number } | null = null;
         try {
-            const planetPosition = await calculatePlanetPosition(sampleDate, transitingPlanet, sw);
-            if (!planetPosition) continue;
-
-            const angle = angularDistance(planetPosition.longitude, natalPoint.longitude);
-            const currentOrb = Math.abs(angle - aspectAngle);
-
-            if (currentOrb <= orb) {
-                if (!inAspect) {
-                    // Entering aspect
-                    inAspect = true;
-                    cycleStart = sampleDate;
-                }
-
-                // Track the most exact moment
-                if (currentOrb < closestOrb) {
-                    closestOrb = currentOrb;
-                    exactDate = sampleDate;
-                }
-            } else if (inAspect) {
-                // Exiting aspect
-                inAspect = false;
-                cycleEnd = sampleDate;
-                break; // We found a complete cycle
-            }
+            planetPosition = await calculatePlanetPosition(sampleDate, transitingPlanet, sw);
         } catch (error) {
             console.warn(`Error calculating aspect cycle:`, error);
         }
+        if (!planetPosition) {
+            // Bail out of a dead ephemeris rather than walking fifty years of it.
+            if (++failureCount > 10) break;
+            continue;
+        }
+        failureCount = 0;
+
+        const angle = angularDistance(planetPosition.longitude, natalPoint.longitude);
+        const currentOrb = Math.abs(angle - aspectAngle);
+
+        if (currentOrb <= orb) {
+            if (!open) {
+                open = { start: sampleDate, end: sampleDate, exact: sampleDate, closestOrb: currentOrb };
+            } else {
+                open.end = sampleDate;
+                if (currentOrb < open.closestOrb) {
+                    open.closestOrb = currentOrb;
+                    open.exact = sampleDate;
+                }
+            }
+        } else if (open) {
+            windows.push(open);
+            open = null;
+        }
+    }
+    // Still in orb when the search window ran out — a real, ongoing transit.
+    if (open) windows.push(open);
+
+    // 2. Merge retrograde re-entries into the pass they belong to.
+    //
+    // The window is measured from the pass's start, exactly as house transits
+    // do it. It is generous — years, for the outer planets — but it cannot
+    // over-merge, because the NEXT pass of the same aspect is a large fraction
+    // of an orbit away: Jupiter repeats a given aspect every twelve years
+    // against a two-year window, Pluto every sixty-odd against twenty-five.
+    const retrogradeWindowMonths = getRetrogradeWindowMonths(transitingPlanet);
+    const MONTH_MS = 1000 * 60 * 60 * 24 * 30;
+
+    type Pass = {
+        start: Date;
+        initialEnd: Date;
+        end: Date;
+        exact: Date;
+        closestOrb: number;
+        retrogradePeriods: Array<{ startDate: Date; endDate: Date }>;
+    };
+    const passes: Pass[] = [];
+
+    for (const w of windows) {
+        const last = passes[passes.length - 1];
+        const withinWindow =
+            last && (w.start.getTime() - last.start.getTime()) / MONTH_MS <= retrogradeWindowMonths;
+
+        if (last && withinWindow) {
+            last.retrogradePeriods.push({ startDate: w.start, endDate: w.end });
+            last.end = w.end;
+            // Exactitude belongs to whichever contact came closest, which is
+            // often the middle one of a retrograde triple rather than the first.
+            if (w.closestOrb < last.closestOrb) {
+                last.closestOrb = w.closestOrb;
+                last.exact = w.exact;
+            }
+        } else {
+            passes.push({
+                start: w.start,
+                initialEnd: w.end,
+                end: w.end,
+                exact: w.exact,
+                closestOrb: w.closestOrb,
+                retrogradePeriods: [],
+            });
+        }
     }
 
-    // If we're still in aspect at the end, set end date to our search limit
-    if (inAspect && !cycleEnd) {
-        cycleEnd = endDate;
-    }
-
-    if (cycleStart && cycleEnd && exactDate) {
-        return createAspectCycle(
+    return passes.map(p => {
+        const cycle = createAspectCycle(
             transitingPlanet,
             natalPoint.planet as Planet,
             aspectType,
-            cycleStart,
-            cycleEnd,
-            exactDate,
+            p.start,
+            p.end,
+            p.exact,
             currentDate
         );
-    }
-
-    return null;
+        if (p.retrogradePeriods.length > 0) {
+            cycle.retrogradePeriods = p.retrogradePeriods;
+            cycle.initialEnd = p.initialEnd;
+        }
+        return cycle;
+    });
 }
 
 /**
@@ -468,8 +582,13 @@ async function calculatePlanetaryReturns(
     const natalPlanet = natalChart.planets.find(p => p.planet === planet);
     if (!natalPlanet) return cycles;
 
-    // For returns, we look for conjunctions to the natal position
-    const returnCycle = await calculateSingleAspectCycle(
+    // A return is a conjunction to the planet's own natal position — every
+    // one of them, not merely the first. Jupiter comes home roughly every
+    // twelve years and Saturn twice in a long life; the single-pass scan this
+    // used to share with the aspect cycles reported exactly one of each per
+    // chart, which is why the cache held fourteen Saturn returns for fourteen
+    // charts and no second return anywhere in it.
+    const passes = await calculateAspectPasses(
         planet,
         natalPlanet,
         AspectType.Conjunction,
@@ -479,10 +598,9 @@ async function calculatePlanetaryReturns(
         sw
     );
 
-    if (returnCycle) {
-        // Modify the cycle to be a "return" type and add comprehensive interpretation
-        const interpretation = getComprehensiveLifeCycleInterpretation('planetary-return', planet);
+    const interpretation = getComprehensiveLifeCycleInterpretation('planetary-return', planet);
 
+    for (const returnCycle of passes) {
         returnCycle.type = 'planetary-return';
         returnCycle.title = interpretation?.title || `${planet} Return`;
         returnCycle.description = interpretation?.overview || getReturnDescription(planet);
@@ -588,7 +706,26 @@ function calculateActualDuration(startDate: Date, endDate: Date): string {
     }
 }
 
-function getAspectCycleOrb(planet: Planet, aspectType: AspectType): number {
+/**
+ * How tight a node aspect has to be to count.
+ *
+ * The standing orbs here are deliberately wide — eight degrees for a hard
+ * aspect — because they are trying to capture a whole *period* of influence
+ * rather than a hit. That is defensible for a body and wrong for the nodes.
+ * The nodes are a computed point with no disc and no dignity, they are read
+ * tightly by every tradition that uses them at all, and eight degrees of Pluto
+ * is roughly eight years — a "transit" long enough to cover two nodal beats,
+ * which would hand the Timing section exactly the kind of unfalsifiable window
+ * it exists to avoid. Three degrees puts Pluto near three years, Saturn near
+ * six months, and Jupiter inside a season.
+ */
+const NODE_ASPECT_ORB = 3.0;
+
+function getAspectCycleOrb(planet: Planet, aspectType: AspectType, natalPoint?: Planet): number {
+    if (natalPoint === Planet.NorthNode || natalPoint === Planet.SouthNode) {
+        return NODE_ASPECT_ORB;
+    }
+
     // Wider orbs for cycles since we want to capture the entire period of influence
     const baseOrbs: Record<AspectType, number> = {
         [AspectType.Conjunction]: 8.0,
@@ -621,7 +758,34 @@ function getAspectCycleOrb(planet: Planet, aspectType: AspectType): number {
     return (baseOrbs[aspectType] || 6.0) * (planetModifiers[planet] || 1.0);
 }
 
+/**
+ * Transiting positions, memoised across the whole run.
+ *
+ * The aspect scan asks for the same position over and over: for each planet it
+ * walks the span once per natal point per aspect — six points times three
+ * aspects — so every position was computed eighteen times, and every one of
+ * those was a Swiss Ephemeris call. Widening the span was therefore eighteen
+ * times more expensive than it needed to be.
+ *
+ * Safe to keep between charts, which is what makes a bulk recache cheap: where
+ * a planet is on a given date is a fact about the sky and has nothing to do
+ * with whose chart is being computed. Only the natal points differ.
+ */
+const POSITIONS = new Map<string, { longitude: number } | null>();
+
+/** Roughly a century of weekly samples for five planets, with room to spare. */
+const POSITION_CACHE_LIMIT = 200_000;
+
 async function calculatePlanetPosition(date: Date, planet: Planet, sw: any): Promise<{ longitude: number } | null> {
+    const key = `${planet}:${date.getTime()}`;
+    if (POSITIONS.has(key)) return POSITIONS.get(key)!;
+
+    const value = await computePlanetPosition(date, planet, sw);
+    if (POSITIONS.size < POSITION_CACHE_LIMIT) POSITIONS.set(key, value);
+    return value;
+}
+
+async function computePlanetPosition(date: Date, planet: Planet, sw: any): Promise<{ longitude: number } | null> {
     try {
         const utc = DateTime.fromJSDate(date).toUTC();
         const julianDay = sw.swe_julday(

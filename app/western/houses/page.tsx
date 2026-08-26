@@ -18,7 +18,7 @@ import { formatBirth, tenantsOf } from "@/lib/charts";
 import { dominanceMode, houseCircuits, houseDominance, prominence } from "@/lib/dominance";
 import { useScoring } from "@/components/scoring-context";
 import ScoringEditor from "@/components/scoring-editor";
-import PresetSwitcher from "@/components/preset-switcher";
+import ChartPresets from "@/components/chart-presets";
 import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 import { easePoints, houseEase, quadrantOf } from "@/lib/ease";
 
@@ -218,7 +218,7 @@ function Houses({ chart }: { chart: Chart }) {
           House Positions
         </SectionHeading>
         <div className="mb-6">
-          <PresetSwitcher onEdit={() => setScoringOpen(true)} />
+          <ChartPresets onEdit={() => setScoringOpen(true)} />
         </div>
         <HousePositions
           chart={chart}

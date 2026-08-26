@@ -84,7 +84,12 @@ export default function GrowthConversion({
         onTo={() => onOpen("conversion")}
       />
 
-      <p className="mt-10 max-w-2xl text-[1.0625rem] leading-relaxed text-bone-soft">
+      {/* Centered and given room rather than left-flush at half the section's
+          width: at the container's full measure a max-w-2xl paragraph stopped
+          well short of the road above it, which reads as an accident rather
+          than a stopping point. The extra width and the indent make it read
+          as a considered pull-quote instead. */}
+      <p className="mx-auto mt-10 max-w-3xl text-[1.0625rem] leading-relaxed text-bone-soft @2xl:pl-10">
         {t.groundReading}
       </p>
 

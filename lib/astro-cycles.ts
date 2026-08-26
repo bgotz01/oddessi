@@ -104,6 +104,12 @@ function toBand(row: Row): Band {
     segments: buildSegments(row.startDate, row.endDate, row.interpretation),
     significance: row.significance,
     color: planetColor(row.planet),
+    // Carried through structurally so a consumer never has to read a band's
+    // identity back out of the label it displays.
+    kind: row.type as CycleType,
+    houseNumber: row.houseNumber ?? undefined,
+    natalPlanet: row.natalPlanet ?? undefined,
+    aspectType: row.aspectType ?? undefined,
   };
 }
 

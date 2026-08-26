@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PageTitle } from "@/components/primitives";
 import GrowthRulership from "@/components/growth-rulership";
@@ -245,6 +246,20 @@ function Growth({ chart, t }: { chart: Chart; t: Trajectory }) {
       <div className="mt-28">
         <GrowthTailwinds t={t} onOpen={setChapter} />
       </div>
+
+      {/* Timing lives on its own page.
+          It was briefly a fifth section here and it made this page incoherent:
+          the four movements above are a reading of a static axis with no dates
+          anywhere in them by design, and a transit calendar halfway down meant
+          a reader after "who am I becoming" got an ephemeris instead. The link
+          is the right size for it — this page states the trajectory, that one
+          says when it is being worked on. */}
+      <Link
+        href="/western/growth/activation"
+        className={`${T.micro} mt-24 mr-4 inline-block border border-patina-dim px-5 py-3 text-patina transition-colors hover:border-patina hover:bg-patina-deep`}
+      >
+        When is this active? →
+      </Link>
 
       {t.irregularAxis ? (
         <p className={`mt-14 border-l-2 border-ember pl-5 ${T.note}`}>

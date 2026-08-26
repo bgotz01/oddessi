@@ -28,16 +28,27 @@ import { T, tabsFor, type ChapterKey } from "@/components/growth-ui";
 function Block({
   title,
   aside,
+  accent = "patina",
   children,
 }: {
   title: string;
   aside?: string;
+  /**
+   * Patina is the drawer's default accent — every other tab's territory. The
+   * Crossing tab passes "ember" instead, the same colour as the flag on the
+   * page: it is a different kind of fact from the other three tabs (a square
+   * to the axis, not the axis itself), and sharing patina would have it read
+   * as another ordinary section rather than the thing the page flagged.
+   */
+  accent?: "patina" | "ember";
   children: ReactNode;
 }) {
   return (
     <section className="border-b border-rule px-8 py-6">
       <div className="mb-4 flex items-baseline justify-between gap-4">
-        <h4 className={`${T.micro} text-patina`}>{title}</h4>
+        <h4 className={`${T.micro} ${accent === "ember" ? "text-ember" : "text-patina"}`}>
+          {title}
+        </h4>
         {aside ? <span className={`${T.micro} text-bone-faint`}>{aside}</span> : null}
       </div>
       {children}
@@ -214,7 +225,9 @@ export default function GrowthDrawer({
                 onClick={() => setTab(x.key)}
                 className={`${T.tiny} flex-1 border-b-2 px-2 py-3 transition-colors ${
                   on
-                    ? "border-patina bg-surface text-patina"
+                    ? x.key === "crossing"
+                      ? "border-ember bg-surface text-ember"
+                      : "border-patina bg-surface text-patina"
                     : "border-transparent bg-void text-bone-faint hover:text-bone-soft"
                 }`}
               >
@@ -304,6 +317,7 @@ export default function GrowthDrawer({
               <Block
                 title="What cuts across"
                 aside={`${t.crossing.bodies.length === 1 ? "one body" : `${t.crossing.bodies.length} bodies`} · square`}
+                accent="ember"
               >
                 <div className="space-y-3">
                   {t.crossing.bodies.map((c) => (
@@ -329,6 +343,7 @@ export default function GrowthDrawer({
                   key={c.body}
                   title={c.body}
                   aside={c.interpretation.demand}
+                  accent="ember"
                 >
                   <p className={T.read}>{c.interpretation.conflict}</p>
 

@@ -51,7 +51,16 @@ const NAV: NavGroup[] = [
       // reads the birth chart and nothing else. It is the one Western page with
       // no score on it — a direction has no magnitude — which is why it stands
       // as its own entry instead of a section on Houses.
-      { href: "/western/growth", label: "Growth" },
+      // Activation is a child rather than a sibling: it is meaningless without
+      // the trajectory, and it is the only thing under Western that reads the
+      // natal chart against the future rather than on its own terms.
+      {
+        href: "/western/growth",
+        label: "Growth",
+        children: [
+          { href: "/western/growth/activation", label: "Activation" },
+        ],
+      },
       {
         href: "/western/cycles",
         label: "Cycles",

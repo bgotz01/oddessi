@@ -1,16 +1,15 @@
 "use client";
 
+import { useState } from "react";
+
 import { bodyColor } from "@/lib/bodies";
-import { bodyGlyph, signGlyph } from "@/lib/symbols";
 import {
   getHouseTitle,
   type House,
 } from "@/lib/astrology/house-categories";
 import type { Trajectory } from "@/lib/growth";
 
-import GrowthRoad, {
-  ROAD_FROM,
-} from "@/components/growth-road";
+import GrowthRoad from "@/components/growth-road";
 import GrowthCrossing from "@/components/growth-crossing";
 
 import {
@@ -70,6 +69,16 @@ import {
  * sentence that is true of this chart alone.
  */
 
+/**
+ * `formatDegreeMinute` emits a typewriter apostrophe for arcminutes. That is
+ * the right thing for a string that may be copied or parsed; on the page the
+ * prime is the correct mark, and at superscript size the difference between
+ * 29°39' and 29°39\u2032 is the difference between a stray tick and a unit.
+ */
+function prime(degree: string): string {
+  return degree.replace(/'/g, "\u2032");
+}
+
 export default function GrowthArc({
   t,
   onOpen,
@@ -82,6 +91,9 @@ export default function GrowthArc({
   // A chart stored without houses has no combo to look up, and falls back to
   // the sign-level questions the page has always had.
   const opening = t.practice.arriving?.questions ?? t.questions;
+
+  // Collapsed by default — see the doc comment above the disclosure below.
+  const [questionsOpen, setQuestionsOpen] = useState(false);
 
   return (
     <section className="@container">
@@ -99,8 +111,8 @@ export default function GrowthArc({
           ════════════════════════════════════════════════════════════════ */}
 
       <GrowthRoad
-        fromLabel="The competence"
-        toLabel="The direction"
+        fromLabel="South Node · The competence"
+        toLabel="North Node · The direction"
         from={t.arc.from}
         to={t.arc.into}
         toColor={toColor}
@@ -121,27 +133,26 @@ export default function GrowthArc({
         }
       />
 
-      {/* ── Astrological provenance ──────────────────────────────────── */}
-      <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-2 @2xl:grid-cols-2">
+      {/* ── Astrological provenance ──────────────────────────────────────
+          House and sign are the two facts a reader actually orients on, so
+          they read as one unit at the top of the scale — "H3 Libra", house
+          first, because the house is the part of life this is happening in
+          and the sign is how it is done. The degree is precision rather than
+          something to read at a glance: it sits behind them at the label
+          size, raised like an exponent so it attaches to the placement
+          without competing for the line. No glyphs — a reader who already
+          knows the South Node from a Libra dot has no use for either symbol
+          here, and for one who doesn't, an unlabelled glyph teaches nothing
+          a word doesn't already say plainer. */}
+      <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 @2xl:grid-cols-2">
         <p className={`${T.tiny} text-bone-faint`}>
-          <span
-            className="glyph mr-1.5 text-[0.8125rem]"
-            style={{
-              color: ROAD_FROM,
-            }}
-          >
-            {bodyGlyph(t.from.node)}
+          <span className="text-[0.9375rem] text-bone-soft">
+            {t.from.house ? `H${t.from.house} ` : ""}
+            {t.from.sign}
           </span>
-
-          <span className="glyph mr-1 text-[0.75rem]">
-            {signGlyph(t.from.sign)}
+          <span className="ml-1.5 align-super text-[0.625rem] text-bone-faint">
+            {prime(t.from.degree)}
           </span>
-
-          {t.from.sign} {t.from.degree}
-
-          {t.from.house
-            ? ` · H${t.from.house}`
-            : ""}
 
           <span className="mt-1 block">
             {t.from.house
@@ -153,23 +164,12 @@ export default function GrowthArc({
         </p>
 
         <p className={`${T.tiny} text-bone-faint @2xl:text-right`}>
-          <span className="glyph mr-1 text-[0.75rem]">
-            {signGlyph(t.to.sign)}
+          <span className="text-[0.9375rem] text-bone-soft">
+            {t.to.house ? `H${t.to.house} ` : ""}
+            {t.to.sign}
           </span>
-
-          {t.to.sign} {t.to.degree}
-
-          {t.to.house
-            ? ` · H${t.to.house}`
-            : ""}
-
-          <span
-            className="glyph ml-1.5 text-[0.8125rem]"
-            style={{
-              color: toColor,
-            }}
-          >
-            {bodyGlyph(t.to.node)}
+          <span className="ml-1.5 align-super text-[0.625rem] text-bone-faint">
+            {prime(t.to.degree)}
           </span>
 
           <span className="mt-1 block">
@@ -235,27 +235,42 @@ export default function GrowthArc({
           ════════════════════════════════════════════════════════════════
 
           Two poles, two columns, and as little air between them as the
-          reading survives. The earlier version stacked four label lines and
-          six questions at reading size down a half-width column, which spent
-          most of a screen on eight short sentences and made a dense reading
-          look like a landing page.
+          reading survives. The label carries both jobs at once (THE OLD MOVE
+          · CATCH IT), the questions drop to supporting size because the move
+          above them is the finding and they are how you test it, and each
+          list hangs off a hairline rule rather than whitespace.
 
-          Three things pay for that: the label carries both jobs at once (THE
-          OLD MOVE · CATCH IT), so the second row of labels is gone; the
-          questions drop to supporting size, because the move above them is
-          the finding and they are how you test it; and each list hangs off a
-          hairline rule, which groups it without needing whitespace to do the
-          same work. The rule is also what keeps the ragged column — three
-          short questions beside three long ones — reading as two lists rather
-          than as a gap.
+          Collapsed by default and named like the disclosure it is: this is
+          the deepest layer the page shows inline, six questions under two
+          moves, and a reader scanning the four sections should not have to
+          scroll past all of it to reach Conversion. "Questions" says what is
+          behind the toggle without repeating "old move" / "new move", which
+          are the columns' own labels once it opens.
       */}
 
-      <button
-        type="button"
-        onClick={() => onOpen("arc")}
-        className="group mt-12 block w-full border-t border-rule pt-6 text-left"
-      >
-        <div className="grid gap-x-14 gap-y-8 @2xl:grid-cols-2">
+      <div className="mt-12 border-t border-rule pt-6">
+        <button
+          type="button"
+          onClick={() => setQuestionsOpen((value) => !value)}
+          aria-expanded={questionsOpen}
+          className="group flex items-baseline gap-3 text-left"
+        >
+          <span
+            aria-hidden
+            className="glyph inline-block shrink-0 text-[0.625rem] text-patina-dim transition-transform group-hover:text-patina"
+            style={questionsOpen ? { transform: "rotate(90deg)" } : undefined}
+          >
+            ▸
+          </span>
+          <span
+            className={`${T.tiny} text-bone-faint transition-colors group-hover:text-bone-soft`}
+          >
+            Questions
+          </span>
+        </button>
+
+        {questionsOpen ? (
+        <div className="mt-6 grid gap-x-14 gap-y-8 @2xl:grid-cols-2">
           {/* Old / practised reflex */}
           <div>
             <p className={`${T.tiny} text-bone-faint`}>
@@ -313,11 +328,16 @@ export default function GrowthArc({
             </ul>
           </div>
         </div>
+        ) : null}
 
-        <span className={`${T.tiny} mt-7 block text-bone-faint transition-colors group-hover:text-patina`}>
-          Explore the full axis →
-        </span>
-      </button>
+        <button
+          type="button"
+          onClick={() => onOpen("arc")}
+          className={`${T.tiny} mt-7 block w-full text-center text-bone-faint transition-colors hover:text-patina`}
+        >
+          Full arc →
+        </button>
+      </div>
     </section>
   );
 }
