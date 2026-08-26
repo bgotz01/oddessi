@@ -39,15 +39,21 @@
 
 import { getHouseCoreThemes, getHouseTitle, type House } from "@/lib/astrology/house-categories";
 import {
+  bandLabel,
+  trendAt,
+  type IntensityPoint,
+} from "./activation-intensity";
+import { gradeLabel, gradeSummary, type Grade } from "./activation-windows";
+import {
   PROCESS,
   UNKNOWN_PROCESS,
   orientationFrame,
-  orientationLabel,
+  orientationShort,
   type Orientation,
 } from "./activation-interpretations";
 import type { Activation } from "./activation";
 import type { ActivationWindow } from "./activation-windows";
-import { beatLabel } from "./timing";
+import { beatLabel, type NodalBeat } from "./timing";
 import type { Trajectory } from "./types";
 
 export interface ActivationReading {
@@ -126,6 +132,370 @@ export function classificationOf(grade: string): string {
   return CLASSIFICATION[grade] ?? "Activation";
 }
 
+// ─── The reading above the chart ─────────────────────────────────────────────
+
+/**
+ * What a caveat has to say every time an index is shown.
+ *
+ * One constant rather than a sentence per grade, because it is the same
+ * disclaimer in every case and a disclaimer that varies reads as part of the
+ * finding. The model measures the sky's arrangement over a chart; what a
+ * person does inside that arrangement is not in the data, and no amount of
+ * convergence makes it so.
+ */
+export const ACTIVATION_CAVEAT =
+  "This does not predict an event, and it is not a verdict on whether you are on the right path. It measures how hard the growth direction is being pressed — the same reading falls on someone already living it and on someone who is not, and only your own history decides which.";
+
+/**
+ * The reading above the chart, as an instrument panel rather than as prose.
+ *
+ * Five values and three reasons. It was four paragraphs once, and paragraphs
+ * are the wrong instrument for this job: a reader arriving at a chart of their
+ * own life is scanning, not reading, and a sentence that has to be read to
+ * yield "mild pressure" yields nothing at a glance. Every field below is a
+ * value a reader can take in without a verb, and the prose that used to carry
+ * them survives one disclosure down for whoever wants it.
+ *
+ * Composed here rather than in the component for the reason the whole
+ * `lib/growth` split exists — a reading that comes out wrong should be wrong
+ * in one place, arguable, and testable without rendering anything. The
+ * component that shows this chooses no words at all.
+ *
+ * The five are chosen not to overlap, which took some doing because three of
+ * them sound alike:
+ *
+ *   PRESSURE   how hard the direction is pressed  — the index, banded
+ *   DIRECTION  which way it points               — Forward, Return, Crossroads
+ *   TREND      where that pressure is going, and where its peak falls
+ *   SEASON     what configuration it is          — Active, Convergence, …
+ *   WINDOW     how long it stays relevant
+ *
+ * PRESSURE and DIRECTION are independent, and keeping them so is the whole
+ * honesty of the panel. A 90 says a great deal is converging and NOTHING about
+ * whether the person is on their path: 90 · Forward is heavy pressure toward
+ * the emerging side, 90 · Return is the familiar side arriving in quantity,
+ * 90 · Crossroads is both at once. The astrology cannot see that one reader
+ * has spent ten years already living the forward direction and another has
+ * not, so it must not claim to — the index measures pressure, never alignment,
+ * and the caveat says so wherever the number appears.
+ *
+ * PRESSURE and SEASON are the pair most likely to be read as one scale, and
+ * they are not: a dense convergence can implicate the trajectory more than a
+ * narrowly-defined turning point. Two cells, two vocabularies.
+ *
+ * Deliberately NOT "Growth: high". The growth direction is a fixed feature of
+ * the chart and is never more or less present; what varies is the timing
+ * pressure on it, and a label reading "growth: low" would say something the
+ * model explicitly denies.
+ */
+export interface ActivationCell {
+  /** The value, in one or two words. What a reader takes at a glance. */
+  value: string;
+  /** The evidence for it, small: "57 / 100", "2026–2028". */
+  note: string;
+  /** 0–100, when the value has a magnitude worth drawing as a bar. */
+  meter?: number;
+}
+
+export interface ActivationDriver {
+  /** Planet name for a transit, or null for the shared rhythm. */
+  planet: string | null;
+  /** "Commitment", "Cycle checkpoint". */
+  label: string;
+  /**
+   * The house the planet is transiting while it does this.
+   *
+   * The sky's own location for the event, and the reason two people with the
+   * same nodal axis get different years out of the same transit. Null for the
+   * shared rhythm, which is not a body and is nowhere, and for a contact at
+   * the edge of the cached house transits — where it has to read as "not
+   * known" rather than as "nowhere".
+   */
+  house: number | null;
+  /** How strong the evidence is: direct, or supporting. */
+  note: string;
+  /** What this process does to a trajectory, in one clause. */
+  gloss: string;
+  /**
+   * The contact itself: what it touches, by what aspect, over which years.
+   *
+   * Shown only when a reader opens the row. It is the most technical string on
+   * the page and it belongs at the bottom of the ladder — but it has to be
+   * reachable, and it has to hold still while it is read, which is exactly
+   * what it could not do while it followed the cursor across the chart.
+   */
+  technical: string;
+}
+
+export interface ActivationNow {
+  /** The season being read, so a click can open it. Null in a quiet stretch. */
+  window: ActivationWindow | null;
+  /** Whether that season is the one in force at this age. */
+  isNow: boolean;
+  grade: Grade;
+  orientation: Orientation | null;
+  /** How hard the direction is being pressed. Says nothing about alignment. */
+  pressure: ActivationCell;
+  /** Which way the pressure points. Never null: "—" when nothing is running. */
+  direction: ActivationCell;
+  /** When the season is strongest, as a year, and how far off that is. */
+  peak: ActivationCell;
+  season: ActivationCell;
+  span: ActivationCell | null;
+  /** What is causing it. Three at most, direct contacts first. */
+  drivers: ActivationDriver[];
+  /** The prose, for the disclosure. Never shown by default. */
+  detail: {
+    summary: string;
+    movement: string | null;
+    question: string | null;
+    caveat: string;
+  };
+  /** "40–42" and "2026–2028", for the panel's own header. */
+  ages: string;
+  years: string;
+  /** The next season worth reading, whether or not one is running now. */
+  next: { window: ActivationWindow; ages: string; inYears: number } | null;
+}
+
+/**
+ * The contact itself, in the grammar it actually takes.
+ *
+ * A direct hit IS its target and takes the aspect as a preposition — "square
+ * the nodal axis". Everything else ACTIVATES a target and takes "on". A house
+ * transit is its own target and stops there, or the row reads "H9 · on H9".
+ */
+function contact(a: Activation): string {
+  const aspect = a.aspect?.split(" ")[1];
+  const relation =
+    aspect === "Conjunction"
+      ? "conjunct"
+      : aspect === "Opposition"
+        ? "opposite"
+        : aspect === "Square"
+          ? "square"
+          : null;
+  if (relation) return `${relation} ${a.targetShort}`;
+  return a.kind === "house" ? "house transit" : `on ${a.targetShort}`;
+}
+
+/** "41" or "38–41", collapsing a season that opens and closes in one year. */
+function ageRange(from: number, to: number): string {
+  const a = Math.round(from);
+  const b = Math.round(to);
+  return a === b ? `${a}` : `${a}–${b}`;
+}
+
+/**
+ * A duration a person can hold.
+ *
+ * Months under a year, one decimal up to three, whole years above that. "In
+ * 11.0 years" is a false precision on a model that resolves to the quarter and
+ * reads as a countdown; "in 11 years" says the same thing and claims what it
+ * can support. The exact years travel in the note beside it either way.
+ */
+function length(years: number): string {
+  if (years < 1) return `${Math.max(1, Math.round(years * 12))} months`;
+  if (years < 3) return `${years.toFixed(1)} years`;
+  return `${Math.round(years)} years`;
+}
+
+/** The season's strongest sample, and how far off it is from today. */
+function peakPhrase(
+  w: ActivationWindow,
+  points: IntensityPoint[],
+  age: number,
+): { age: number; relative: string } | null {
+  const inside = points.filter((p) => p.age >= w.ageStart && p.age <= w.ageEnd);
+  if (inside.length === 0) return null;
+  const top = inside.reduce((best, p) => (p.value > best.value ? p : best));
+  const away = top.age - age;
+  return {
+    age: top.age,
+    relative:
+      Math.abs(away) < 0.5
+        ? "now"
+        : away > 0
+          ? `in ${length(away)}`
+          : `${length(-away)} ago`,
+  };
+}
+
+export function readActivationNow({
+  window: w,
+  isNow,
+  points,
+  beats,
+  age,
+  ahead,
+  yearOfAge,
+}: {
+  /** The season being read. Null in a quiet stretch with nothing selected. */
+  window: ActivationWindow | null;
+  /** Whether that season is the one running at this age. */
+  isNow: boolean;
+  /** The sampled curve, for the peak inside the season and the trend. */
+  points: IntensityPoint[];
+  beats: NodalBeat[];
+  age: number;
+  ahead: ActivationWindow[];
+  yearOfAge: (age: number) => number;
+}): ActivationNow {
+  const frame = w ? orientationFrame(w.orientation) : null;
+
+  /**
+   * How much pressure to report, which depends on WHEN is being read.
+   *
+   * For the season in force it is the value at this moment, because that is
+   * what the reader is living; for any other season it is the season's own
+   * peak, because "the value right now" is meaningless for a stretch of years
+   * that has not started. The two are different questions and reporting the
+   * first for a future window would print a number from a different decade.
+   */
+  const here = points.reduce<IntensityPoint | null>(
+    (best, p) =>
+      !best || Math.abs(p.age - age) < Math.abs(best.age - age) ? p : best,
+    null,
+  );
+  const value = isNow ? (here?.value ?? 0) : (w?.activation ?? 0);
+
+  /**
+   * What is causing it: the process, not the planet.
+   *
+   * "Commitment" is the claim and "Saturn" is the evidence for it, so the
+   * planet rides along as a glyph rather than as the label. Direct contacts
+   * lead, then the longest-running, because a contact on the axis itself is a
+   * different order of claim from one on the machinery around it.
+   */
+  const seen = new Set<string>();
+  const drivers: ActivationDriver[] = [];
+  for (const a of [...(w?.activations ?? [])].sort(
+    (x, y) =>
+      Number(y.direct) - Number(x.direct) ||
+      y.ageEnd - y.ageStart - (x.ageEnd - x.ageStart),
+  )) {
+    if (seen.has(a.planet) || drivers.length === 3) continue;
+    seen.add(a.planet);
+    const fn = PROCESS[a.planet] ?? UNKNOWN_PROCESS;
+    drivers.push({
+      planet: a.planet,
+      label: fn.label,
+      house: a.through?.house ?? null,
+      note: a.direct ? "direct" : "supporting",
+      gloss: fn.pressure,
+      technical: [
+        a.through ? `H${a.through.house}` : null,
+        // The cache spells an aspect "Saturn Conjunction North Node", so the
+        // relation is the SECOND word — taking the last one printed "node".
+        contact(a),
+        `${a.start.slice(0, 4)}–${a.end.slice(0, 4)}`,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    });
+  }
+
+  /** The shared rhythm, when one of its checkpoints falls in the season. */
+  const beat = w
+    ? beats.find((b) => b.age >= w.ageStart - 0.5 && b.age <= w.ageEnd + 0.5)
+    : undefined;
+  if (beat) {
+    drivers.push({
+      planet: null,
+      label: "Cycle checkpoint",
+      house: null,
+      note: "shared",
+      gloss:
+        "the recurring milestone of the 18.6-year nodal cycle, at the same ages for everybody",
+      technical: `${beatLabel(beat.kind).toLowerCase()} · age ${Math.round(beat.age)} · ${beat.windowStart.slice(0, 7)}–${beat.windowEnd.slice(0, 7)}`,
+    });
+  }
+
+  const upcoming = ahead.find((wnd) => wnd.id !== w?.id) ?? null;
+  const grade = w?.grade ?? "background";
+  const peak = w ? peakPhrase(w, points, age) : null;
+
+  /**
+   * Where the season's strongest moment falls, relative to now.
+   *
+   * One question, asked the same way of every season, which is what the row
+   * before it could not manage: it reported a slope for the season in force
+   * and "Ahead" or "Past" for every other, and those are not the same kind of
+   * answer. Worse, the second one was not an answer at all — whether a period
+   * is before or after today is what its years already say, and dressing that
+   * up as a trend made a category out of the reader's position in time.
+   *
+   * The slope survives where it means something: at today's date, inside the
+   * season being lived. Rising and falling are readings of a line and nothing
+   * more — an earlier draft called them Approach and Aftermath, which sounds
+   * better and claims a developmental shape the model cannot see.
+   */
+  const peakYear = peak ? yearOfAge(peak.age) : null;
+  const slope = isNow ? trendAt(points, age) : null;
+  const trend: ActivationCell = {
+    // The slope rides on the year as an arrow rather than as a word beneath
+    // it: the panel is two columns wide and "6 months ago · falling" wraps,
+    // which costs a line on every reading to say what "↓" says in a glyph.
+    value: peakYear
+      ? `${peakYear}${slope === "rising" ? " ↑" : slope === "easing" ? " ↓" : ""}`
+      : "—",
+    note: peak?.relative ?? "no peak in the cached span",
+  };
+
+  return {
+    window: w,
+    isNow,
+    grade,
+    orientation: w?.orientation ?? null,
+    pressure: {
+      value: bandLabel(value),
+      // Which number this is, every time it is shown. The curve reports the
+      // index at a moment and this cell reports one of two different things —
+      // the value at today's date for the season in force, the season's own
+      // highest point for any other — and a bare "85 / 100" beside a line
+      // reading 60 looks like one of them is wrong.
+      note: `${value} / 100 · ${isNow ? "right now" : "at its peak"}`,
+      meter: value,
+    },
+    direction: frame
+      ? { value: frame.short, note: frame.territory }
+      : { value: "—", note: "nothing pointing either way" },
+    peak: trend,
+    season: {
+      value: gradeLabel(grade),
+      // "independent pressures" is the precise phrase and it wraps to two
+      // lines in a half-width column on every single reading. The distinction
+      // it carries — distinct slow planets, not distinct contacts — is made in
+      // the interpretation, which has room for it.
+      note: w
+        ? `${w.pressures} pressure${w.pressures === 1 ? "" : "s"}`
+        : "nothing converging",
+    },
+    span: w
+      ? {
+          value: length(w.ageEnd - w.ageStart),
+          note: `${w.start.slice(0, 4)}–${w.end.slice(0, 4)}`,
+        }
+      : null,
+    drivers,
+    detail: {
+      summary: gradeSummary(grade),
+      movement: frame ? `${frame.plain} ${frame.experience}` : null,
+      question: frame ? frame.question : null,
+      caveat: ACTIVATION_CAVEAT,
+    },
+    ages: w ? ageRange(w.ageStart, w.ageEnd) : "",
+    years: w ? `${w.start.slice(0, 4)}–${w.end.slice(0, 4)}` : "",
+    next: upcoming
+      ? {
+          window: upcoming,
+          ages: ageRange(upcoming.ageStart, upcoming.ageEnd),
+          inYears: Math.max(0, Math.round(upcoming.ageStart - age)),
+        }
+      : null,
+  };
+}
+
 /**
  * The two-word label for a season, without composing a whole reading.
  *
@@ -142,7 +512,10 @@ export function windowLabel(w: ActivationWindow): {
   const fn = lead
     ? (PROCESS[lead.planet] ?? UNKNOWN_PROCESS)
     : UNKNOWN_PROCESS;
-  const direction = orientationLabel(w.orientation);
+  // The panel's word, not the long one. "Release · Pressure to Change" in the
+  // drawer over "Crossroads" in the panel is two names for one season on one
+  // page, and the short form is the one the rest of the interface teaches.
+  const direction = orientationShort(w.orientation);
   return { process: fn.label, direction, label: `${fn.label} · ${direction}` };
 }
 

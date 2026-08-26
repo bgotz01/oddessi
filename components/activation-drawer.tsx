@@ -12,7 +12,7 @@ import {
   type ActivationWindow,
   type Trajectory,
 } from "@/lib/growth";
-import { GRADE_TINT } from "@/components/activation-map";
+import { GRADE_TINT } from "@/components/activation-seasons";
 import { T } from "@/components/growth-ui";
 
 /**

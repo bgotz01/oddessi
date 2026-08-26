@@ -2,21 +2,19 @@
 
 "use client";
 
-import { bodyColor } from "@/lib/bodies";
-import { bodyGlyph } from "@/lib/symbols";
+import { useState } from "react";
 import {
   bandLabel,
-  beatLabel,
-  classificationOf,
-  windowLabel,
+  gradeLabel,
+  orientationShort,
+  INGREDIENT_GLOSS,
   INGREDIENT_LABEL,
   SHARES,
-  type Activation,
   type ActivationWindow,
   type Ingredient,
   type IntensityPoint,
 } from "@/lib/growth";
-import { GRADE_TINT } from "@/components/activation-map";
+import { GRADE_TINT } from "@/components/activation-seasons";
 import { T } from "@/components/growth-ui";
 
 /**
@@ -60,15 +58,23 @@ export function ReadoutStrip({
   return (
     <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-1 border-b border-rule pb-2.5">
       <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        {/* The same five words the panel above uses. It carried a composed
+            title and a classification — "Commitment · Pull Forward",
+            "locally active" — which was a second vocabulary for the same
+            facts, three inches under the first. */}
         <span
           className="text-[1.0625rem] leading-tight font-light"
           style={{ color: w ? GRADE_TINT[w.grade] : "var(--color-bone-faint)" }}
         >
-          {w ? windowLabel(w).label : "No active season"}
+          {w ? gradeLabel(w.grade) : "Quiet"}
         </span>
+        {w ? (
+          <span className={`${T.tiny} text-bone-soft`}>
+            {orientationShort(w.orientation)}
+          </span>
+        ) : null}
         <span className={`${T.tiny} text-bone-faint`}>
-          {point ? bandLabel(point.value) : "—"}
-          {w ? ` · ${classificationOf(w.grade).toLowerCase()}` : ""}
+          {point ? bandLabel(point.value).toLowerCase() : "—"}
         </span>
       </p>
 
@@ -81,100 +87,58 @@ export function ReadoutStrip({
 }
 
 /**
- * One row per planet: where it is, and what it is touching.
+ * The ingredients behind one value, on request.
  *
- * Compressed hard, twice over. The house carried its full title — "in H8
- * TRANSFORMATION & SHARED RESOURCES" — which is four words of chart furniture
- * per row before the row says anything; the number is the part a reader
- * navigates by. And a house transit was printing its target too, so Saturn
- * crossing the ninth read "H9 → House 9 — Belief & Meaning", the same fact
- * twice with an arrow between.
- *
- * A house transit IS its target, so those rows stop at the house. Everything
- * else names what it touches, because for a ruler or a node contact that is
- * the only part explaining why the planet is on this page at all.
- */
-export function Contributors({ point }: { point: IntensityPoint | null }) {
-  const byPlanet = new Map<string, Activation>();
-  for (const a of point?.activations ?? []) {
-    const held = byPlanet.get(a.planet);
-    if (!held || (a.direct && !held.direct)) byPlanet.set(a.planet, a);
-  }
-  const rows = [...byPlanet.values()];
-
-  return (
-    // One flowing row, wrapping to a second when there are many, and reserving
-    // the height of both either way. Reserving it is what lets this sit ABOVE
-    // the chart: the rows change with every hover, and anything that resizes
-    // above the chart drags the chart with it.
-    <ul className="mt-5 flex min-h-[3.5rem] flex-wrap items-baseline gap-x-7 gap-y-2">
-      {rows.map((a) => (
-        <li key={a.planet} className="flex items-baseline gap-x-2">
-          <span
-            className="glyph text-[1.0625rem]"
-            style={{ color: a.color ?? bodyColor(a.planet) }}
-          >
-            {bodyGlyph(a.planet)}
-          </span>
-          <span className="text-[0.9375rem] text-bone">{a.planet}</span>
-          {a.through ? (
-            <span className={`${T.tiny} text-bone-faint`}>
-              H{a.through.house}
-            </span>
-          ) : null}
-          {a.kind === "house" ? null : (
-            <span className="text-[0.875rem] text-bone-soft">
-              → {a.targetShort}
-            </span>
-          )}
-        </li>
-      ))}
-      {point?.beats.map((b) => (
-        <li key={b.date} className={`${T.tiny} text-patina`}>
-          nodal rhythm · {beatLabel(b.kind).toLowerCase()}
-        </li>
-      ))}
-      {rows.length === 0 && !point?.beats.length ? (
-        <li className={T.note}>
-          Nothing is pressing on the axis here. The trajectory is still in
-          force; the timing is quiet.
-        </li>
-      ) : null}
-    </ul>
-  );
-}
-
-/**
- * The ingredients behind one value.
+ * A score whose composition can be inspected is an argument; one whose
+ * composition is hidden is a horoscope with a decimal point — so this cannot
+ * be dropped, and it also cannot lead. Six bars under a chart answer a
+ * question about the model to a reader still working out what the model is
+ * for, and they were the last thing on screen before the reading arrived
+ * above it.
  *
  * Bars rather than numbers, because the question is "what is carrying this"
  * and proportion answers it faster than six figures. Each bar is drawn against
  * its own maximum share, so a full directness bar means directness is doing
- * everything it can — not that it is 30% of anything.
+ * everything it can — not that it is 30% of anything. Each carries the
+ * sentence saying what it counts, because "Directness · 24" is only an
+ * argument to someone who already knows what directness means here.
  */
 export function Breakdown({ point }: { point: IntensityPoint }) {
+  const [open, setOpen] = useState(false);
   const keys = Object.keys(SHARES) as Ingredient[];
+
   return (
-    <div className="mt-5 flex flex-wrap items-stretch gap-x-8 gap-y-4">
-      {keys.map((k) => (
-        // Each cell is a column with the bar pinned to the bottom. Laid out
-        // top-down, "Independent pressures" wrapped to two lines while its
-        // neighbours took one, and its bar sat a line lower than the rest —
-        // which is exactly the comparison the bars exist to make. Pinning
-        // costs one line of empty space and buys a straight baseline.
-        <div
-          key={k}
-          className="flex min-w-[7.5rem] grow basis-0 flex-col justify-between"
-        >
-          <p className={`${T.tiny} text-bone-faint`}>{INGREDIENT_LABEL[k]}</p>
-          <div className="mt-2 h-1 w-full bg-rule">
-            <div
-              className="h-1 bg-patina-dim"
-              style={{ width: `${(point.parts[k] / SHARES[k]) * 100}%` }}
-            />
-          </div>
+    <div className="mt-6">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`${T.tiny} text-bone-faint transition-colors hover:text-bone`}
+      >
+        {open
+          ? "Hide what the number is made of ↑"
+          : `Why the intensity is ${point.value} ↓`}
+      </button>
+
+      {open ? (
+        <div className="mt-5 flex flex-wrap items-stretch gap-x-8 gap-y-6">
+          {keys.map((k) => (
+            <div key={k} className="min-w-[9rem] grow basis-0">
+              <p className={`${T.tiny} text-bone-faint`}>
+                {INGREDIENT_LABEL[k]}
+              </p>
+              <div className="mt-2 h-1 w-full bg-rule">
+                <div
+                  className="h-1 bg-patina-dim"
+                  style={{ width: `${(point.parts[k] / SHARES[k]) * 100}%` }}
+                />
+              </div>
+              <p className={`${T.note} mt-2 text-[0.8125rem]`}>
+                {INGREDIENT_GLOSS[k]}
+              </p>
+            </div>
+          ))}
         </div>
-      ))}
+      ) : null}
     </div>
   );
 }

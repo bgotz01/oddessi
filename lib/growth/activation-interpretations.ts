@@ -297,6 +297,20 @@ export interface OrientationEntry {
    * in it is one more thing standing between a reader and their own life.
    */
   plain: string;
+  /** How the period tends to behave, following `plain`. Never an event. */
+  experience: string;
+  /**
+   * The developmental question the period puts, in the second person.
+   *
+   * The most valuable line on the page and the hardest to keep honest. It is
+   * not a prediction and not advice: it is the question this configuration
+   * makes it possible to answer, and the reason it belongs to the ORIENTATION
+   * rather than to the planet is that the planet says how the pressure arrives
+   * while the orientation says what it is pressing on. A question composed per
+   * planet as well would be twenty questions maintained by hand and no better
+   * than four asked precisely.
+   */
+  question: string;
   /** What that means, in one clause. */
   gloss: string;
   /** Completes a title: "A break …". */
@@ -335,6 +349,10 @@ export const ORIENTATION: Record<Orientation, OrientationEntry> = {
     territory: "New territory",
     plain:
       "Life pulls you toward qualities, roles or experiences you are still learning to inhabit.",
+    experience:
+      "The work is to practise the unfamiliar thing badly for a while, rather than to admire it from inside what you are already good at.",
+    question:
+      "Where are you being asked to tolerate being a beginner?",
     gloss:
       "life is pulling you toward the direction you are growing into",
     titleTail: "toward the emerging path",
@@ -352,6 +370,10 @@ export const ORIENTATION: Record<Orientation, OrientationEntry> = {
     territory: "Old territory",
     plain:
       "Familiar patterns, people or circumstances come back round and ask to be reconsidered.",
+    experience:
+      "What comes back is material rather than a destination — being wanted for it again is real, and it is not the same thing as a direction.",
+    question:
+      "What old pattern is asking to be understood differently rather than repeated?",
     gloss:
       "something from your established way of being becomes relevant again",
     titleTail: "of the ground you came from",
@@ -369,6 +391,10 @@ export const ORIENTATION: Record<Orientation, OrientationEntry> = {
     territory: "Internal conflict",
     plain:
       "The familiar path and the emerging one pull against each other, and neither settles it alone.",
+    experience:
+      "This tends to feel less like a clear new beginning than like having to choose what you are willing to leave behind.",
+    question:
+      "What are you continuing because it is genuinely right for you, and what are you continuing because it is familiar?",
     gloss:
       "your existing way of navigating the growth tension is being challenged",
     titleTail: "across the whole axis",
@@ -386,6 +412,10 @@ export const ORIENTATION: Record<Orientation, OrientationEntry> = {
     territory: "Two pressures at once",
     plain:
       "Both the familiar path and the emerging one are under pressure, from different directions and at the same time.",
+    experience:
+      "The two pressures answer to different things, and averaged into one cautious middle they produce motion without direction.",
+    question:
+      "Which of these two pressures is actually yours to answer first?",
     gloss:
       "both ends are under pressure, from different directions at once",
     titleTail: "on both ends of the axis",

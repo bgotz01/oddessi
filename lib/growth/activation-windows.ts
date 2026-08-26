@@ -85,6 +85,31 @@ export function gradeMeaning(g: Grade): string {
 }
 
 /**
+ * The same fact said to the person whose chart it is.
+ *
+ * `GRADE_MEANING` explains the category to somebody deciding what a legend
+ * means; this one opens a reading, and the difference is the address. Both
+ * describe how much evidence converges and neither describes a life — "you are
+ * in a period of concentrated developmental pressure" is a statement about the
+ * sky's arrangement over a chart, and the caveat that follows it in the
+ * reading says so in as many words.
+ */
+const GRADE_SUMMARY: Record<Grade, string> = {
+  background:
+    "Nothing unusual is pressing on your growth direction just now. It is running, as it always is, without extra weight on it.",
+  active:
+    "You are in a period of mild developmental pressure — one signal is engaging your growth direction, or several are working on the structures around it.",
+  convergence:
+    "You are in a period of concentrated developmental pressure. Several independent cycles are engaging the same part of your chart at once.",
+  "turning-point":
+    "You are in a period of unusually concentrated developmental pressure, and one of the signals is landing on your growth direction itself rather than around it.",
+};
+
+export function gradeSummary(g: Grade): string {
+  return GRADE_SUMMARY[g];
+}
+
+/**
  * Label precedence when two runs merge — NOT a strength scale.
  *
  * When a sliver is absorbed into a neighbour something has to decide which

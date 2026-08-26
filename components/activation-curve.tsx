@@ -4,12 +4,11 @@
 
 import { useMemo, useState } from "react";
 import {
-  windowLabel,
   type ActivationWindow,
   type IntensityCurve,
   type IntensityPoint,
+  type NodalBeat,
 } from "@/lib/growth";
-import { GRADE_TINT } from "@/components/activation-map";
 import {
   CurveGrid,
   YearTicks,
@@ -19,16 +18,9 @@ import {
   VIEW_FROM_YEAR,
   W,
 } from "@/components/activation-axis";
-import {
-  Breakdown,
-  Contributors,
-  ReadoutStrip,
-} from "@/components/activation-readout";
-import {
-  GradeKey,
-  SeasonBand,
-  SeasonGradient,
-} from "@/components/activation-seasons";
+import { Breakdown, ReadoutStrip } from "@/components/activation-readout";
+import { SeasonGradient, GRADE_TINT } from "@/components/activation-seasons";
+import ActivationStrip from "@/components/activation-strip";
 import { T } from "@/components/growth-ui";
 
 /**
@@ -60,9 +52,12 @@ import { T } from "@/components/growth-ui";
  *
  *   THE CURVE   how strongly the trajectory is implicated
  *   THE SEASONS which stretches are named periods, and what kind — carried by
- *               the colour of the line itself and banded beneath it, because
- *               a season is a span of years and a caption over a dot said it
- *               was a moment
+ *               the colour of the line itself, because a season is a span of
+ *               years and a caption over a dot said it was a moment. The
+ *               boundaries are read off the whole-life strip above the plot,
+ *               which is the page's one row of graded bars; a second row under
+ *               this axis was the same claim a third time, after the wash and
+ *               the line's own hue.
  *   THE LANES   which transits are responsible
  *   THE DRAWER  what the period is asking
  *
@@ -78,6 +73,7 @@ import { T } from "@/components/growth-ui";
 export default function ActivationCurve({
   curve,
   windows,
+  beats,
   age,
   lifespan,
   dataUntilAge,
@@ -88,6 +84,8 @@ export default function ActivationCurve({
 }: {
   curve: IntensityCurve;
   windows: ActivationWindow[];
+  /** Passed straight through to the strip, which draws them. */
+  beats: NodalBeat[];
   age: number;
   lifespan: number;
   /** Age at which the cached ephemeris runs out. */
@@ -195,16 +193,17 @@ export default function ActivationCurve({
 
   return (
     <div className="mt-10">
-      <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-2">
-        <p className={`${T.tiny} text-bone-faint`}>Growth intensity · 0–100</p>
-        <GradeKey />
-      </div>
+      <p className={`${T.tiny} text-bone-faint`}>Growth intensity · 0–100</p>
 
-      {/* The reading, then who is causing it, then the chart. The planets were
-          above the reading, which put the evidence before the claim. */}
+      {/* What the pointer is on, and nothing else.
+          A row of planets with their houses and targets used to sit here,
+          following the cursor. It was the most technical thing on the page in
+          the least stable place: it changed on every movement, could not be
+          pointed at, and answered a question — which planet, on what — that
+          only makes sense about a period a reader has chosen. That evidence
+          now lives in the panel beside the chart, where it holds still and can
+          be opened. */}
       <ReadoutStrip point={shown} window={shownWindow} />
-
-      <Contributors point={shown} />
 
       <svg
         viewBox={`0 0 ${W} ${H}`}
@@ -247,16 +246,6 @@ export default function ActivationCurve({
         <CurveGrid y={y} />
 
         <YearTicks years={years} x={x} ageOfYear={ageOfYear} />
-
-        <SeasonBand
-          windows={windows}
-          x={x}
-          viewFrom={viewFrom}
-          viewTo={viewTo}
-          selected={selected}
-          hovered={shownWindow}
-          onSelect={onSelect}
-        />
 
         {/* Past the ephemeris there is nothing to compute from, and the line
             falls to almost nothing — which reads as a quiet old age rather
@@ -306,59 +295,37 @@ export default function ActivationCurve({
           strokeLinejoin="round"
         />
 
-        {/* Peaks, captioning the season they fall in. The peak is where the
-            words FIT — the extent they are true of is the wash beneath them
-            and the segment in the band below, which is what stops a two-line
-            label over a dot from reading as a claim about one afternoon. */}
-        {/* Peaks are labelled in ordinary English and nothing else.
-            "TURNING POINT" used to sit here and it should not have: a turning
-            point is an interpretation of a life, not an observation of a sky,
-            and printing it on a chart asserts an event nobody can see from a
-            chart. What the model can say is what kind of process is running
-            and which way it points — Transformation · Pull Forward — with the
-            index beneath it. The classification survives, hedged, in the
-            readout and the drawer, where there is room to say it carefully. */}
+        {/* Peaks, marked and measured — not named.
+            Two lines of composed reading used to sit over each dot,
+            "TRANSFORMATION / pressure to change", which is an interpretation
+            of a life printed on a drawing of a sky, and the same words are
+            what the drawer says at length when a period is actually opened.
+            What belongs on the chart is where the line tops out and how high:
+            the grade and the years are the caption row under the bars, and the
+            reading is one click away. */}
         {curve.peaks
           .filter((pk) => pk.age >= viewFrom && pk.age <= viewTo)
           .map((pk) => {
-          const w = windowAt(pk.age);
-          const tint = w ? GRADE_TINT[w.grade] : "var(--color-bone-faint)";
-          const label = w ? windowLabel(w) : null;
-          // Centred labels run off both ends of the plot — the span reaches
-          // birth and age ninety now, so peaks genuinely sit at the edges and
-          // "TRANSFORMATION" was being cut in half at the right. Anchoring
-          // turns the label inward instead of clipping it.
-          const px = x(pk.age);
-          const anchor =
-            px > W - 90 ? "end" : px < PAD.left + 90 ? "start" : "middle";
-          return (
-            <g key={pk.age}>
-              <circle cx={px} cy={y(pk.value)} r={3} fill={tint} />
-              <text
-                x={px}
-                y={y(pk.value) - 19}
-                textAnchor={anchor}
-                fill={tint}
-                className="datum"
-                fontSize={9}
-                letterSpacing={1.3}
-              >
-                {(label?.process ?? "PEAK").toUpperCase()}
-              </text>
-              <text
-                x={px}
-                y={y(pk.value) - 9}
-                textAnchor={anchor}
-                fill="var(--color-bone-faint)"
-                className="datum"
-                fontSize={8}
-                letterSpacing={1.1}
-              >
-                {label ? label.direction.toLowerCase() : pk.value}
-              </text>
-            </g>
-          );
-        })}
+            const w = windowAt(pk.age);
+            const tint = w ? GRADE_TINT[w.grade] : "var(--color-bone-faint)";
+            const px = x(pk.age);
+            return (
+              <g key={pk.age}>
+                <circle cx={px} cy={y(pk.value)} r={3} fill={tint} />
+                <text
+                  x={px}
+                  y={y(pk.value) - 9}
+                  textAnchor="middle"
+                  fill="var(--color-bone-faint)"
+                  className="datum"
+                  fontSize={8.5}
+                  letterSpacing={0.8}
+                >
+                  {pk.value}
+                </text>
+              </g>
+            );
+          })}
 
         {age > viewFrom && age < viewTo ? (
           <>
@@ -453,39 +420,25 @@ export default function ActivationCurve({
         ) : null}
       </svg>
 
+      {/* The seasons, on the same axis and a couple of pixels beneath it. The
+          line says how much; these say what configuration, and where it starts
+          and stops. Two readings of one series, drawn as one object. */}
+      <ActivationStrip
+        windows={windows}
+        beats={beats}
+        age={age}
+        viewFrom={viewFrom}
+        viewTo={viewTo}
+        selected={selected}
+        onSelect={onSelect}
+      />
+
       {/* What the number is made of, directly under the chart and at a fixed
           height. It sat below the contributor rows, which grow and shrink with
           the hover, so the six bars slid up and down the page while a reader
           was trying to compare them. The variable-height list goes last. */}
       {shown ? <Breakdown point={shown} /> : null}
 
-      {shownWindow ? (
-        <button
-          type="button"
-          onClick={() => onSelect(shownWindow)}
-          className={`${T.micro} mt-7 border border-patina-dim px-5 py-3 text-patina transition-colors hover:border-patina hover:bg-patina-deep`}
-        >
-          Read age {Math.round(shownWindow.ageStart)}
-          {Math.round(shownWindow.ageEnd) > Math.round(shownWindow.ageStart)
-            ? `–${Math.round(shownWindow.ageEnd)}`
-            : ""}{" "}
-          →
-        </button>
-      ) : null}
-
-      <p className={`${T.note} mt-6 max-w-2xl`}>
-        Measures how densely the natal growth axis is being activated — not how
-        good, bad or eventful a period will be. It is built from the directness
-        of each contact, how many independent pressures overlap, whether the
-        nodal rhythm is in season, how much of the axis is implicated and
-        whether contacts repeat. No planet is worth more than another.{" "}
-        {dataUntilAge < viewTo ? (
-          <>
-            Past {feedEndYear} the cache holds no transits, so the line there is
-            missing data rather than a quiet life.
-          </>
-        ) : null}
-      </p>
     </div>
   );
 }

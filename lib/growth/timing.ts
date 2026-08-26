@@ -96,6 +96,12 @@ export interface AxisAddress {
    * what survives compression is the RELATIONSHIP to the axis, because in a
    * list of contributors that is the only part saying why the planet is on
    * this page at all.
+   *
+   * The relationship is stated as a VERB in brackets — "Venus (rules S.Node)"
+   * — and was an em dash for a while: "Venus — S.Node ruler". A dash reads as
+   * apposition, so the row said Venus and the South Node were the same thing
+   * rather than that one governs the other, which is the entire content of the
+   * claim.
    */
   short: string;
   /**
@@ -257,7 +263,7 @@ function addressesFor(band: Band, t: Trajectory): AxisAddress[] {
         kind: "arriving-ruler",
         label: "on the ruler of your North Node",
         detail: at(target, t.to.rulerPlacement),
-        short: `${target} — N.Node ruler`,
+        short: `${target} (rules N.Node)`,
         side: "arriving",
       });
     }
@@ -266,7 +272,7 @@ function addressesFor(band: Band, t: Trajectory): AxisAddress[] {
         kind: "departing-ruler",
         label: "on the ruler of your South Node",
         detail: at(target, t.from.rulerPlacement),
-        short: `${target} — S.Node ruler`,
+        short: `${target} (rules S.Node)`,
         side: "departing",
       });
     }
@@ -279,7 +285,7 @@ function addressesFor(band: Band, t: Trajectory): AxisAddress[] {
             ? "on a body standing in the ground you are entering"
             : "on a body standing in the ground you are leaving",
         detail: `${d.body} in ${d.sign}, house ${d.house}`,
-        short: `${d.body} — in the nodal ground`,
+        short: `${d.body} (in nodal ground)`,
         side: d.side,
       });
     }
@@ -289,7 +295,7 @@ function addressesFor(band: Band, t: Trajectory): AxisAddress[] {
         kind: "crossing",
         label: "on the body that cuts across the axis",
         detail: `${c.body} in ${c.sign}${c.house ? `, house ${c.house}` : ""}`,
-        short: `${c.body} — across the axis`,
+        short: `${c.body} (cuts the axis)`,
         // A natal square to the axis answers to neither end, which is the
         // whole definition of a crossing.
         side: "both",

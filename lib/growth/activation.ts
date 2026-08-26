@@ -211,6 +211,7 @@ export {
   activationWindows,
   gradeLabel,
   gradeMeaning,
+  gradeSummary,
   GRADE_PRECEDENCE,
   type ActivationWindow,
   type Grade,
@@ -219,7 +220,12 @@ export {
 export {
   classificationOf,
   interpretActivationWindow,
+  readActivationNow,
   windowLabel,
+  ACTIVATION_CAVEAT,
+  type ActivationCell,
+  type ActivationDriver,
+  type ActivationNow,
   type ActivationReading,
 } from "./activation-reading";
 
@@ -228,6 +234,7 @@ export {
   bandLabel,
   intensityAt,
   BANDS,
+  INGREDIENT_GLOSS,
   INGREDIENT_LABEL,
   SHARES,
   type Ingredient,

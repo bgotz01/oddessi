@@ -2,15 +2,7 @@
 
 "use client";
 
-import {
-  gradeLabel,
-  windowLabel,
-  type ActivationWindow,
-  type Grade,
-} from "@/lib/growth";
-import { GRADE_TINT } from "@/components/activation-map";
-import { BAND, H, PAD, W } from "@/components/activation-axis";
-import { T } from "@/components/growth-ui";
+import { bandLabel, type ActivationWindow, type Grade } from "@/lib/growth";
 
 /**
  * The seasons, drawn as the spans they actually are.
@@ -28,9 +20,11 @@ import { T } from "@/components/growth-ui";
  *             where the season does. The strongest statement of extent
  *             available, because it is made in the one thing the reader is
  *             already looking at — no legend hop, no second glance downward.
- *   THE BAND  a lane under the axis carrying one segment per season. A line
- *             changing hue mid-slope says that something changed; it cannot
- *             say which year, and a boundary is a year.
+ * A line changing hue mid-slope says that something changed and cannot say
+ * which year, and a boundary is a year — so the exact spans are read off the
+ * whole-life strip that sits above the plot, in `activation-strip`. They were
+ * drawn a second time in a lane under this axis for a while, which put three
+ * statements of one fact on one chart.
  *
  * A full-height wash behind the curve was the first attempt at the first of
  * those and is not here any more. It worked, and it cost the plot: a life is
@@ -41,6 +35,50 @@ import { T } from "@/components/growth-ui";
  * Windows never overlap: they come out of a single sweep along the life, so
  * nothing here has to resolve collisions.
  */
+
+/**
+ * What a grade is COLOURED, everywhere it is shown as a solid.
+ *
+ * The strip, the window list, the drawer's rule and the tooltips all read from
+ * here, so the four grades mean one colour across the page. It lived in the
+ * map for a while, which meant five files importing a palette out of the
+ * largest component on the page and loading it to draw a two-pixel border.
+ *
+ * Quiet is deliberately almost invisible: it is most of a life, and a colour
+ * that reads as a finding would turn the ordinary condition of a chart into
+ * one.
+ */
+export const GRADE_TINT: Record<Grade, string> = {
+  background: "var(--color-rule)",
+  active: "var(--color-patina-dim)",
+  convergence: "var(--color-patina)",
+  "turning-point": "var(--color-ember)",
+};
+
+/**
+ * The pressure meter's colour, by band.
+ *
+ * The one place on the page where colour tracks a MAGNITUDE rather than a
+ * category, and it is keyed off `bandLabel` so it reads the model's own
+ * thresholds instead of a second copy of them: whatever the bands are, the
+ * meter agrees with the words beside it.
+ *
+ * Muted green up to moderate, full green for high, ember at exceptional. The
+ * ember is deliberately reserved for the top band — it is the same colour a
+ * turning point takes on the strip, and spending it lower down would leave
+ * nothing for the rare readings to be louder than.
+ */
+const PRESSURE_TINT: Record<string, string> = {
+  Quiet: "color-mix(in srgb, var(--color-patina-dim) 55%, var(--color-void))",
+  Low: "var(--color-patina-dim)",
+  Moderate: "var(--color-patina-dim)",
+  High: "var(--color-patina)",
+  Exceptional: "var(--color-ember)",
+};
+
+export function pressureTint(value: number): string {
+  return PRESSURE_TINT[bandLabel(value)] ?? "var(--color-patina-dim)";
+}
 
 /**
  * The line's own colours.
@@ -145,172 +183,5 @@ export function SeasonGradient({
         <stop key={`${i}b`} offset={at(s.to)} stopColor={LINE_TINT[s.grade]} />,
       ])}
     </linearGradient>
-  );
-}
-
-/** The clipped span of a window in the drawn view, or null if it is outside. */
-function span(
-  w: ActivationWindow,
-  x: (age: number) => number,
-  viewFrom: number,
-  viewTo: number,
-): { left: number; width: number } | null {
-  const from = Math.max(w.ageStart, viewFrom);
-  const to = Math.min(w.ageEnd, viewTo);
-  if (to <= from) return null;
-  const left = x(from);
-  // A season can be shorter than the pixel it lands on — a turning point IS
-  // sometimes a single quarter — and one that rounds away to nothing would be
-  // the one the page most wants seen.
-  return { left, width: Math.max(x(to) - left, 1.5) };
-}
-
-/**
- * The band under the axis: every season, end to end.
- *
- * Graded at full resolution, unlike the line: a bar has the weight to carry
- * patina-dim, so active and convergence are told apart here even though the
- * curve paints both patina.
- *
- * Background segments are drawn too, at the near-invisible rule tint, because
- * the lane is then continuous and a notable season reads as a thickening of
- * something ongoing rather than as an isolated event in a void. The trajectory
- * does not switch off between windows.
- *
- * Clicking a segment opens it. That is the same thing clicking the plot at
- * that x already does, but a segment is a target a person can actually hit and
- * can see the edges of.
- */
-export function SeasonBand({
-  windows,
-  x,
-  viewFrom,
-  viewTo,
-  selected,
-  hovered,
-  onSelect,
-}: {
-  windows: ActivationWindow[];
-  x: (age: number) => number;
-  viewFrom: number;
-  viewTo: number;
-  selected: ActivationWindow | null;
-  /** The season under the pointer, so the lane answers the crosshair. */
-  hovered: ActivationWindow | null;
-  onSelect: (w: ActivationWindow) => void;
-}) {
-  const top = H - PAD.bottom + BAND.top;
-
-  return (
-    <g>
-      {/* The lane itself, so its extent is legible where a life is quiet. */}
-      <line
-        x1={PAD.left}
-        x2={W - PAD.right}
-        y1={top + BAND.height / 2}
-        y2={top + BAND.height / 2}
-        stroke="var(--color-rule-faint)"
-        strokeWidth={1}
-      />
-
-      {windows.map((w) => {
-        const s = span(w, x, viewFrom, viewTo);
-        if (!s) return null;
-        const on = selected?.id === w.id;
-        const lit = on || hovered?.id === w.id;
-        const quiet = w.grade === "background";
-        // The lived past is stated once, here, by weight — the same fact the
-        // window list carries as a collapsed group. Dimming it costs nothing
-        // and stops a decade already behind the reader from competing with
-        // the one ahead of them.
-        const opacity = (w.status === "completed" ? 0.4 : 1) * (quiet ? 0.5 : 1);
-        const height = quiet ? 2 : lit ? BAND.height : BAND.height - 3;
-        return (
-          <rect
-            key={w.id}
-            x={s.left}
-            // Seasons abut: one ends at the quarter the next begins, so two
-            // neighbours drawn edge to edge are one segment on the screen and
-            // the boundary this lane exists to show is what disappears.
-            width={Math.max(s.width - 1, 1.5)}
-            y={top + (BAND.height - height) / 2}
-            height={height}
-            fill={GRADE_TINT[w.grade]}
-            opacity={opacity}
-            className="cursor-pointer"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect(w);
-            }}
-          >
-            <title>
-              {`${windowLabel(w).label} · age ${Math.round(w.ageStart)}${
-                Math.round(w.ageEnd) > Math.round(w.ageStart)
-                  ? `–${Math.round(w.ageEnd)}`
-                  : ""
-              }`}
-            </title>
-          </rect>
-        );
-      })}
-
-      {/* The selected season, bracketed. The band is one row of small colour
-          and a reader who has clicked something needs to see which. */}
-      {selected
-        ? (() => {
-            const s = span(selected, x, viewFrom, viewTo);
-            if (!s) return null;
-            return (
-              <>
-                {[s.left, s.left + s.width].map((px) => (
-                  <line
-                    key={px}
-                    x1={px}
-                    x2={px}
-                    y1={top - 4}
-                    y2={top + BAND.height + 4}
-                    stroke="var(--color-bone-faint)"
-                    strokeWidth={1}
-                  />
-                ))}
-              </>
-            );
-          })()
-        : null}
-    </g>
-  );
-}
-
-/**
- * What the colours mean, on the header row rather than under the chart.
- *
- * Under the chart is where the breakdown lives, and the breakdown has to sit
- * directly beneath the line it decomposes. A key is read once and then not
- * again, so it takes the leftover space at the top.
- *
- * It keys the LINE, which is the thing carrying colour across most of the
- * plot, so it names the three hues the curve actually takes rather than the
- * four grades the band distinguishes. A key with a swatch in it that the line
- * never uses is a key that has to be reconciled instead of read.
- */
-const KEYED: { tint: string; label: string }[] = [
-  { tint: LINE_TINT.background, label: "Quiet" },
-  { tint: LINE_TINT.active, label: gradeLabel("active") },
-  { tint: LINE_TINT["turning-point"], label: gradeLabel("turning-point") },
-];
-
-export function GradeKey() {
-  return (
-    <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
-      {KEYED.map((k) => (
-        <span
-          key={k.label}
-          className={`${T.tiny} flex items-center gap-1.5 text-bone-faint`}
-        >
-          <span className="block h-[3px] w-4" style={{ background: k.tint }} />
-          {k.label}
-        </span>
-      ))}
-    </span>
   );
 }

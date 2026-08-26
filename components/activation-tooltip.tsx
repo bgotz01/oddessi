@@ -2,22 +2,21 @@
 
 "use client";
 
+import { useRef, useState } from "react";
 import { bodyColor } from "@/lib/bodies";
 import { bodyGlyph } from "@/lib/symbols";
 import {
   beatLabel,
-  classificationOf,
   gradeLabel,
   gradeMeaning,
   kindLabel,
   orientationFrame,
-  windowLabel,
   type Activation,
   type ActivationWindow,
   type Grade,
   type NodalBeat,
 } from "@/lib/growth";
-import { GRADE_TINT } from "@/components/activation-map";
+import { GRADE_TINT } from "@/components/activation-seasons";
 import { T } from "@/components/growth-ui";
 
 /**
@@ -65,6 +64,42 @@ export interface Tip {
 
 /** Half the tooltip's width, so it can be kept off both edges in pure CSS. */
 const HALF = 168;
+
+/**
+ * The pointer plumbing, once, for every drawing that wants a tooltip.
+ *
+ * Both the strip and the evidence lanes need the same four things — a frame to
+ * measure against, the current tip, an opener bound to whatever is under the
+ * pointer, and a way to close on leaving — and both had their own copy while
+ * they were one component. The copies are the kind that drift: one of them
+ * gains an edge case and the other keeps the bug.
+ *
+ * Anchored to the ELEMENT under the pointer, never to the pointer. A tooltip
+ * that tracks the cursor jitters on a drawing made of two-pixel bars and makes
+ * the reader feel they have to hold still; anchoring to the bar's own centre
+ * means it appears in one place and stays there for as long as that bar is the
+ * answer.
+ */
+export function useTip() {
+  const frame = useRef<HTMLDivElement>(null);
+  const [tip, setTip] = useState<Tip | null>(null);
+
+  const show =
+    (content: TipContent, place: "above" | "below" = "above") =>
+    (e: React.MouseEvent<HTMLElement>) => {
+      const box = frame.current?.getBoundingClientRect();
+      if (!box) return;
+      const el = e.currentTarget.getBoundingClientRect();
+      setTip({
+        content,
+        x: el.left + el.width / 2 - box.left,
+        y: (place === "below" ? el.bottom : el.top) - box.top,
+        place,
+      });
+    };
+
+  return { frame, tip, show, clear: () => setTip(null) };
+}
 
 export default function ActivationTooltip({ tip }: { tip: Tip }) {
   return (
@@ -162,11 +197,18 @@ function ActivationTip({ a }: { a: Activation }) {
 function BeatTip({ b }: { b: NodalBeat }) {
   return (
     <>
+      {/* The plain name leads and the technical one follows it.
+          "Nodal square" is precise and means nothing to almost anyone; the
+          checkpoint is the part a reader can use, and the two together teach
+          the term to whoever wants it. */}
       <p className="flex items-baseline justify-between gap-3">
         <span className="text-[1rem] font-light text-bone">
-          {beatLabel(b.kind)}
+          Cycle checkpoint
         </span>
         <span className={`${T.tiny} text-bone-faint`}>age {Math.round(b.age)}</span>
+      </p>
+      <p className={`${T.tiny} mt-1.5 text-bone-faint`}>
+        {beatLabel(b.kind).toLowerCase()} · the same ages for everybody
       </p>
       <p className={`${T.tiny} mt-2 text-bone-faint`}>
         season {b.windowStart.slice(0, 7)} → {b.windowEnd.slice(0, 7)}
@@ -214,27 +256,37 @@ function WindowTip({ w }: { w: ActivationWindow }) {
   return (
     <>
       <p className="flex items-baseline justify-between gap-3">
-        <span className={`${T.tiny}`} style={{ color: GRADE_TINT[w.grade] }}>
-          {classificationOf(w.grade)}
+        <span className={`${T.tiny} text-bone-faint`}>
+          {ages(w.ageStart, w.ageEnd)}
         </span>
         <span className={`${T.tiny} text-bone-faint`}>
           {w.start.slice(0, 4)}–{w.end.slice(0, 4)}
         </span>
       </p>
-      {/* The meaning first; the classification above is the model explaining
-          its own pick, which is a smaller question than what the period is. */}
-      <p className="mt-2 text-[1rem] font-light text-bone">
-        {windowLabel(w).label}
+
+      {/* The panel's vocabulary, not a second one. This led with a composed
+          title and a hedged classification — "Transformation · Pressure to
+          Change", "Potential turning point" — which is three names for one
+          season across three surfaces of the same page. */}
+      <p className="mt-2 flex flex-wrap items-baseline gap-x-2.5">
+        <span
+          className="text-[1rem] font-light"
+          style={{ color: GRADE_TINT[w.grade] }}
+        >
+          {gradeLabel(w.grade)}
+        </span>
+        <span className="text-[1rem] font-light text-bone-soft">
+          · {orientationFrame(w.orientation).short}
+        </span>
       </p>
       <p className={`${T.tiny} mt-1.5 text-bone-faint`}>
-        {ages(w.ageStart, w.ageEnd)} · intensity {w.activation} / 100
+        intensity {w.activation} / 100
       </p>
-      {/* The season in plain English, before the planets underneath it. A
-          reader hovering a bar wants to know what kind of stretch it is; the
-          glyphs answer a question they have not asked yet. */}
+
       <p className="mt-3 text-[0.875rem] leading-snug text-bone-soft">
         {orientationFrame(w.orientation).plain}
       </p>
+
       <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
         {planets.map((p) => (
           <span
@@ -248,11 +300,11 @@ function WindowTip({ w }: { w: ActivationWindow }) {
           </span>
         ))}
         {w.beats.length ? (
-          <span className={`${T.tiny} text-patina`}>nodal beat</span>
+          <span className={`${T.tiny} text-patina`}>cycle checkpoint</span>
         ) : null}
       </p>
       <p className={`${T.tiny} mt-4 border-t border-rule pt-3 text-bone-faint`}>
-        click to read the window
+        click to read it below
       </p>
     </>
   );

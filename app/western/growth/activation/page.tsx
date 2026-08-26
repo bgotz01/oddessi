@@ -6,8 +6,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PageTitle } from "@/components/primitives";
 import ActivationCurve from "@/components/activation-curve";
-import ActivationMap from "@/components/activation-map";
-import ActivationWindows from "@/components/activation-windows";
+import ActivationReading from "@/components/activation-reading";
+import ActivationMethod from "@/components/activation-method";
 import ActivationDrawer from "@/components/activation-drawer";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
@@ -16,10 +16,9 @@ import { useJson } from "@/lib/use-json";
 import type { Band } from "@/lib/band";
 import type { Chart } from "@/lib/charts";
 import {
-  classificationOf,
   growthActivation,
-  windowLabel,
   growthTiming,
+  readActivationNow,
   trajectory,
   type ActivationWindow,
   type Trajectory,
@@ -40,13 +39,30 @@ import { useActivationContext } from "@/components/activation-context";
  *
  * The argument the page makes, in order:
  *
- *   THE CURVE     how strongly the trajectory is implicated, across a life
- *   THE TIMELINE  the same life in words — where the reader stands on it now,
- *                 what each loud stretch is, and the transits underneath as
- *                 evidence that can be opened rather than an interface to
- *                 decode
- *   THE WINDOWS   the stretches that rise above quiet, graded
+ *   THE CHART     one object: the index as a line, the graded seasons hung
+ *                 beneath it on the same axis — how much, and what kind
+ *   THE PANEL     five values for whichever season is in focus: pressure,
+ *                 movement, season, window, peak. It defaults to the one
+ *                 running now and follows a click on any bar, which is what
+ *                 makes the chart interrogable rather than decorative
+ *   THE EVIDENCE  which planets are responsible, and on what — read off the
+ *                 chart at whatever moment is being pointed at, with the
+ *                 contact itself one click further down. There were five
+ *                 planetary lanes across the life here for a while and they
+ *                 were a display of the ephemeris: everything a reader could
+ *                 take from them is said better by the contributors, the
+ *                 tooltip and the drawer, each at the moment it is asked for.
  *   THE DRAWER    one period, read — what it is asking of the trajectory
+ *
+ * The graded spans are drawn ONCE. They were washed behind the curve, banded
+ * under its axis and stripped above it at various points, and three statements
+ * of one fact on one page is how a reader ends up hunting for the difference
+ * between them.
+ *
+ * Interpretation is deliberately thin on the page itself and lives in the
+ * tooltip and the drawer. A paragraph of reading above a chart is read once
+ * and scrolled past forever; the same sentence under a pointer is read every
+ * time it is wanted.
  *
  * Two claims the page is careful about. The nodal beat row is the SAME for
  * every human being — 18.6 years is a property of the Moon's orbit, not of a
@@ -81,7 +97,25 @@ function today(): Date {
 function Activation({ chart, t }: { chart: Chart; t: Trajectory }) {
   const { send, setOpen } = useChat();
   const pathname = usePathname();
+  /**
+   * Two selections, because they answer to different clicks.
+   *
+   * FOCUS is which season the panel under the chart is reading. Clicking a bar
+   * moves it and nothing else happens — the reader is comparing periods, not
+   * committing to one, and a modal panel that took over the screen every time
+   * they pointed at their forties made that impossible.
+   *
+   * PICKED is the drawer: the long reading, opened deliberately.
+   */
+  const [focus, setFocus] = useState<ActivationWindow | null>(null);
   const [picked, setPicked] = useState<ActivationWindow | null>(null);
+  const [panel, setPanel] = useState(true);
+
+  /** Selecting a season always shows the reading of it. */
+  const select = (w: ActivationWindow) => {
+    setFocus(w);
+    setPanel(true);
+  };
 
   const state = useJson<AllResponse>(
     `/api/cycles?${FEED}&chartId=${encodeURIComponent(chart.id)}`,
@@ -103,12 +137,32 @@ function Activation({ chart, t }: { chart: Chart; t: Trajectory }) {
     send(text, pathname);
   };
 
-  // Background stretches are drawn on the map but not listed. There are dozens
-  // of them — one slow planet grinding through a nodal house for a decade — and
-  // listing them would rebuild the transit calendar this page exists instead of.
-  const listed = model.windows.filter((w) => w.grade !== "background");
-  const hidden = model.windows.length - listed.length;
-  const next = model.ahead[0] ?? null;
+  /**
+   * The reading above the chart.
+   *
+   * Composed in `lib/growth` and handed to the component whole. Derived here
+   * rather than inside `ActivationReading` so that the component stays
+   * presentational — it chooses no words, and a reading that looks wrong is
+   * wrong in the model.
+   */
+  const read = focus ?? model.now;
+  const reading = useMemo(
+    () =>
+      readActivationNow({
+        window: read,
+        isNow: !focus || focus.id === model.now?.id,
+        points: model.curve.points,
+        beats: model.beats,
+        age: model.age,
+        ahead: model.ahead,
+        yearOfAge: (a) =>
+          new Date(
+            Date.parse(`${chart.birth.date.slice(0, 10)}T12:00:00Z`) +
+              a * 365.2425 * 24 * 60 * 60 * 1000,
+          ).getUTCFullYear(),
+      }),
+    [model, read, focus, chart.birth.date],
+  );
 
   // The axis, restated on the map so nothing on it floats free of what is
   // being activated.
@@ -126,74 +180,54 @@ function Activation({ chart, t }: { chart: Chart; t: Trajectory }) {
       />
 
 
-      {/* The headline answer, so the page opens on a finding rather than a
-          diagram. Falls back to the peak when nothing notable is ahead. */}
-      {next ? (
-        <p className={`${T.read} mt-8 max-w-2xl border-l-2 border-ember pl-5`}>
-          Next worth reading:{" "}
-          <span className="text-bone">{windowLabel(next).label}</span> at age{" "}
-          {Math.round(next.ageStart)}
-          {Math.round(next.ageEnd) > Math.round(next.ageStart)
-            ? `–${Math.round(next.ageEnd)}`
-            : ""}{" "}
-          ({next.start.slice(0, 4)}–{next.end.slice(0, 4)}), in{" "}
-          {Math.max(0, Math.round(next.ageStart - model.age))} years —{" "}
-          intensity {next.activation} / 100,{" "}
-          {classificationOf(next.grade).toLowerCase()}.
-        </p>
-      ) : null}
-
       {state.status === "loading" ? (
         <p className={`${T.micro} mt-16 text-bone-faint`}>Reading cycles…</p>
       ) : state.status === "error" ? (
         <p className={`${T.micro} mt-16 text-ember`}>{state.error}</p>
       ) : (
         <>
-          {/* The curve is the answer; the map below is the evidence for it.
-              Order matters here — a reader who sees the lanes first spends
-              their attention working out which stretch is loud, which is the
-              one thing the line already says. */}
+          {/* One chart: the index as a line, the seasons hung underneath on
+              the same axis. The prose that used to introduce it is gone on
+              purpose — the interpretation is above it now, and the detail is
+              in the tooltip and the drawer where it is asked for. */}
+          <div className="mt-16 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-1">
+            <p className={`${T.tiny} text-bone-faint`}>Your growth timeline</p>
+            <p className={`${T.tiny} text-bone-faint`}>
+              {axis.line} <span className="text-bone-faint/60">· {axis.arc}</span>
+            </p>
+          </div>
+
+          {/* The chart and its reading, side by side. The panel was a row
+              under the chart and the pair could never be looked at together —
+              a click on a bar changed something below the fold, and the reader
+              scrolled back up to see which bar they had clicked. */}
+          <div className="mt-4 flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-10">
+          <div className="min-w-0 flex-1">
           <ActivationCurve
             curve={model.curve}
             windows={model.windows}
+            beats={model.beats}
             age={model.age}
             lifespan={model.lifespan}
             dataUntilAge={model.dataUntilAge}
             feedEndYear={model.feed.end.slice(0, 4)}
             birth={chart.birth.date}
-            selected={picked}
-            onSelect={setPicked}
+            selected={focus}
+            onSelect={select}
           />
-
-          {/* The same life, read as a story rather than as a measurement.
-              The curve above answers HOW MUCH, quarter by quarter; this
-              answers WHAT KIND and WHEN, in words, and keeps the transits
-              underneath it as evidence a reader can open rather than as the
-              interface they have to decode first. */}
-          <div className="mt-24">
-            <p className={`${T.tiny} text-bone-faint`}>Your growth timeline</p>
-            <p className="inscription mt-4 text-[1.5rem] leading-tight text-bone">
-              When life pushes hardest
-            </p>
-            <p className={`${T.body} mt-4 max-w-2xl`}>
-              The stretches when circumstances press most strongly on your
-              longer-term direction — where you are on that timeline now, and
-              what each period is asking. The astrology behind it is kept
-              underneath, as evidence.
-            </p>
           </div>
 
-          <ActivationMap
-            axis={axis}
-            planets={model.planets}
-            activations={model.activations}
-            beats={model.beats}
-            windows={model.windows}
-            age={model.age}
-            lifespan={model.lifespan}
-            selected={picked}
-            onSelect={setPicked}
+          {/* Reads whatever bar was last clicked, and defaults to the season
+              in force. */}
+          <ActivationReading
+            reading={reading}
+            year={today().getUTCFullYear()}
+            onOpen={setPicked}
+            onNow={() => setFocus(null)}
+            open={panel}
+            onToggle={setPanel}
           />
+          </div>
 
           {!model.hasNodeAspects ? (
             <p className={`${T.note} mt-10 max-w-2xl border-l-2 border-ember pl-5`}>
@@ -203,30 +237,9 @@ function Activation({ chart, t }: { chart: Chart; t: Trajectory }) {
             </p>
           ) : null}
 
-          <div className="mt-24">
-            <p className={`${T.tiny} text-bone-faint`}>The windows</p>
-            <p className="inscription mt-4 text-[1.5rem] leading-tight text-bone">
-              When the axis gets loud
-            </p>
-            <ActivationWindows
-              windows={listed}
-              hidden={hidden}
-              onOpen={setPicked}
-              selected={picked}
-            />
+          <div className="mt-10">
+            <ActivationMethod feed={model.feed} />
           </div>
-
-          <p className={`${T.note} mt-16 max-w-2xl border-l-2 border-rule pl-5`}>
-            Beats use the mean node, about a month off the true one — read them
-            as seasons, never as dates. Transits come from the cached ephemeris,
-            which covers {model.feed.start.slice(0, 4)}–
-            {model.feed.end.slice(0, 4)}; there is nothing outside those years
-            whatever the sky is doing, so a quiet stretch at the edges is the
-            data ending rather than the life. Nothing here is scored: a window
-            is graded by how many independent pressures converge and whether
-            one of them lands on the axis itself, which is a fact about the
-            chart, not a measure of how big the years will feel.
-          </p>
         </>
       )}
 

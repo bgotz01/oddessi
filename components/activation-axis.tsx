@@ -15,24 +15,17 @@
 export const W = 1000;
 export const H = 268;
 /**
- * The plot's margins. The bottom one carries two things now — the season band
- * and then the ticks — which is why it is deeper than the space the year
- * labels need. Widening the margin rather than the viewBox keeps the line's
- * own height where it was; a band stolen from the plot would have flattened
- * the curve to pay for itself.
- */
-export const PAD = { top: 26, right: 8, bottom: 48, left: 34 };
-
-/**
- * The season band's lane, measured down from the plot's bottom edge.
+ * The plot's margins.
  *
- * Here rather than in the band itself so the ticks can be placed below it
- * without the two files having to agree by coincidence.
+ * The bottom one carried a season band as well as the ticks and is shallower
+ * now that the band has gone: the graded spans are drawn once, on the
+ * whole-life strip above the chart, and the sixteen pixels they were using
+ * here go back to the line rather than to white space.
  */
-export const BAND = { top: 6, height: 10 };
+export const PAD = { top: 26, right: 8, bottom: 32, left: 34 };
 
-/** Where tick text starts: under the band, with air between. */
-const TICK_TEXT = BAND.top + BAND.height + 10;
+/** Where tick text starts, measured down from the axis. */
+const TICK_TEXT = 12;
 
 /** Horizontal rules, in index points. */
 const GRID = [0, 20, 40, 60, 80, 100];
@@ -53,6 +46,39 @@ export const TICK_STEP = 5;
  * ten. That is a deliberate trade and a one-line one to reverse.
  */
 export const VIEW_FROM_YEAR = 2000;
+
+/**
+ * The PLOT's scale, as CSS percentages: the same x the curve draws with.
+ *
+ * For HTML that has to line up with the SVG chart — the graded bars sit
+ * directly beneath the line and share its axis, so a bar and the stretch of
+ * curve above it must occupy the same column to within a pixel or the pair
+ * stops reading as one drawing and starts reading as two that disagree.
+ *
+ * The inset is the plot's own margins expressed as a fraction of the viewBox,
+ * which works because the SVG fills the width of its box: the drawing is
+ * scaled to fit and centred, so it would sit in dead space at both ends if it
+ * were ever height-limited, and the height clamp is what keeps it from being
+ * so at any width this layout reaches. Widen the chart past its container cap
+ * or shrink the clamp and the two would drift apart at the edges.
+ */
+export function plotScale(viewFrom: number, viewTo: number) {
+  const span = W - PAD.left - PAD.right;
+  const at = (age: number) =>
+    ((PAD.left + ((age - viewFrom) / (viewTo - viewFrom)) * span) / W) * 100;
+
+  const x = (age: number) => `${at(age).toFixed(2)}%`;
+  return {
+    x,
+    /** A span's width, never rounding away to nothing. */
+    w: (from: number, to: number) =>
+      `${Math.max(at(to) - at(from), 0.3).toFixed(2)}%`,
+    /** Captions centred on a span, turned inward at both ends of the plot. */
+    centred: (age: number) => `clamp(2.75rem, ${x(age)}, calc(100% - 2.75rem))`,
+    /** Whether an age is inside the drawn window at all. */
+    inside: (age: number) => age >= viewFrom && age <= viewTo,
+  };
+}
 
 export interface Scale {
   x: (age: number) => number;

@@ -70,6 +70,29 @@ export const INGREDIENT_LABEL: Record<Ingredient, string> = {
 };
 
 /**
+ * What each ingredient is actually counting.
+ *
+ * The bars are the argument for the number — a score whose composition can be
+ * inspected is an argument, one whose composition is hidden is a horoscope
+ * with a decimal point — but "Directness · 24" is only an argument to someone
+ * who already knows what directness means here. One sentence each, in the
+ * register of the rest of the page rather than of this file.
+ */
+export const INGREDIENT_GLOSS: Record<Ingredient, string> = {
+  directness:
+    "Whether a planet is contacting the growth axis itself rather than the structures around it.",
+  convergence:
+    "How many independent slow planets are involved, rather than one planet making several contacts.",
+  multiplicity: "How many contacts are running at the same moment.",
+  rhythm:
+    "Whether the nodal cycle — the same checkpoints for everybody — is in season while this happens.",
+  coverage:
+    "Whether one end of the axis is implicated or the whole of it.",
+  persistence:
+    "Whether contacts come back by retrograde rather than passing over once.",
+};
+
+/**
  * How direct a claim each kind of contact makes.
  *
  * The same ordering the addresses already carry, expressed as a proportion so
@@ -204,16 +227,58 @@ export interface IntensityCurve {
  * of them says good, hard, or important, and the ceiling is "exceptional
  * concentration" rather than "exceptional period" for exactly that reason.
  */
+/**
+ * The index in words. LEVELS, never trends.
+ *
+ * "Building" and "Stirring" sat at the two middle steps for a while and both
+ * are verbs: a reader shown "Pressure · Building" beside a line that has been
+ * falling for six months reasonably concludes the label is describing the
+ * line's direction, and it was describing its height. Where the line is GOING
+ * is a separate reading and is now stated separately — see `trendAt`. Every
+ * word here answers only "how much".
+ */
 export const BANDS: { from: number; label: string }[] = [
-  { from: 80, label: "exceptional concentration" },
-  { from: 60, label: "strong convergence" },
-  { from: 40, label: "meaningful activation" },
-  { from: 20, label: "locally activated" },
-  { from: 0, label: "mostly background" },
+  { from: 80, label: "Exceptional" },
+  { from: 60, label: "High" },
+  { from: 40, label: "Moderate" },
+  { from: 20, label: "Low" },
+  { from: 0, label: "Quiet" },
 ];
 
 export function bandLabel(value: number): string {
   return BANDS.find((b) => value >= b.from)?.label ?? BANDS[BANDS.length - 1].label;
+}
+
+/**
+ * Which way the index is moving, over the last half year.
+ *
+ * The question the band cannot answer and a reader asks immediately: a
+ * moderate reading on the way up and a moderate reading on the way down are
+ * the same height and not the same period. Six months back rather than a year,
+ * because the curve is sampled quarterly and a year of hindsight smooths away
+ * the turn that has just happened.
+ *
+ * The threshold is three points. Below that the difference is inside the
+ * model's own resolution, and reporting it would be inventing a direction out
+ * of rounding.
+ */
+export function trendAt(
+  points: IntensityPoint[],
+  age: number,
+): "rising" | "easing" | "steady" | null {
+  const at = (a: number) =>
+    points.reduce<IntensityPoint | null>(
+      (best, p) =>
+        !best || Math.abs(p.age - a) < Math.abs(best.age - a) ? p : best,
+      null,
+    );
+  const now = at(age);
+  const before = at(age - 0.5);
+  if (!now || !before || Math.abs(now.age - before.age) < 0.2) return null;
+  const change = now.value - before.value;
+  if (change > 3) return "rising";
+  if (change < -3) return "easing";
+  return "steady";
 }
 
 /**
