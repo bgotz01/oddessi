@@ -15,6 +15,7 @@ import {
   type IntensityPoint,
 } from "@/lib/growth";
 import { GRADE_TINT } from "@/components/activation-seasons";
+import { useActivationShares } from "@/components/activation-shares";
 import { T } from "@/components/growth-ui";
 
 /**
@@ -105,6 +106,9 @@ export function ReadoutStrip({
  */
 export function Breakdown({ point }: { point: IntensityPoint }) {
   const [open, setOpen] = useState(false);
+  // The live weights, not the shipped ones: each bar is drawn against its own
+  // maximum, and after a tune those maxima are whatever the sliders say.
+  const { shares } = useActivationShares();
   const keys = Object.keys(SHARES) as Ingredient[];
 
   return (
@@ -114,9 +118,7 @@ export function Breakdown({ point }: { point: IntensityPoint }) {
         onClick={() => setOpen((v) => !v)}
         className={`${T.tiny} text-bone-faint transition-colors hover:text-bone`}
       >
-        {open
-          ? "Hide what the number is made of ↑"
-          : `Why the intensity is ${point.value} ↓`}
+        {open ? "Score details ↑" : "Score details ↓"}
       </button>
 
       {open ? (
@@ -129,7 +131,9 @@ export function Breakdown({ point }: { point: IntensityPoint }) {
               <div className="mt-2 h-1 w-full bg-rule">
                 <div
                   className="h-1 bg-patina-dim"
-                  style={{ width: `${(point.parts[k] / SHARES[k]) * 100}%` }}
+                  style={{
+                    width: `${Math.min(100, (point.parts[k] / (shares[k] || 1)) * 100)}%`,
+                  }}
                 />
               </div>
               <p className={`${T.note} mt-2 text-[0.8125rem]`}>

@@ -48,17 +48,120 @@ import type { NodalBeat } from "./beats";
  * convergence because those are the two that distinguish a trajectory being
  * reorganised from one merely being busy — which is the distinction the bands
  * were already making and the curve has to preserve.
+ *
+ * MULTIPLICITY IS DELIBERATELY SMALL, and it used to be three times this.
+ * Convergence counts distinct slow planets and multiplicity counts contacts,
+ * and the two move together nearly always: two planets on the axis raise both,
+ * so one underlying fact — several major contacts at once — was being paid for
+ * twice. Keeping both is right, because a single planet making four contacts
+ * is genuinely different from four planets making one each; paying them
+ * equally was not. The share moved to convergence, which is the half of that
+ * pair carrying the information.
+ *
+ * These are judgements, not measurements, and they are stated here as
+ * constants so they can be argued with rather than reverse-engineered.
  */
 export const SHARES = {
-  directness: 30,
-  convergence: 25,
-  multiplicity: 15,
+  directness: 35,
+  convergence: 30,
   rhythm: 15,
   coverage: 10,
+  multiplicity: 5,
   persistence: 5,
 } as const;
 
 export type Ingredient = keyof typeof SHARES;
+
+/**
+ * Whole theories of what makes a period consequential, as weight sets.
+ *
+ * Six sliders is an instrument nobody can play blind: a reader who nudges
+ * directness from 35 to 38 learns nothing, because the interesting differences
+ * between weightings are not small. Each preset below is an argument someone
+ * could actually hold about this model, taken to the point where it visibly
+ * changes the curve — which is the only way to find out whether you agree with
+ * it.
+ *
+ * They change the LINE and never the BARS. A season's grade counts independent
+ * pressures and asks whether one lands on the axis itself; it reads no weights
+ * at all, so the same seasons sit in the same years under every preset. That
+ * is the model's two axes made visible: turn the sliders and watch magnitude
+ * move while configuration stays put.
+ */
+export const SHARE_PRESETS: {
+  id: string;
+  label: string;
+  /** The claim this weighting makes, in one line. */
+  thesis: string;
+  shares: Record<Ingredient, number>;
+}[] = [
+  {
+    id: "balanced",
+    label: "Balanced",
+    thesis:
+      "What reorganises a direction is something aimed at it while other pressures are already in play. The shipped weighting.",
+    shares: {
+      directness: 35,
+      convergence: 30,
+      rhythm: 15,
+      coverage: 10,
+      multiplicity: 5,
+      persistence: 5,
+    },
+  },
+  {
+    id: "contact",
+    label: "Contact-led",
+    thesis:
+      "Only what lands on the axis itself counts. A transit through a nodal house is context, not pressure — so the curve stays flat until something arrives on the degree.",
+    shares: {
+      directness: 55,
+      convergence: 25,
+      rhythm: 5,
+      coverage: 10,
+      multiplicity: 3,
+      persistence: 2,
+    },
+  },
+  {
+    id: "convergence",
+    label: "Convergence-led",
+    thesis:
+      "A period is made by independent pressures coinciding, not by any one of them aiming well. Rewards pile-ups and reads a lone exact hit as ordinary.",
+    shares: {
+      directness: 15,
+      convergence: 45,
+      rhythm: 5,
+      coverage: 10,
+      multiplicity: 20,
+      persistence: 5,
+    },
+  },
+  {
+    id: "rhythm",
+    label: "Rhythm-led",
+    thesis:
+      "The nodal cycle is the developmental metronome and transits merely colour the beat. Peaks land near 9, 18, 28, 37, 46 and 56 — the same ages for everybody, which is either the point or the objection.",
+    shares: {
+      directness: 25,
+      convergence: 20,
+      rhythm: 45,
+      coverage: 5,
+      multiplicity: 3,
+      persistence: 2,
+    },
+  },
+];
+
+/**
+ * A set of shares. The shipped `SHARES` are one of these; the tuner makes others.
+ *
+ * They do not have to add to a hundred. Every consumer normalises by their own
+ * total, so a share is a statement about an ingredient's weight RELATIVE to
+ * the others, and the index stays 0–100 whatever the sliders say. Without that
+ * the first drag past a hundred would produce a 114 out of 100.
+ */
+export type Shares = Record<Ingredient, number>;
 
 export const INGREDIENT_LABEL: Record<Ingredient, string> = {
   directness: "Directness",
@@ -107,8 +210,7 @@ const DIRECTNESS: Record<ActivationKind, number> = {
   house: 0.35,
 };
 
-/** Independence is a property of distinct slow planets — see activation-windows. */
-const PROMOTING = new Set(["Saturn", "Uranus", "Neptune", "Pluto"]);
+import { PRESSURE_PLANETS } from "./activation-interpretations";
 
 /** Saturating ratio: n of max, never above 1. */
 function upTo(n: number, max: number): number {
@@ -137,27 +239,37 @@ export interface IntensityPoint {
 export function intensityAt(
   activations: Activation[],
   beats: NodalBeat[],
+  shares: Shares = SHARES,
 ): { value: number; parts: Parts } {
-  if (activations.length === 0 && beats.length === 0) {
+  /**
+   * Only the pressure planets count toward the number.
+   *
+   * Every ingredient below reads from this list rather than from everything
+   * running, because the index measures how hard the trajectory is being
+   * PRESSED and Jupiter does not press — see `PRESSURE_PLANETS`. It stays in
+   * `activations` on the point, so the interface can still name it as a
+   * driver; it simply does not move the number.
+   */
+  const pressing = activations.filter((a) => PRESSURE_PLANETS.has(a.planet));
+
+  if (pressing.length === 0 && beats.length === 0) {
     const parts = Object.fromEntries(
-      Object.keys(SHARES).map((k) => [k, 0]),
+      Object.keys(shares).map((k) => [k, 0]),
     ) as Parts;
     return { value: 0, parts };
   }
 
-  const directness = activations.reduce(
+  const directness = pressing.reduce(
     (m, a) => Math.max(m, DIRECTNESS[a.kind]),
     0,
   );
 
-  const independent = new Set(
-    activations.filter((a) => PROMOTING.has(a.planet)).map((a) => a.planet),
-  ).size;
+  const independent = new Set(pressing.map((a) => a.planet)).size;
 
   // Both poles implicated, or one. A crossroads contact carries "both" on its
   // own, which is the whole point of a square to an axis.
   const sides = new Set<string>();
-  for (const a of activations) {
+  for (const a of pressing) {
     if (a.orientation === "crossroads") sides.add("arriving").add("departing");
     else if (a.orientation === "forward") sides.add("arriving");
     else if (a.orientation === "return") sides.add("departing");
@@ -171,21 +283,25 @@ export function intensityAt(
       : 0.6
     : 0;
 
-  const retrogrades = activations.reduce(
+  const retrogrades = pressing.reduce(
     (m, a) => Math.max(m, a.segments.length - 1),
     0,
   );
 
   const parts: Parts = {
-    directness: SHARES.directness * directness,
-    convergence: SHARES.convergence * upTo(independent, 3),
-    multiplicity: SHARES.multiplicity * upTo(activations.length, 4),
-    rhythm: SHARES.rhythm * rhythm,
-    coverage: SHARES.coverage * upTo(sides.size, 2),
-    persistence: SHARES.persistence * upTo(retrogrades, 3),
+    directness: shares.directness * directness,
+    convergence: shares.convergence * upTo(independent, 3),
+    multiplicity: shares.multiplicity * upTo(pressing.length, 4),
+    rhythm: shares.rhythm * rhythm,
+    coverage: shares.coverage * upTo(sides.size, 2),
+    persistence: shares.persistence * upTo(retrogrades, 3),
   };
 
-  const value = Object.values(parts).reduce((a, b) => a + b, 0);
+  // Normalised by the shares' own total, so the index is out of a hundred
+  // whatever the weights are set to. With the shipped shares the divisor is a
+  // hundred and this is a no-op.
+  const total = Object.values(shares).reduce((a, b) => a + b, 0) || 1;
+  const value = (Object.values(parts).reduce((a, b) => a + b, 0) * 100) / total;
   return { value: Math.round(value), parts };
 }
 
@@ -237,9 +353,21 @@ export interface IntensityCurve {
  * is a separate reading and is now stated separately — see `trendAt`. Every
  * word here answers only "how much".
  */
+/**
+ * The floor of High pressure.
+ *
+ * Named because two files reason about it: the bands below, and the rule in
+ * `activation.ts` deciding which seasons are worth interpreting. Those were
+ * two independently maintained sixties, and the comment on the second one
+ * still described the old vocabulary — "the floor of strong convergence" —
+ * which is a season word for a magnitude threshold, in a model whose whole
+ * point is that the two are different axes.
+ */
+export const HIGH_PRESSURE = 60;
+
 export const BANDS: { from: number; label: string }[] = [
   { from: 80, label: "Exceptional" },
-  { from: 60, label: "High" },
+  { from: HIGH_PRESSURE, label: "High" },
   { from: 40, label: "Moderate" },
   { from: 20, label: "Low" },
   { from: 0, label: "Quiet" },
@@ -307,13 +435,14 @@ export function activationCurve(
   beats: NodalBeat[],
   age: number,
   lifespan: number,
+  shares: Shares = SHARES,
 ): IntensityCurve {
   const raw: IntensityPoint[] = [];
 
   for (let a = 0; a <= lifespan; a += STEP) {
     const acts = activations.filter((x) => a >= x.ageStart && a <= x.ageEnd);
     const bts = beats.filter((b) => a >= b.age - 0.5 && a <= b.age + 0.5);
-    const { value, parts } = intensityAt(acts, bts);
+    const { value, parts } = intensityAt(acts, bts, shares);
     raw.push({ age: a, value, parts, activations: acts, beats: bts });
   }
 

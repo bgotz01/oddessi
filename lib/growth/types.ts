@@ -39,6 +39,21 @@ export interface Conversion {
    */
   fromMode: string;
   intoMode: string;
+  /**
+   * The full authored noun set for each side, headline word first.
+   *
+   * The axis table writes two or three nouns per side — ["Selfhood",
+   * "Initiative"] — because one word rarely pins a capacity down on its own.
+   * The display only ever shows the first, since a row is meant to be read at
+   * a glance, but the rest are the reason the vector engine can tell that
+   * "Independence" and "Autonomy" are the same claim arriving twice. Throwing
+   * them away at composition time would mean re-deriving synonyms later from
+   * generic word lists, which is exactly the invention this model refuses.
+   *
+   * Always non-empty, and `fromModes[0] === fromMode`.
+   */
+  fromModes: string[];
+  intoModes: string[];
   /** What the person already does. */
   from: string;
   /** What doing it in the new arena looks like. Imperative, no preamble. */

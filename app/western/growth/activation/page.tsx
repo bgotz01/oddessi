@@ -9,6 +9,7 @@ import ActivationCurve from "@/components/activation-curve";
 import ActivationReading from "@/components/activation-reading";
 import ActivationMethod from "@/components/activation-method";
 import ActivationDrawer from "@/components/activation-drawer";
+import ActivationDevelopment from "@/components/activation-development";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import { useScoring } from "@/components/scoring-context";
@@ -25,6 +26,7 @@ import {
 } from "@/lib/growth";
 import { T } from "@/components/growth-ui";
 import { useActivationContext } from "@/components/activation-context";
+import { useActivationShares } from "@/components/activation-shares";
 
 /**
  * Growth · Activation — when the trajectory becomes unusually loud.
@@ -122,12 +124,19 @@ function Activation({ chart, t }: { chart: Chart; t: Trajectory }) {
   );
   const bands = state.status === "ready" ? state.data.bands : null;
 
+  const { shares } = useActivationShares();
+
   const model = useMemo(
     () =>
-      growthActivation(growthTiming(chart.birth.date, t, bands ?? [], today())),
-    // The beats need only a birth date, so the map draws before the feed lands.
+      growthActivation(
+        growthTiming(chart.birth.date, t, bands ?? [], today()),
+        shares,
+      ),
+    // The beats need only a birth date, so the chart draws before the feed
+    // lands. `shares` is in the list because the tuner has to repaint the
+    // curve as it moves.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [chart.id, chart.birth.date, t, bands],
+    [chart.id, chart.birth.date, t, bands, shares],
   );
 
   useActivationContext(chart, t, model, state.status);
@@ -155,21 +164,19 @@ function Activation({ chart, t }: { chart: Chart; t: Trajectory }) {
         beats: model.beats,
         age: model.age,
         ahead: model.ahead,
+        trajectory: t,
         yearOfAge: (a) =>
           new Date(
             Date.parse(`${chart.birth.date.slice(0, 10)}T12:00:00Z`) +
-              a * 365.2425 * 24 * 60 * 60 * 1000,
+            a * 365.2425 * 24 * 60 * 60 * 1000,
           ).getUTCFullYear(),
       }),
-    [model, read, focus, chart.birth.date],
+    [model, read, focus, chart.birth.date, t],
   );
 
-  // The axis, restated on the map so nothing on it floats free of what is
-  // being activated.
-  const axis = {
-    line: `${t.from.sign} H${t.from.house} → ${t.to.sign} H${t.to.house}`,
-    arc: `${t.arc.from} → ${t.arc.into}`,
-  };
+  // The arc the axis describes, in the chart's own nouns. The signs and
+  // houses are rendered by the heading itself, which needs their parts.
+  const axis = { arc: `${t.arc.from} → ${t.arc.into}` };
 
   return (
     <div className="mx-auto w-full max-w-6xl px-8 pb-32">
@@ -190,11 +197,31 @@ function Activation({ chart, t }: { chart: Chart; t: Trajectory }) {
               the same axis. The prose that used to introduce it is gone on
               purpose — the interpretation is above it now, and the detail is
               in the tooltip and the drawer where it is asked for. */}
-          <div className="mt-16 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-1">
-            <p className={`${T.tiny} text-bone-faint`}>Your growth timeline</p>
-            <p className={`${T.tiny} text-bone-faint`}>
-              {axis.line} <span className="text-bone-faint/60">· {axis.arc}</span>
-            </p>
+          {/* The axis, stated as the heading it always was.
+              It sat in the corner at legend size, which is where a chart puts
+              its furniture — and this is not furniture. Everything below is a
+              measurement OF this movement, and a reader who never registers
+              which two points the whole page is about has been given a graph
+              of nothing in particular. */}
+          <div className="mt-16 flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
+            <div>
+              <p className={`${T.tiny} text-bone-faint`}>North Node Axis</p>
+              <p className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="inscription text-[1.5rem] leading-tight text-bone">
+                  {t.from.sign} H{t.from.house}
+                </span>
+                <span className="text-[1.25rem] text-bone-faint">→</span>
+                <span className="inscription text-[1.5rem] leading-tight text-bone">
+                  {t.to.sign} H{t.to.house}
+                </span>
+              </p>
+              <p className={`${T.tiny} mt-2.5 text-bone-faint`}>
+
+                <span className="text-bone-faint/60"> {axis.arc}</span>
+              </p>
+            </div>
+
+            <ActivationMethod feed={model.feed} />
           </div>
 
           {/* The chart and its reading, side by side. The panel was a row
@@ -202,32 +229,38 @@ function Activation({ chart, t }: { chart: Chart; t: Trajectory }) {
               a click on a bar changed something below the fold, and the reader
               scrolled back up to see which bar they had clicked. */}
           <div className="mt-4 flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-10">
-          <div className="min-w-0 flex-1">
-          <ActivationCurve
-            curve={model.curve}
-            windows={model.windows}
-            beats={model.beats}
-            age={model.age}
-            lifespan={model.lifespan}
-            dataUntilAge={model.dataUntilAge}
-            feedEndYear={model.feed.end.slice(0, 4)}
-            birth={chart.birth.date}
-            selected={focus}
-            onSelect={select}
-          />
+            <div className="min-w-0 flex-1">
+              <ActivationCurve
+                curve={model.curve}
+                windows={model.windows}
+                beats={model.beats}
+                age={model.age}
+                lifespan={model.lifespan}
+                dataUntilAge={model.dataUntilAge}
+                feedEndYear={model.feed.end.slice(0, 4)}
+                birth={chart.birth.date}
+                selected={focus}
+                onSelect={select}
+              />
+            </div>
+
+            {/* Reads whatever bar was last clicked, and defaults to the season
+              in force. */}
+            <ActivationReading
+              reading={reading}
+              year={today().getUTCFullYear()}
+              onOpen={setPicked}
+              onNow={() => setFocus(null)}
+              open={panel}
+              onToggle={setPanel}
+            />
           </div>
 
-          {/* Reads whatever bar was last clicked, and defaults to the season
-              in force. */}
-          <ActivationReading
-            reading={reading}
-            year={today().getUTCFullYear()}
-            onOpen={setPicked}
-            onNow={() => setFocus(null)}
-            open={panel}
-            onToggle={setPanel}
-          />
-          </div>
+          {/* The answer, in the open, directly under the chart it belongs to.
+              It used to be three clicks down — bar, sidebar, disclosure — and
+              the depth was the problem rather than the wording at the bottom
+              of it. */}
+          <ActivationDevelopment reading={reading} onOpen={setPicked} />
 
           {!model.hasNodeAspects ? (
             <p className={`${T.note} mt-10 max-w-2xl border-l-2 border-ember pl-5`}>
@@ -237,9 +270,6 @@ function Activation({ chart, t }: { chart: Chart; t: Trajectory }) {
             </p>
           ) : null}
 
-          <div className="mt-10">
-            <ActivationMethod feed={model.feed} />
-          </div>
         </>
       )}
 

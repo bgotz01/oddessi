@@ -31,7 +31,11 @@
  */
 
 import type { Activation } from "./activation";
-import { orientationOf, type Orientation } from "./activation-interpretations";
+import {
+  orientationOf,
+  PRESSURE_PLANETS,
+  type Orientation,
+} from "./activation-interpretations";
 import type { NodalBeat } from "./timing";
 import { beatLabel } from "./timing";
 
@@ -84,30 +88,20 @@ export function gradeMeaning(g: Grade): string {
   return GRADE_MEANING[g];
 }
 
-/**
- * The same fact said to the person whose chart it is.
+/*
+ * `GRADE_SUMMARY` stood here: the same fact as `GRADE_MEANING` above, said in
+ * the second person to open a reading. It is gone rather than merely unused.
  *
- * `GRADE_MEANING` explains the category to somebody deciding what a legend
- * means; this one opens a reading, and the difference is the address. Both
- * describe how much evidence converges and neither describes a life — "you are
- * in a period of concentrated developmental pressure" is a statement about the
- * sky's arrangement over a chart, and the caveat that follows it in the
- * reading says so in as many words.
+ * "You are in a period of unusually concentrated developmental pressure" is a
+ * statement about how much evidence converges on a chart, written in the
+ * grammar of news about a life, and no caveat underneath it undoes that. The
+ * panel it opened now states what the trajectory asks for in nouns, which is
+ * what a reader opens a disclosure to find out.
+ *
+ * `GRADE_MEANING` survives because it does a different job: it explains what a
+ * category means to somebody reading a legend, and never addresses the reader
+ * as though it knew something about them.
  */
-const GRADE_SUMMARY: Record<Grade, string> = {
-  background:
-    "Nothing unusual is pressing on your growth direction just now. It is running, as it always is, without extra weight on it.",
-  active:
-    "You are in a period of mild developmental pressure — one signal is engaging your growth direction, or several are working on the structures around it.",
-  convergence:
-    "You are in a period of concentrated developmental pressure. Several independent cycles are engaging the same part of your chart at once.",
-  "turning-point":
-    "You are in a period of unusually concentrated developmental pressure, and one of the signals is landing on your growth direction itself rather than around it.",
-};
-
-export function gradeSummary(g: Grade): string {
-  return GRADE_SUMMARY[g];
-}
 
 /**
  * Label precedence when two runs merge — NOT a strength scale.
@@ -168,8 +162,13 @@ export interface ActivationWindow {
  * into confetti, flipping the grade dozens of times until the row stopped
  * being legible. What Jupiter says, that an opening exists, is worth knowing;
  * a witness who always says yes is just not evidence.
+ *
+ * The list itself lives in `activation-interpretations`, with the reason. It
+ * was declared separately here and in the intensity model, which is how the
+ * two came to disagree: grading refused Jupiter, the index accepted it, and a
+ * lone Jupiter contact produced moderate pressure inside a quiet season.
  */
-const PROMOTING_PLANETS = new Set(["Saturn", "Uranus", "Neptune", "Pluto"]);
+const PROMOTING_PLANETS = PRESSURE_PLANETS;
 
 function gradeFor(
   activations: Activation[],

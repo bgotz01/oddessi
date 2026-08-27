@@ -81,6 +81,23 @@ export interface ProcessEntry {
   /** This planet's own failure mode. A complete sentence. */
   trap: string;
   /**
+   * The same two, as noun phrases — "Structure that survives contact".
+   *
+   * Not derived from the sentences above and not derivable from them. A
+   * sentence explains; a noun phrase is meant to be recognised at a glance and
+   * carried out of the room, and the compression is a separate act of writing
+   * rather than a truncation. "Difficulty gets read as a verdict. The friction
+   * is taken as proof that the new direction was a mistake…" cuts to
+   * "Difficulty read as verdict" only because somebody decided that was the
+   * half worth keeping.
+   *
+   * Both forms are kept because both are used. The panel shows the nouns; the
+   * chat is handed the sentences, because prose written from prose is better
+   * than prose reconstructed from labels.
+   */
+  openingNoun: string;
+  trapNoun: string;
+  /**
    * What it does to whatever it acts on, as a clause.
    *
    * Completes "in these areas, the period …". Distinct from `how`, which
@@ -102,6 +119,8 @@ export const PROCESS: Record<string, ProcessEntry> = {
     how: "widening the range of what is available until the current arrangement looks smaller than it did",
     opening: "take the wider option while it is actually on offer",
     trap: "Nothing is forced, so nothing has to change — the opportunity is admired, discussed, and allowed to pass while everything stays exactly as it was.",
+    openingNoun: "The wider option, while it is offered",
+    trapNoun: "An opportunity admired, then passed",
     pressure:
       "opens more room for the trajectory to express itself",
   },
@@ -116,6 +135,8 @@ export const PROCESS: Record<string, ProcessEntry> = {
     how: "imposing limits, consequence and time until something has to take durable form",
     opening: "give the direction a structure that survives contact with reality",
     trap: "Difficulty gets read as a verdict. The friction is taken as proof that the new direction was a mistake, and the retreat to what you are already good at feels like maturity rather than avoidance.",
+    openingNoun: "Structure that survives contact",
+    trapNoun: "Difficulty read as verdict",
     pressure:
       "forces the trajectory into concrete commitments and limits",
   },
@@ -130,6 +151,8 @@ export const PROCESS: Record<string, ProcessEntry> = {
     how: "making the existing arrangement suddenly difficult to preserve, usually from outside and usually without warning",
     opening: "let the disruption expose a life you would not have planned deliberately",
     trap: "The circumstances change radically while the underlying pattern is rebuilt intact somewhere else — a new setting, the same arrangement.",
+    openingNoun: "A life you would not have planned",
+    trapNoun: "The same pattern, a new setting",
     pressure:
       "breaks continuity with an established pattern",
   },
@@ -144,6 +167,8 @@ export const PROCESS: Record<string, ProcessEntry> = {
     how: "removing the certainty that held the old arrangement in place, so that its edges stop being obvious",
     opening: "let go of a definition you were holding without needing a replacement ready",
     trap: "The loss of outline is treated as a reason to decide nothing at all, and the period is spent waiting for a clarity that this transit does not supply.",
+    openingNoun: "Letting go without a replacement ready",
+    trapNoun: "Waiting for a clarity that is not coming",
     pressure:
       "weakens the boundaries around the existing direction",
   },
@@ -158,10 +183,40 @@ export const PROCESS: Record<string, ProcessEntry> = {
     how: "intensifying it past the point where it can be kept as it was, and not restoring what it takes",
     opening: "let something end completely rather than managing its decline",
     trap: "The intensity is met with control. Power is defended, the process is fought to a standstill, and what would have transformed is instead endured.",
+    openingNoun: "An ending rather than a managed decline",
+    trapNoun: "Intensity met with control",
     pressure:
       "removes structures that can no longer carry the trajectory",
   },
 };
+
+/**
+ * The bodies whose contact counts as PRESSURE.
+ *
+ * Jupiter is not among them, and that is a claim rather than a convenience.
+ * Read its entry above: it opens, enlarges and offers, and "nothing is being
+ * forced" is the whole of it. Pressure is what makes an arrangement hard to
+ * keep — Saturn's consequence, Uranus's rupture, Neptune's dissolution,
+ * Pluto's ending — and an opportunity that can be admired and declined is a
+ * different kind of event, however welcome.
+ *
+ * It is also the fix for a real inconsistency. The season grading already
+ * refused to let Jupiter promote a window, on the grounds that a witness who
+ * says yes every few months cannot tell a loud year from a quiet one; the
+ * intensity index meanwhile took its directness from ANY contact, so a lone
+ * Jupiter conjunction produced moderate pressure inside a season graded quiet.
+ * One set, imported by both, so the two can no longer disagree.
+ *
+ * Jupiter is not discarded. It is read, named and shown as a driver — as an
+ * opening rather than as a pressure, which is what the model has always said
+ * it is.
+ */
+export const PRESSURE_PLANETS = new Set([
+  "Saturn",
+  "Uranus",
+  "Neptune",
+  "Pluto",
+]);
 
 /** Anything outside the five slow planets, which the cache does not track. */
 export const UNKNOWN_PROCESS: ProcessEntry = {
@@ -174,6 +229,8 @@ export const UNKNOWN_PROCESS: ProcessEntry = {
   how: "acting on it in a way this model does not characterise",
   opening: "notice what is being asked",
   trap: "The period passes without the question being put.",
+  openingNoun: "Noticing what is being asked",
+  trapNoun: "The question never put",
   pressure: "acts on the trajectory in a way this model does not characterise",
 };
 
@@ -340,6 +397,17 @@ export interface OrientationEntry {
   opening: string;
   /** The nodal trap, in this orientation. */
   trap: string;
+  /**
+   * The same two as noun phrases, two apiece.
+   *
+   * Two rather than one because the orientation is the half of the reading
+   * that belongs to the chart rather than to the sky, and it is carrying the
+   * column: joined with the planet's single noun it makes a stack of three,
+   * which is a list a reader can hold. One from each would make a pair that
+   * reads as an aside.
+   */
+  openingNouns: string[];
+  trapNouns: string[];
 }
 
 export const ORIENTATION: Record<Orientation, OrientationEntry> = {
@@ -363,6 +431,14 @@ export const ORIENTATION: Record<Orientation, OrientationEntry> = {
     opening:
       "Circumstances are doing some of the work of moving you, which is rare — the direction stops being a plan and becomes a situation you are already in.",
     trap: "The new problem gets solved with the old competence. It works, because the old competence is real, and the trajectory ends the period exactly where it started.",
+    openingNouns: [
+      "Momentum you did not have to make",
+      "Licence to be a beginner",
+    ],
+    trapNouns: [
+      "The old competence, applied again",
+      "Admiring the direction instead",
+    ]
   },
   return: {
     label: "Past Returns",
@@ -384,6 +460,14 @@ export const ORIENTATION: Record<Orientation, OrientationEntry> = {
     opening:
       "The material being converted is right in front of you, in usable quantity. This is the easiest period in which to see plainly what you are actually good at.",
     trap: "Being wanted for the old competence is mistaken for evidence that it is the right direction. The reward is real; the direction is backwards.",
+    openingNouns: [
+      "Your own competence in plain sight",
+      "Material in usable quantity",
+    ],
+    trapNouns: [
+      "Reward mistaken for direction",
+      "Moving back in rather than converting",
+    ]
   },
   crossroads: {
     label: "Pressure to Change",
@@ -405,6 +489,14 @@ export const ORIENTATION: Record<Orientation, OrientationEntry> = {
     opening:
       "The binary you have been working inside is visibly failing, which is the only condition under which it can be redrawn rather than merely swapped.",
     trap: "The period is spent oscillating — advancing, retreating, advancing — and the oscillation is mistaken for progress because both poles keep being visited.",
+    openingNouns: [
+      "A binary visibly failing",
+      "Room to redraw rather than swap",
+    ],
+    trapNouns: [
+      "Oscillation mistaken for progress",
+      "Swapping poles instead of redrawing",
+    ],
   },
   mixed: {
     label: "Pulled Both Ways",
@@ -426,6 +518,14 @@ export const ORIENTATION: Record<Orientation, OrientationEntry> = {
     opening:
       "Both halves of the conversion are visible at the same time, which is when the relationship between them is easiest to see.",
     trap: "The two pressures are averaged into a single cautious middle, and the period produces motion without direction.",
+    openingNouns: [
+      "Both halves visible at once",
+      "How the two actually connect",
+    ],
+    trapNouns: [
+      "Two pressures averaged into one",
+      "Motion without direction",
+    ]
   },
 };
 

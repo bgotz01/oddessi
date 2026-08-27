@@ -4,6 +4,7 @@
 
 import { useMemo, useState } from "react";
 import {
+  NODAL_PERIOD_YEARS,
   type ActivationWindow,
   type IntensityCurve,
   type IntensityPoint,
@@ -70,6 +71,12 @@ import { T } from "@/components/growth-ui";
  */
 
 
+/** Short month names for the crosshair. Three letters fit the 68px plate. */
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
 export default function ActivationCurve({
   curve,
   windows,
@@ -97,6 +104,7 @@ export default function ActivationCurve({
   onSelect: (w: ActivationWindow) => void;
 }) {
   const [hover, setHover] = useState<IntensityPoint | null>(null);
+  const [showPhase, setShowPhase] = useState(false);
 
   /**
    * Age → calendar year.
@@ -112,6 +120,19 @@ export default function ActivationCurve({
   const birthMs = Date.parse(`${birth.slice(0, 10)}T12:00:00Z`);
   const yearAt = (a: number) =>
     new Date(birthMs + a * YEAR_MS).getUTCFullYear();
+  /**
+   * "Jan 2025" — the crosshair's own date.
+   *
+   * A year alone is a twelve-month answer to a question asked by pointing at
+   * one pixel, and the samples are far denser than that: the curve is read by
+   * sliding along it, and three consecutive positions all reading "2025" make
+   * the label look stuck. The axis ticks keep bare years, which is what an
+   * axis is for.
+   */
+  const monthAt = (a: number) => {
+    const d = new Date(birthMs + a * YEAR_MS);
+    return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  };
   /** Age at 1 January of a calendar year — the axis ticks on round years. */
   const ageOfYear = (y: number) => (Date.UTC(y, 0, 1) - birthMs) / YEAR_MS;
 
@@ -191,9 +212,91 @@ export default function ActivationCurve({
   const shown = hover ?? curve.now;
   const shownWindow = shown ? windowAt(shown.age) : null;
 
+  /**
+   * The nodal cycle as a wave, for the optional second line.
+   *
+   * `cos(2π · age / 18.6129)` is not a metaphor for the cycle, it IS the
+   * cycle: +1 is the transiting north node standing on the natal north node, 0
+   * is square the axis, −1 is the transiting north node on the natal south
+   * node. The four beats the model already names are this wave's crest, its
+   * two zero crossings and its trough, so the line does not add a claim — it
+   * fills in the twelve-odd years between checkpoints that were previously
+   * drawn as nothing at all.
+   *
+   * It is the same for everybody alive, which is exactly why it is a TOGGLE
+   * and never the default. The index is a reading of one chart; this is a
+   * clock. Drawing them together without asking would imply the second was
+   * also about the person.
+   */
+  const phase = useMemo(() => {
+    const step = (viewTo - viewFrom) / 600;
+    const pts: string[] = [];
+    for (let a = viewFrom; a <= viewTo; a += step) {
+      const v = Math.cos((2 * Math.PI * a) / NODAL_PERIOD_YEARS);
+      // −1…+1 across the plot, inset so the extremes do not sit on the frame.
+      const py = PAD.top + ((1 - v) / 2) * (H - PAD.top - PAD.bottom);
+      pts.push(`${x(a).toFixed(1)},${py.toFixed(1)}`);
+    }
+    return `M${pts.join("L")}`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewFrom, viewTo]);
+
+  /**
+   * The end-on contacts, drawn on the plot itself.
+   *
+   * Returns and reversals only. Both are the axis being met end-on — the
+   * transiting node arriving on one of the natal ones — and they are the two a
+   * reader is trying to locate a peak against. The squares are real and are
+   * already ticked on the strip below; adding them here would put a line every
+   * 4.65 years through the drawing and none of the four would stand out.
+   */
+  const marks = beats.filter(
+    (b) => b.kind !== "square" && b.age >= viewFrom && b.age <= viewTo,
+  );
+
   return (
     <div className="mt-10">
-      <p className={`${T.tiny} text-bone-faint`}>Growth intensity · 0–100</p>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+        <p className={`${T.tiny} text-bone-faint`}>Growth intensity · 0–100</p>
+        {/* A control, and it has to look like one.
+            Two attempts failed the same way. A bare tracked label opposite the
+            section title is the exact shape of a heading on this page, and
+            adding a small dot in front of it changed the reading not at all —
+            a 9px mark beside upper-case tracked type still parses as a bullet
+            on a title rather than as a target.
+            What separates a control from a label here is a BOX. Every other
+            pressable thing on this page has one, so the border is what says
+            "press me" before any of the words are read; the fill and the tick
+            then say which way it is set. */}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={showPhase}
+          onClick={() => setShowPhase((v) => !v)}
+          className={`${T.tiny} flex items-center gap-2 border px-3 py-1.5 transition-colors`}
+          style={{
+            borderColor: showPhase
+              ? "var(--color-patina)"
+              : "var(--color-rule)",
+            background: showPhase ? "var(--color-patina-deep)" : "transparent",
+            color: showPhase
+              ? "var(--color-patina)"
+              : "var(--color-bone-faint)",
+          }}
+        >
+          <span
+            aria-hidden
+            className="block size-[8px] shrink-0 rounded-full border transition-colors"
+            style={{
+              borderColor: showPhase
+                ? "var(--color-patina)"
+                : "var(--color-bone-faint)",
+              background: showPhase ? "var(--color-patina)" : "transparent",
+            }}
+          />
+          Nodal phase
+        </button>
+      </div>
 
       {/* What the pointer is on, and nothing else.
           A row of planets with their houses and targets used to sit here,
@@ -246,6 +349,86 @@ export default function ActivationCurve({
         <CurveGrid y={y} />
 
         <YearTicks years={years} x={x} ageOfYear={ageOfYear} />
+
+        {/* The nodal cycle, when asked for. Behind everything, because it is
+            the ground the index is being read against and not a second
+            finding competing with it. */}
+        {showPhase ? (
+          <>
+            {/* The zero crossing — square the axis, the wave's own midline.
+                Without it a cosine is just a wobble; with it the crests and
+                troughs have something to be measured from. */}
+            <line
+              x1={PAD.left}
+              x2={W - PAD.right}
+              y1={PAD.top + (H - PAD.top - PAD.bottom) / 2}
+              y2={PAD.top + (H - PAD.top - PAD.bottom) / 2}
+              stroke="var(--color-patina)"
+              strokeWidth={0.5}
+              strokeDasharray="2 4"
+              opacity={0.3}
+            />
+            <path
+              d={phase}
+              fill="none"
+              stroke="var(--color-patina)"
+              strokeWidth={1}
+              opacity={0.4}
+            />
+            {/* Which end is which, stated once rather than inferred. */}
+            <text
+              x={W - PAD.right}
+              y={PAD.top + 8}
+              textAnchor="end"
+              fill="var(--color-patina)"
+              className="datum"
+              fontSize={7.5}
+              letterSpacing={0.8}
+              opacity={0.75}
+            >
+              ON YOUR NORTH NODE
+            </text>
+            <text
+              x={W - PAD.right}
+              y={H - PAD.bottom - 3}
+              textAnchor="end"
+              fill="var(--color-patina)"
+              className="datum"
+              fontSize={7.5}
+              letterSpacing={0.8}
+              opacity={0.75}
+            >
+              ON YOUR SOUTH NODE
+            </text>
+          </>
+        ) : null}
+
+        {/* The end-on contacts of the nodal cycle, always drawn.
+            A peak means something different depending on where in the shared
+            rhythm it falls, and until these were here a reader had no way to
+            tell — the checkpoints were ticked on the strip below the bars, two
+            rows away from the line they qualify. Kept to hairlines behind the
+            curve: they are a frame of reference, not an event. */}
+        {marks.map((b) => (
+          <line
+            key={`${b.kind}-${b.ordinal}`}
+            x1={x(b.age)}
+            x2={x(b.age)}
+            y1={PAD.top}
+            y2={H - PAD.bottom}
+            // Structural, so drawn as structure: a bone hairline, the same
+            // family as the gridlines these sit among. They briefly borrowed
+            // the Council palette's periwinkle to get clear of the NOW rule,
+            // which was reaching into a namespace vendored for another app and
+            // documented as opacity-modifiers-only. NOW is signal yellow at
+            // double weight now, so the cycle marks no longer need a hue to
+            // stay clear of it — being quiet is the whole point of them.
+            stroke="var(--color-bone-faint)"
+            strokeWidth={b.kind === "return" ? 1 : 0.75}
+            strokeDasharray={b.kind === "return" ? undefined : "2 3"}
+            opacity={b.kind === "return" ? 0.45 : 0.28}
+          />
+        ))}
 
         {/* Past the ephemeris there is nothing to compute from, and the line
             falls to almost nothing — which reads as a quiet old age rather
@@ -329,20 +512,28 @@ export default function ActivationCurve({
 
         {age > viewFrom && age < viewTo ? (
           <>
+            {/* Signal, and twice the weight of anything else on the plot.
+                Three passes to get here. Grey at 1px was the same rule the
+                cycle marks are drawn as. Ember fixed the weight and broke the
+                meaning — ember IS the turning-point grade, so the NOW rule and
+                every turning-point bar on the chart became one colour saying
+                two unrelated things. Signal exists for this and nothing else:
+                the cycle marks belong to a clock that runs at the same ages
+                for everybody, and this is the reader's own position in it. */}
             <line
               x1={x(age)}
               x2={x(age)}
               y1={PAD.top - 8}
               y2={H - PAD.bottom}
-              stroke="var(--color-bone-faint)"
-              strokeWidth={1}
-              opacity={0.5}
+              stroke="var(--color-signal)"
+              strokeWidth={2}
+              opacity={0.9}
             />
             <text
               x={x(age)}
               y={PAD.top - 12}
               textAnchor="middle"
-              fill="var(--color-bone-faint)"
+              fill="var(--color-signal)"
               className="datum"
               fontSize={8.5}
               letterSpacing={1.4}
@@ -406,7 +597,7 @@ export default function ActivationCurve({
               fontSize={8.5}
               letterSpacing={0.8}
             >
-              age {Math.round(shown.age)} · {yearAt(shown.age)}
+              age {Math.round(shown.age)} · {monthAt(shown.age)}
             </text>
             <circle
               cx={x(shown.age)}
@@ -425,7 +616,6 @@ export default function ActivationCurve({
           and stops. Two readings of one series, drawn as one object. */}
       <ActivationStrip
         windows={windows}
-        beats={beats}
         age={age}
         viewFrom={viewFrom}
         viewTo={viewTo}

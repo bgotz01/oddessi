@@ -12,6 +12,7 @@ import {
   type ActivationWindow,
   type Trajectory,
 } from "@/lib/growth";
+import ActivationVectors from "@/components/activation-vectors";
 import { GRADE_TINT } from "@/components/activation-seasons";
 import { T } from "@/components/growth-ui";
 
@@ -30,13 +31,43 @@ import { T } from "@/components/growth-ui";
  * rules, and reaches for no vocabulary table. If a reading looks wrong it is
  * wrong in the model, which is the only place it can be argued with.
  *
- * The order is the argument. THESIS first, because a claim should arrive
- * before its evidence. Then THE MOVE, the only part anyone can act on,
- * deliberately above the mechanics rather than buried under them. Then the
- * OPENING and the TRAP as a pair — a period is not good or bad, it is a chance
- * and a specific way of wasting it. Only after all of that: what is being
- * activated, by what, in which arenas. A reader who stops halfway down has
- * still got the whole answer.
+ * The order is the argument, and the argument changed once already. It used to
+ * open on the THESIS — a paragraph saying that the familiar path and the
+ * emerging one pull against each other — on the principle that a claim should
+ * arrive before its evidence. The principle was right and the claim was in the
+ * wrong form. A reader leaves that paragraph knowing the shape of their
+ * situation and nothing about what to practise, because prose is what you
+ * reach for when a claim needs a caveat, and this one needs nouns.
+ *
+ * So the DEVELOPMENT vectors lead: two columns saying what to develop and what
+ * to rely on less, drawn from the trajectory rather than from the period, with
+ * the PRESSURES beneath them naming what is pushing on those columns now. Then
+ * the OPENING and the TRAP as a pair — a period is not good or bad, it is a
+ * chance and a specific way of wasting it — and the arenas those play out
+ * through.
+ *
+ * Above the disclosure there are now no sentences at all. Not shortened ones:
+ * none. Every claim in the open part of this panel is a noun phrase, because
+ * the panel's job is recognition rather than instruction — a reader is looking
+ * for their own failure mode in the trap column, and recognition happens at a
+ * glance or it does not happen. Six paragraphs of well-written prose, each
+ * true, added up to a page that had to be read in order and was therefore not
+ * read at all.
+ *
+ * That cost something real and it is worth naming: "the retreat to what you
+ * are already good at feels like maturity rather than avoidance" says more
+ * than "Difficulty read as verdict". The sentences are not deleted — they are
+ * authored alongside the nouns, and they still travel verbatim to the chat,
+ * which is the surface where a paragraph is the right unit.
+ *
+ * THE MOVE went the same way, for a different reason: three pairs of nouns
+ * saying what to develop, sitting directly above a sentence saying to develop
+ * it, was the same claim twice at two different lengths.
+ *
+ * The thesis and the rest of the astrology sit in the evidence disclosure, and
+ * they stay prose. That is the one place in the panel where the reader has
+ * asked a question — why should I believe this — and an argument is not a
+ * thing nouns can make.
  */
 export default function ActivationDrawer({
   window: w,
@@ -85,12 +116,30 @@ export default function ActivationDrawer({
         `ACTIVATION INDEX: ${w.activation}/100\nTHESIS: ${r.thesis}\n` +
         `ACTIVATED: ${r.activated}\nMECHANISM: ${r.mechanism}\n` +
         `THE MOVE: ${r.growthMove}\nOPENING: ${r.opening}\nTRAP: ${r.trap}\n` +
+        // The developmental vectors, which are the claim the panel now leads
+        // on. Sent as the same two-column pairs a reader sees, with the
+        // emphasis named, so the prose elaborates this person's actual
+        // conversions instead of restating the orientation in longer words.
+        `DEVELOPMENT VECTORS (rely less \u2192 develop more; from the natal ` +
+        `trajectory, NOT from the transit):\n` +
+        r.vectors.vectors
+          .map(
+            (x) =>
+              `  ${x.from} \u2192 ${x.into} — ${x.fromDetail} \u2192 ${x.into}` +
+              `${x.body ? ` (this chart's own, via ${x.body})` : ""}`,
+          )
+          .join("\n") +
+        `\nEMPHASIS: ${r.vectors.emphasis} — ${r.vectors.note}\n` +
+        `PRESSURES: ${r.vectors.pressures.map((p) => `${p.planet || "nodal rhythm"} · ${p.process}`).join("; ")}\n` +
         `ARENAS: ${r.arenas.join(", ")}\n` +
+        `KIND OF CHANGE IN THEM: ${r.arenasSummary}\n` +
         `MAY BECOME CONCRETE THROUGH: ${r.eventPossibilities.join("; ")}\n` +
         (r.convergence
           ? `CONVERGENCE: ${r.convergence.thesis}\nTENSIONS: ${r.convergence.tensions.join("; ")}\n`
           : "") +
-        `\nWrite it as one continuous reading. Be concrete about the arenas without predicting ` +
+        `\nWrite it as one continuous reading. Build it around the development vectors — they ` +
+        `are what the chart is asking this person to develop, and the period only changes which ` +
+        `end of them is under pressure. Be concrete about the arenas without predicting ` +
         `events — you may say what a period is likely to become concrete THROUGH, never what ` +
         `will happen. Treat the South Node as competence being converted, never as fault. End on ` +
         `the move and the trap. No scores, no fate.`,
@@ -104,7 +153,11 @@ export default function ActivationDrawer({
         onClick={onClose}
         className="absolute inset-0 bg-void/70"
       />
-      <aside className="relative flex h-full w-full max-w-xl flex-col overflow-y-auto border-l border-rule bg-surface px-10 py-10">
+      {/* `@container` is what makes the `@md:` rules below live at all. Without
+          it the two-column pairings — opening beside trap, label beside
+          evidence — silently fell back to stacking at every width, which is
+          why the panel read as one long column no matter how wide it got. */}
+      <aside className="@container relative flex h-full w-full max-w-xl flex-col overflow-y-auto border-l border-rule bg-surface px-10 py-10">
         <div className="flex items-start justify-between gap-6">
           <div>
             {/* One identity, not a title plus a subtitle.
@@ -135,43 +188,46 @@ export default function ActivationDrawer({
           </button>
         </div>
 
-        {/* The claim, before any of its evidence. */}
-        {r.thesis.split("\n\n").map((para, i) => (
-          <p
-            key={i}
-            className={`${i === 0 ? "mt-8" : "mt-4"} text-[1.0625rem] leading-relaxed ${
-              i === 0 ? "text-bone" : "text-bone-soft"
-            }`}
-          >
-            {para}
-          </p>
-        ))}
-
-        {/* The one part that can be acted on, kept above the mechanics. */}
-        <section className="mt-11 border-l-2 border-patina-dim py-1 pl-5">
-          <p className={`${T.tiny} text-patina`}>The move</p>
-          <p className="mt-3 text-[1.0625rem] leading-relaxed text-bone">
-            {r.growthMove}
-          </p>
-        </section>
+        {/* The answer, in the form the question was asked in. */}
+        <ActivationVectors v={r.vectors} terse />
 
         {/* A period is not good or bad. It is a chance, and a specific way of
-            wasting it — which is the more useful half. */}
-        <div className="mt-10 grid gap-8 @md:grid-cols-2">
+            wasting it — which is the more useful half.
+            Two stacks of three rather than two paragraphs. The sentences are
+            still authored and still travel to the chat; what a reader wants
+            from this pair is to recognise their own failure mode in it, and
+            recognition happens at a glance or not at all. */}
+        <div className="mt-11 grid gap-x-10 gap-y-8 @md:grid-cols-2">
           <div>
-            <p className={`${T.tiny} text-bone-faint`}>The opening</p>
-            <p className={`${T.body} mt-3`}>{r.opening}</p>
+            <p className={`${T.tiny} text-patina`}>Opening</p>
+            <ul className="mt-4 space-y-2.5">
+              {r.openings.map((x) => (
+                <li key={x} className="text-[0.9375rem] leading-snug text-bone">
+                  {x}
+                </li>
+              ))}
+            </ul>
           </div>
           <div>
-            <p className={`${T.tiny} text-ember`}>The trap</p>
-            <p className={`${T.body} mt-3`}>{r.trap}</p>
+            <p className={`${T.tiny} text-ember`}>Trap</p>
+            <ul className="mt-4 space-y-2.5">
+              {r.traps.map((x) => (
+                <li
+                  key={x}
+                  className="text-[0.9375rem] leading-snug text-bone-soft"
+                >
+                  {x}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
 
-        {/* Where, and what kind of change — not a list of guesses.
-            The arenas name the places; the sentence names the process working
-            in them, so the two do not repeat each other. */}
-        <Block title="Where it may show up">
+        {/* Where. The sentence that used to name the kind of change working in
+            these areas has gone: the process is already named three times over
+            — in the title, in the pressures, in the opening — and a fourth
+            saying it in a clause was the panel explaining itself. */}
+        <Block title="Arenas">
           <p className="flex flex-wrap gap-x-3 gap-y-2">
             {r.arenas.map((a) => (
               <span
@@ -182,9 +238,8 @@ export default function ActivationDrawer({
               </span>
             ))}
           </p>
-          <p className={`${T.body} mt-5`}>{r.arenasSummary}</p>
-          <p className={`${T.note} mt-3`}>
-            Areas, not events. Nothing here says what will happen in them.
+          <p className={`${T.tiny} mt-4 text-bone-faint/70`}>
+            Areas, not events
           </p>
         </Block>
 
@@ -207,6 +262,14 @@ export default function ActivationDrawer({
 
           {evidence ? (
             <div className="mt-7">
+              <Row label="The claim">
+                {r.thesis.split("\n\n").map((para, i) => (
+                  <p key={i} className={`${T.body} ${i ? "mt-3" : ""}`}>
+                    {para}
+                  </p>
+                ))}
+              </Row>
+
               <Row label="Activated">
                 <p className={T.body}>{r.activated}</p>
                 <ul className="mt-3 space-y-2">

@@ -6,7 +6,6 @@ import {
   gradeLabel,
   type ActivationWindow,
   type Grade,
-  type NodalBeat,
 } from "@/lib/growth";
 import { plotScale } from "@/components/activation-axis";
 import { GRADE_TINT } from "@/components/activation-seasons";
@@ -53,7 +52,36 @@ const GRADE_DEPTH: Record<Grade, number> = {
  * labels on top of each other.
  */
 const MAX_LABELS = 6;
-const LABEL_SPACING = 6;
+/**
+ * Minimum gap between two captions, as a FRACTION of the drawn span.
+ *
+ * It was a number of YEARS, which is the wrong unit: a caption is a fixed 96px
+ * whatever the layout does, so how many years it covers depends entirely on
+ * how many years the plot is showing. Measured, "TURNING POINT" over its age
+ * range is 96px on a 760px row — a shade under 13% — so on a seventy-year view
+ * it occupies about nine years, and the old constants of six and then eight
+ * were both narrower than the thing they were spacing. Two captions could
+ * satisfy the rule and still sit on top of each other, which on two of the
+ * charts on file is exactly what they did.
+ *
+ * As a fraction it scales with the drawn span, so it holds at any width the
+ * row is given. 0.16 clears on every chart on file at the wide layout and at
+ * the 392px row the sidebar leaves at 1024.
+ */
+const LABEL_SPACING_FRACTION = 0.16;
+/**
+ * How long a turning point has to run to earn a caption.
+ *
+ * A chart holds nine or ten of them and most are short: of Boris's nine, five
+ * last under two years. Captioning all of them crowded the row with periods
+ * whose bars are a few pixels wide, which is how the labels came to overlap in
+ * the first place — and a two-word caption over a two-pixel bar is pointing at
+ * nothing anyway.
+ *
+ * Four years keeps two to five per chart across every chart on file. The rest
+ * keep their bar, their colour and their tooltip; only the caption goes.
+ */
+const MIN_LABEL_YEARS = 4;
 
 /** "41" or "38–41", collapsing a season that opens and closes in one year. */
 function ages(from: number, to: number): string {
@@ -64,7 +92,6 @@ function ages(from: number, to: number): string {
 
 export default function ActivationStrip({
   windows,
-  beats,
   age,
   viewFrom,
   viewTo,
@@ -72,8 +99,6 @@ export default function ActivationStrip({
   onSelect,
 }: {
   windows: ActivationWindow[];
-  /** The shared cycle's checkpoints — see the tick row under the bars. */
-  beats: NodalBeat[];
   age: number;
   /** The plot's drawn span. The bars are clipped to it, never rescaled. */
   viewFrom: number;
@@ -110,12 +135,36 @@ export default function ActivationStrip({
    * does not draw.
    */
   const VISIBLE = (viewTo - viewFrom) * 0.02;
+  const spacing = (viewTo - viewFrom) * LABEL_SPACING_FRACTION;
+  /**
+   * Turning points only, and therefore one row instead of two.
+   *
+   * Every graded season used to be captioned, which produced six or seven
+   * labels across the strip and no room to set them on a single line — so they
+   * alternated between two rows, and a reader comparing "TURNING POINT 31–40"
+   * with "ACTIVE 43–45" was reading two captions at two different heights that
+   * pointed at bars of two different lengths. The stagger was a workaround for
+   * having captioned too much.
+   *
+   * A turning point is the one grade that names a configuration rather than a
+   * quantity — independent pressures converging with one of them on the axis
+   * itself — and they are the long bars, so a caption has something to sit
+   * over. The rest keep their bar, their colour and their tooltip; they simply
+   * stop competing for the label row.
+   */
   const labelled: typeof drawn = [];
   for (const d of [...drawn]
-    .filter((d) => d.win.grade !== "background" && d.to - d.from >= VISIBLE)
+    .filter(
+      (d) =>
+        d.win.grade === "turning-point" &&
+        // The season's own length, not the drawn one: a long period running
+        // off the left edge is still a long period.
+        d.win.ageEnd - d.win.ageStart >= MIN_LABEL_YEARS &&
+        d.to - d.from >= VISIBLE,
+    )
     .sort((a, b) => b.win.activation - a.win.activation)) {
     if (labelled.length === MAX_LABELS) break;
-    if (labelled.some((p) => Math.abs(mid(p) - mid(d)) < LABEL_SPACING)) continue;
+    if (labelled.some((p) => Math.abs(mid(p) - mid(d)) < spacing)) continue;
     labelled.push(d);
   }
   labelled.sort((a, b) => a.from - b.from);
@@ -145,58 +194,34 @@ export default function ActivationStrip({
             />
           );
         })}
-        {/* The cycle checkpoints, on the baseline under the bars.
-            The one clock here that is not a planet: the lunar nodes travel
-            back around the chart in 18.6 years, so relative to where they
-            began they hit the same handful of milestones at the same ages for
-            everybody alive — near 9, 18, 28, 37, 46 and 56. That makes them
-            context rather than a finding about this chart, which is why they
-            are a hairline rather than a lane; and they are worth drawing at
-            all because they are fifteen of the hundred points the line is
-            made of, so a rise with no planet under it has its explanation
-            here. */}
-        {beats
-          .filter((b) => inside(b.age))
-          .map((b) => (
-            <span
-              key={`${b.kind}-${b.ordinal}`}
-              onMouseEnter={show({ kind: "beat", beat: b }, "below")}
-              className="absolute bottom-0 -translate-x-1/2 cursor-default"
-              style={{ left: x(b.age), width: 9, height: 12 }}
-            >
-              <span
-                className="absolute bottom-0 left-1/2 block h-[7px] w-px -translate-x-1/2"
-                style={{
-                  background:
-                    b.kind === "square"
-                      ? "var(--color-bone-faint)"
-                      : "var(--color-patina)",
-                  opacity: b.age < age ? 0.4 : 0.85,
-                }}
-              />
-            </span>
-          ))}
+        {/* The cycle checkpoints used to be ticked along this baseline —
+            a hairline per return, reversal and square. They are drawn on the
+            plot itself now, as full-height rules behind the curve, which is
+            where a reader is actually trying to locate a peak against them.
+            Down here they were three sizes of speck two rows away from the
+            line they qualify, and reading them meant crossing the bars to do
+            it. */}
 
         {/* Now, continued down from the plot's own marker so the two rows are
             visibly one drawing. */}
         {inside(age) ? (
           <span
-            className="absolute -top-2 bottom-0 w-px bg-bone-faint/60"
+            className="absolute -top-2 bottom-0 w-[2px] bg-signal/90"
             style={{ left: x(age) }}
           />
         ) : null}
       </div>
 
       {/* What a stretch is, and when. */}
-      <div className="relative h-12">
-        {labelled.map((d, i) => (
+      <div className="relative h-7">
+        {labelled.map((d) => (
           <button
             key={d.win.id}
             type="button"
             onClick={() => onSelect(d.win)}
             onMouseEnter={show({ kind: "window", window: d.win }, "below")}
-            className="absolute -translate-x-1/2 text-center whitespace-nowrap"
-            style={{ left: centred(mid(d)), top: i % 2 ? 22 : 0 }}
+            className="absolute top-0 -translate-x-1/2 text-center whitespace-nowrap"
+            style={{ left: centred(mid(d)) }}
           >
             <span
               className={`${T.tiny} block`}
@@ -239,9 +264,18 @@ export default function ActivationStrip({
             {gradeLabel(g)}
           </span>
         ))}
+        {/* Drawn on the plot rather than in this row, and keyed here anyway.
+            The legend is the chart's, not the strip's — every other entry
+            already explains a colour the row above uses too — and a vertical
+            rule appearing four times across a lifetime with nothing naming it
+            is the kind of mark a reader either ignores or invents a meaning
+            for. The swatch is upright because the thing it stands for is. */}
         <span className="flex items-center gap-2">
-          <span className="inline-block h-[7px] w-px bg-patina" />
-          cycle checkpoint
+          <span
+            className="inline-block h-[9px] w-px"
+            style={{ background: "var(--color-bone-faint)", opacity: 0.7 }}
+          />
+          nodal return
         </span>
       </div>
 

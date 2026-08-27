@@ -42,6 +42,26 @@
   --color-ember: #c2664b;
   --color-ember-dim: #7a3f2e;
 
+  /*
+    Signal — the reader's own position, and nothing else.
+
+    A third colour, which the note above says should not exist, so it is worth
+    saying what changed. Patina and ember are INTERPRETIVE: they grade a
+    period, they say how much and what kind. "You are here" is not an
+    interpretation of anything — it is the one mark on a timeline that is
+    indexical rather than descriptive, and it has to be findable at a glance
+    among a dozen marks that are all saying something about a life.
+
+    It was drawn in ember, which is the turning-point grade, so the NOW rule
+    and every turning-point bar on the same chart were one colour meaning two
+    unrelated things. Before that it was a grey hairline, indistinguishable
+    from the cycle marks it sits among.
+
+    Reserved for that. If a second thing ever wants it, that thing is probably
+    an interpretation and belongs in patina or ember after all.
+  */
+  --color-signal: #d8b45a;
+
   /* Type */
   --font-display: var(--font-cinzel);
   --font-body: var(--font-cormorant);

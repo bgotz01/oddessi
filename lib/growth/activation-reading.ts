@@ -43,17 +43,19 @@ import {
   trendAt,
   type IntensityPoint,
 } from "./activation-intensity";
-import { gradeLabel, gradeSummary, type Grade } from "./activation-windows";
+import { gradeLabel, type Grade } from "./activation-windows";
 import {
   PROCESS,
   UNKNOWN_PROCESS,
   orientationFrame,
   orientationShort,
+  PRESSURE_PLANETS,
   type Orientation,
 } from "./activation-interpretations";
+import { developmentVectors, type VectorReading } from "./activation-vectors";
 import type { Activation } from "./activation";
 import type { ActivationWindow } from "./activation-windows";
-import { beatLabel, type NodalBeat } from "./timing";
+import { beatLabel, type BeatKind, type NodalBeat } from "./timing";
 import type { Trajectory } from "./types";
 
 export interface ActivationReading {
@@ -104,12 +106,33 @@ export interface ActivationReading {
   arenasSummary: string;
   /** The developmental instruction. The centrepiece. */
   growthMove: string;
-  /** What the period makes possible. */
+  /**
+   * What the period makes possible, and how it gets wasted — as sentences.
+   *
+   * Kept for the chat, which is asked to write prose and does that better from
+   * prose than from labels. The panel no longer shows them.
+   */
   opening: string;
-  /** How the old strategy absorbs it and changes nothing. */
   trap: string;
+  /**
+   * The same two as stacks of noun phrases, for reading rather than parsing.
+   *
+   * Three each: the planet's, then the orientation's two. The planet leads
+   * because it is the half that changes between one period and the next — a
+   * reader comparing two seasons is comparing those first lines.
+   */
+  openings: string[];
+  traps: string[];
   /** Concrete domains, from the houses involved. Never predictions. */
   eventPossibilities: string[];
+  /**
+   * What to develop and what to rely on less, as nouns.
+   *
+   * The trajectory decides these; the window only decides which column leads.
+   * Composed in `activation-vectors.ts`, which is where the argument for the
+   * whole shape lives.
+   */
+  vectors: VectorReading;
   /** Present only when several independent pressures are in play. */
   convergence?: { thesis: string; tensions: string[] };
 }
@@ -244,13 +267,24 @@ export interface ActivationNow {
   span: ActivationCell | null;
   /** What is causing it. Three at most, direct contacts first. */
   drivers: ActivationDriver[];
-  /** The prose, for the disclosure. Never shown by default. */
-  detail: {
-    summary: string;
-    movement: string | null;
-    question: string | null;
-    caveat: string;
-  };
+  /**
+   * What the disclosure opens onto.
+   *
+   * It used to be three sentences — how concentrated the pressure is, what the
+   * orientation feels like, and the question of the period — and all three
+   * described the reader's situation rather than telling them what to do with
+   * it. "You are in a period of unusually concentrated developmental pressure"
+   * is a statement about the sky's arrangement over a chart, dressed as news
+   * about a life, and a reader finishes it no better equipped than they
+   * started. The vectors say what to develop and what to lean on less, in
+   * nouns, which is the thing the panel was being opened for.
+   *
+   * The caveat stays. It is the only line in here that was never
+   * interpretation — it says the model cannot see events, and that remains
+   * true however the rest of the panel is written.
+   */
+  vectors: VectorReading;
+  detail: { caveat: string };
   /** "40–42" and "2026–2028", for the panel's own header. */
   ages: string;
   years: string;
@@ -329,6 +363,7 @@ export function readActivationNow({
   age,
   ahead,
   yearOfAge,
+  trajectory: t,
 }: {
   /** The season being read. Null in a quiet stretch with nothing selected. */
   window: ActivationWindow | null;
@@ -340,6 +375,14 @@ export function readActivationNow({
   age: number;
   ahead: ActivationWindow[];
   yearOfAge: (age: number) => number;
+  /**
+   * The natal trajectory, for the vectors.
+   *
+   * They come from the chart rather than from the season, which is why this is
+   * a parameter and not something derived from the window: a quiet stretch has
+   * no window at all and still has a developmental direction to state.
+   */
+  trajectory: Trajectory;
 }): ActivationNow {
   const frame = w ? orientationFrame(w.orientation) : null;
 
@@ -381,7 +424,14 @@ export function readActivationNow({
       planet: a.planet,
       label: fn.label,
       house: a.through?.house ?? null,
-      note: a.direct ? "direct" : "supporting",
+      // Jupiter is read and named and moves no number. Calling its contact
+      // "direct" beside an index it did not raise is the inconsistency this
+      // model just spent a rewrite removing.
+      note: !PRESSURE_PLANETS.has(a.planet)
+        ? "opening"
+        : a.direct
+          ? "direct"
+          : "supporting",
       gloss: fn.pressure,
       technical: [
         a.through ? `H${a.through.house}` : null,
@@ -395,19 +445,33 @@ export function readActivationNow({
     });
   }
 
-  /** The shared rhythm, when one of its checkpoints falls in the season. */
-  const beat = w
-    ? beats.find((b) => b.age >= w.ageStart - 0.5 && b.age <= w.ageEnd + 0.5)
-    : undefined;
-  if (beat) {
+  /**
+   * The shared rhythm — named by which checkpoint it is, not that it is one.
+   *
+   * This said "Cycle checkpoint" for all three kinds, and the three are not
+   * one thing. The nodal cycle has FOUR points per turn — return, square,
+   * reversal, square — and the model already composes a different reading for
+   * each because they point different ways: a return re-issues the move toward
+   * the arriving pole, a reversal puts the departing ground back in demand,
+   * and a square is answered by neither. Collapsing forward, back and
+   * crossroads into one label threw away the whole of what the beat was
+   * saying, and left a row that appeared in half of all seasons carrying no
+   * information beyond its own existence.
+   *
+   * Every beat in the season, not the first. Four points per 18.6 years is one
+   * every 4.65, so a long window holds two — and `find` silently reported the
+   * earlier one as though it were the season's only rhythm.
+   */
+  for (const beat of w
+    ? beats.filter((b) => b.age >= w.ageStart - 0.5 && b.age <= w.ageEnd + 0.5)
+    : []) {
     drivers.push({
       planet: null,
-      label: "Cycle checkpoint",
+      label: `${beatLabel(beat.kind)}${beat.kind === "square" ? "" : ` · ${ordinal(beat.ordinal)}`}`,
       house: null,
       note: "shared",
-      gloss:
-        "the recurring milestone of the 18.6-year nodal cycle, at the same ages for everybody",
-      technical: `${beatLabel(beat.kind).toLowerCase()} · age ${Math.round(beat.age)} · ${beat.windowStart.slice(0, 7)}–${beat.windowEnd.slice(0, 7)}`,
+      gloss: BEAT_GLOSS[beat.kind],
+      technical: `age ${Math.round(beat.age)} · ${beat.windowStart.slice(0, 7)}–${beat.windowEnd.slice(0, 7)} · the same ages for everybody`,
     });
   }
 
@@ -478,12 +542,8 @@ export function readActivationNow({
         }
       : null,
     drivers,
-    detail: {
-      summary: gradeSummary(grade),
-      movement: frame ? `${frame.plain} ${frame.experience}` : null,
-      question: frame ? frame.question : null,
-      caveat: ACTIVATION_CAVEAT,
-    },
+    vectors: developmentVectors(t, w),
+    detail: { caveat: ACTIVATION_CAVEAT },
     ages: w ? ageRange(w.ageStart, w.ageEnd) : "",
     years: w ? `${w.start.slice(0, 4)}–${w.end.slice(0, 4)}` : "",
     next: upcoming
@@ -532,6 +592,30 @@ function lower(s: string): string {
 function list(parts: string[]): string {
   if (parts.length <= 1) return parts[0] ?? "";
   return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+}
+
+/**
+ * What each checkpoint of the nodal cycle asks, in one clause.
+ *
+ * Written per kind because that is the only thing that differs: the ages are
+ * identical for everybody alive, so the gloss cannot be about a life. What it
+ * can say is which way this particular point of the cycle pushes — and that is
+ * the fact the single "Cycle checkpoint" label used to hide.
+ */
+const BEAT_GLOSS: Record<BeatKind, string> = {
+  return:
+    "re-issues the move toward the arriving pole, to someone with more built to answer it",
+  reversal:
+    "puts the departing ground back in demand — rewarded, and still the direction you are leaving",
+  square:
+    "stands across the axis, so neither pole answers what the period puts in front of you",
+};
+
+/** "first", "second" — the pass this beat is, spelled for a label. */
+function ordinal(n: number): string {
+  return (
+    ["", "first", "second", "third", "fourth", "fifth", "sixth"][n] ?? `#${n}`
+  );
 }
 
 /**
@@ -711,10 +795,13 @@ export function interpretActivationWindow(
     arenas,
     arenasSummary: `In these areas, the period ${fn.pressure}.`,
     growthMove: frame.move,
+    vectors: developmentVectors(t, w),
     // Planet first, then the orientation's frame — each half written to stand
     // alone, so the join reads as two sentences rather than as a template.
     opening: `The opening is to ${fn.opening}. ${frame.opening}`,
     trap: `${fn.trap} ${frame.trap}`,
+    openings: [fn.openingNoun, ...frame.openingNouns],
+    traps: [fn.trapNoun, ...frame.trapNouns],
     eventPossibilities,
     convergence:
       w.grade === "convergence" || w.grade === "turning-point"

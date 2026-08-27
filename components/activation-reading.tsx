@@ -125,7 +125,6 @@ export default function ActivationReading({
   open: boolean;
   onToggle: (open: boolean) => void;
 }) {
-  const [why, setWhy] = useState(false);
   /** Which driver has been opened onto its evidence. One at a time. */
   const [shown, setShown] = useState<string | null>(null);
 
@@ -213,7 +212,9 @@ export default function ActivationReading({
           <p className={`${T.tiny} text-bone-faint`}>Driven by</p>
           <ul className="mt-1.5">
             {r.drivers.map((d) => {
-              const key = `${d.planet ?? "rhythm"}-${d.label}`;
+              // The technical string carries the age, which is what separates
+              // two checkpoints of the same kind inside one long season.
+              const key = `${d.planet ?? "rhythm"}-${d.label}-${d.technical}`;
               const on = shown === key;
               return (
                 <li key={key} className="border-b border-rule-faint/60 last:border-0">
@@ -267,13 +268,6 @@ export default function ActivationReading({
       ) : null}
 
       <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-rule-faint pt-4">
-        <button
-          type="button"
-          onClick={() => setWhy((v) => !v)}
-          className={`${T.tiny} text-bone-faint transition-colors hover:text-bone`}
-        >
-          {why ? "Hide the interpretation ↑" : "Interpretation ↓"}
-        </button>
         {r.window ? (
           <button
             type="button"
@@ -305,28 +299,17 @@ export default function ActivationReading({
         )}
       </div>
 
-      {/* The prose, kept and demoted. Same reading the column states in five
-          words; the reader who wants sentences is a different reader from the
-          one who wanted the five words. */}
-      {why ? (
-        <div className="mt-6 border-t border-rule-faint pt-4">
-          <p className={`${T.note}`}>{r.detail.summary}</p>
-          {r.detail.movement ? (
-            <p className={`${T.note} mt-3`}>{r.detail.movement}</p>
-          ) : null}
-          {r.detail.question ? (
-            <>
-              <p className={`${T.tiny} mt-5 text-bone-faint`}>
-                The question of this period
-              </p>
-              <p className={`${T.body} mt-2 text-bone`}>{r.detail.question}</p>
-            </>
-          ) : null}
-          <p className={`${T.tiny} mt-5 leading-relaxed text-bone-faint/70`}>
-            {r.detail.caveat}
-          </p>
-        </div>
-      ) : null}
+      {/* The caveat, stated once and never behind a toggle.
+          The disclosure that used to live here held three sentences about the
+          reader's situation, then briefly held the vectors. Both are gone: the
+          sentences because they described a period without saying what to do
+          in it, and the vectors because they now sit under the chart at full
+          width, where the pair actually fits on one line. A panel offering to
+          expand into the thing already visible below it is a step that exists
+          only to be clicked through. */}
+      <p className={`${T.tiny} mt-6 leading-relaxed text-bone-faint/70`}>
+        {r.detail.caveat}
+      </p>
     </aside>
   );
 }

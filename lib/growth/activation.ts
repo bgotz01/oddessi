@@ -32,6 +32,17 @@
  *      they strike this axis. Where several coincide is where a life tends to
  *      turn, and that coincidence is computed rather than left to be spotted.
  *
+ * FOUR AXES, and everything on the page is one of them. They are independent
+ * by construction, and most of the confusion this model has produced over its
+ * life came from two of them being read as one:
+ *
+ *   MAGNITUDE      how much is converging          → the index, 0–100
+ *   CONFIGURATION  what arrangement exists         → the season grade
+ *   DIRECTION      which way the pressure points   → the orientation
+ *   MECHANISM      what kind of change it is       → the planet's process
+ *
+ * Peak and window are temporal descriptions of a magnitude, not a fifth axis.
+ *
  * What this deliberately does NOT do is score. There is no 0–100, no weighting
  * of Pluto above Neptune, no arithmetic dressed as measurement. Windows are
  * classified STRUCTURALLY, and the top grade is a SHAPE rather than a total:
@@ -205,13 +216,17 @@ function toActivation(t: AxisTrigger): Activation {
 // re-exported here so consumers have one import for the whole model.
 
 import { activationWindows, type ActivationWindow } from "./activation-windows";
-import { activationCurve, type IntensityCurve } from "./activation-intensity";
+import {
+  activationCurve,
+  HIGH_PRESSURE,
+  type IntensityCurve,
+  type Shares,
+} from "./activation-intensity";
 
 export {
   activationWindows,
   gradeLabel,
   gradeMeaning,
-  gradeSummary,
   GRADE_PRECEDENCE,
   type ActivationWindow,
   type Grade,
@@ -230,11 +245,20 @@ export {
 } from "./activation-reading";
 
 export {
+  developmentVectors,
+  type DevelopmentVector,
+  type VectorEmphasis,
+  type VectorPressure,
+  type VectorReading,
+} from "./activation-vectors";
+
+export {
   activationCurve,
   bandLabel,
   intensityAt,
   BANDS,
   INGREDIENT_GLOSS,
+  SHARE_PRESETS,
   INGREDIENT_LABEL,
   SHARES,
   type Ingredient,
@@ -242,20 +266,24 @@ export {
   type IntensityPeak,
   type IntensityPoint,
   type Parts,
+  type Shares,
 } from "./activation-intensity";
 
 // ─── Composition ─────────────────────────────────────────────────────────────
 
 /**
- * The Activation Index at which a season is worth interpreting.
+ * The pressure at which a season is worth interpreting: the floor of High.
  *
- * Sixty — the floor of "strong convergence". Below it the trajectory is
- * running, as it always is, without unusual timing pressure on it, and writing
- * a reading for every stretch where a transit happens to exist is how a
- * developmental tool turns back into a horoscope generator. The curve's job is
- * to find what deserves interpretation; this is where it draws the line.
+ * Imported rather than restated. It read "sixty — the floor of strong
+ * convergence", which was a season word describing a magnitude threshold in a
+ * model whose whole argument is that the two are different axes, and it went
+ * stale the moment the bands were renamed.
+ *
+ * Below it the trajectory is running, as it always is, without unusual timing
+ * pressure on it. Writing a reading for every stretch where a transit happens
+ * to exist is how a developmental tool turns back into a horoscope generator.
  */
-const NOTABLE_INDEX = 60;
+const NOTABLE_INDEX = HIGH_PRESSURE;
 
 export interface GrowthActivation {
   age: number;
@@ -300,7 +328,11 @@ export interface GrowthActivation {
   dataUntilAge: number;
 }
 
-export function growthActivation(timing: GrowthTiming): GrowthActivation {
+export function growthActivation(
+  timing: GrowthTiming,
+  /** The ingredient weights, when they have been tuned away from the shipped set. */
+  shares?: Shares,
+): GrowthActivation {
   const activations = timing.triggers.map(toActivation);
   const windows = activationWindows(
     activations,
@@ -315,6 +347,7 @@ export function growthActivation(timing: GrowthTiming): GrowthActivation {
     timing.beats,
     timing.age,
     timing.lifespan,
+    shares,
   );
 
   // The index a window reaches, read off the curve rather than recomputed, so

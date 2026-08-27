@@ -194,7 +194,26 @@ export function trajectory(
    * both sets say the same thing and the specific one says it better.
    */
   const axisCore = axisConversionsFor(from.sign, from.house, to.sign, to.house);
-  const core: Conversion[] = axisCore ?? origin.conversions;
+  /**
+   * The two layers disagree about how many nouns a side takes — the axis table
+   * writes a list, the sign table writes one word — so they are normalised here
+   * rather than at either source. The headline stays the first noun in both
+   * cases, because a row is read at a glance and a glance holds one word.
+   */
+  const core: Conversion[] = axisCore
+    ? axisCore.map((c) => ({
+        fromMode: c.fromMode[0],
+        intoMode: c.intoMode[0],
+        fromModes: c.fromMode,
+        intoModes: c.intoMode,
+        from: c.from,
+        into: c.into,
+      }))
+    : origin.conversions.map((c) => ({
+        ...c,
+        fromModes: [c.fromMode],
+        intoModes: [c.intoMode],
+      }));
 
   /**
    * Then one row per body embedded in the departing ground. Each body's row
@@ -213,13 +232,18 @@ export function trajectory(
     movement.beat,
     arena?.expressBeat ?? movement.beat,
   ];
-  const bodyConversions: Conversion[] = departing.map((d, i) => ({
-    fromMode: cap(BODY_VERBS[d.body].noun),
-    intoMode: movement.mode,
-    from: BODY_VERBS[d.body].beat,
-    into: cap(facets[i % facets.length].toLowerCase()),
-    from_body: d.body,
-  }));
+  const bodyConversions: Conversion[] = departing.map((d, i) => {
+    const fromMode = cap(BODY_VERBS[d.body].noun);
+    return {
+      fromMode,
+      intoMode: movement.mode,
+      fromModes: [fromMode],
+      intoModes: [movement.mode],
+      from: BODY_VERBS[d.body].beat,
+      into: cap(facets[i % facets.length].toLowerCase()),
+      from_body: d.body,
+    };
+  });
 
   const material = from.house
     ? HOUSE[from.house as House].material
