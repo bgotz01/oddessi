@@ -88,7 +88,7 @@ export const TABS: { key: ChapterKey; label: string; kicker: string }[] = [
 ];
 
 /**
- * The type scale, fixed at six steps.
+ * The type scale, fixed at seven steps.
  *
  * This page once carried eleven font sizes, its most-used size was nine pixels,
  * and the result read as a wall because nothing announced itself as the thing
@@ -100,6 +100,18 @@ export const TABS: { key: ChapterKey; label: string; kicker: string }[] = [
 export const T = {
   /** The one sentence a section is answering. */
   lead: "text-[1.0625rem] leading-relaxed text-bone-soft",
+  /**
+   * A finding in a few words.
+   *
+   * The seventh step, and the one the page is now mostly made of. It exists
+   * because the sections stopped explaining themselves in prose: a tell is
+   * "One more perspective before deciding", a relation is a placement, and
+   * neither is reading text with a paragraph around it — each is the thing
+   * itself, and set at reading size it looked like a fragment of something
+   * longer that had been cut off. Big enough to be the object on the page
+   * rather than a description of one.
+   */
+  phrase: "text-[1.375rem] leading-snug text-bone",
   /** Primary reading text — the actual finding. */
   read: "text-[1.0625rem] leading-snug text-bone",
   /** Supporting sentences. */
@@ -119,11 +131,6 @@ export const T = {
  * page of its own.
  */
 export const SHOWN = 3;
-
-/** "+ 4 more questions →", or a plain invitation when nothing was cut. */
-export function more(total: number, noun: string): string {
-  return total > SHOWN ? `+ ${total - SHOWN} more ${noun} →` : "Explore →";
-}
 
 /**
  * The conversions a section shows, split into the two kinds it has.
@@ -167,4 +174,18 @@ export function shownConversions<C extends { from_body?: string }>(
  */
 export function tabsFor(hasCrossing: boolean) {
   return hasCrossing ? TABS : TABS.filter((x) => x.key !== "crossing");
+}
+
+/**
+ * `formatDegreeMinute` emits a typewriter apostrophe for arcminutes. That is
+ * the right thing for a string that may be copied or parsed; on the page the
+ * prime is the correct mark, and at label size the difference between 29°39'
+ * and 29°39′ is the difference between a stray tick and a unit.
+ *
+ * Lived in growth-arc while the Arc was the only section printing a degree.
+ * Two sections print one now, and two definitions of the same substitution is
+ * how the page ends up with one mark in the hero and another in a footnote.
+ */
+export function prime(degree: string): string {
+  return degree.replace(/'/g, "′");
 }

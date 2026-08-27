@@ -6,6 +6,7 @@ import { bodyColor } from "@/lib/bodies";
 import { bodyGlyph } from "@/lib/symbols";
 import type { Conversion, Trajectory } from "@/lib/growth";
 import GrowthRoad from "@/components/growth-road";
+import { Expand } from "@/components/growth-field";
 import { T, shownConversions, type ChapterKey } from "@/components/growth-ui";
 
 /**
@@ -32,6 +33,12 @@ import { T, shownConversions, type ChapterKey } from "@/components/growth-ui";
  * shape as any other line of advice on the page. The pair is what makes it a
  * conversion, and what lets a reader carry three of them out of the room.
  *
+ * A caption sat over the rows reading "What you already know becomes the
+ * material for what comes next", which is the section's title said a second
+ * time in more words — the road above it already draws that claim and the
+ * ground reading already argues it. Deleted; the group heading carries the
+ * break it was occupying.
+ *
  * The two groups are the section's other claim. CORE comes from the nodal axis
  * and is true of anyone on it; CHART-SPECIFIC exists only because a body stands
  * in the ground being left. Marking that with a glyph alone left the two kinds
@@ -45,7 +52,7 @@ export default function GrowthConversion({
   t: Trajectory;
   onOpen: (chapter: ChapterKey) => void;
 }) {
-  const { core, specific, hidden } = shownConversions(t.conversions);
+  const { core, specific } = shownConversions(t.conversions);
   const lead = t.deep.find((d) => d.side === "departing") ?? null;
 
   return (
@@ -93,10 +100,6 @@ export default function GrowthConversion({
         {t.groundReading}
       </p>
 
-      <p className={`${T.tiny} mt-12 text-bone-faint`}>
-        What you already know becomes the material for what comes next
-      </p>
-
       <Rows
         label="Core conversions"
         // Which axis, precisely. A chart whose house pair has a written reading
@@ -107,6 +110,13 @@ export default function GrowthConversion({
             : `${t.from.sign} → ${t.to.sign}`
         }
         rows={core}
+        // Rows are capped at three between the two groups, so a chart with
+        // more has some it is not showing. That used to be said by the exit
+        // button — "+ 1 more conversion" — and when the button went plain the
+        // fact had nowhere to live. It belongs on the group anyway: the
+        // heading is where this section states what a group IS, and "showing 2
+        // of 3" is exactly that.
+        showing={`${core.length} of ${t.conversions.filter((c) => !c.from_body).length}`}
       />
 
       {/* Only when the chart has one. A "chart-specific" heading over an empty
@@ -119,15 +129,7 @@ export default function GrowthConversion({
         />
       ) : null}
 
-      {hidden > 0 ? (
-        <button
-          type="button"
-          onClick={() => onOpen("conversion")}
-          className={`${T.tiny} mt-6 text-bone-faint transition-colors hover:text-patina`}
-        >
-          + {hidden} more {hidden === 1 ? "conversion" : "conversions"} →
-        </button>
-      ) : null}
+      <Expand onClick={() => onOpen("conversion")} />
     </section>
   );
 }
@@ -144,16 +146,24 @@ export default function GrowthConversion({
 function Rows({
   label,
   aside,
+  showing,
   rows,
 }: {
   label: string;
   aside: string;
+  /** "2 of 3", when the group is showing fewer rows than it has. */
+  showing?: string;
   rows: Conversion[];
 }) {
   return (
     <>
-      <div className="mt-8 flex items-baseline justify-between gap-4 border-b border-rule pb-2">
-        <p className={`${T.tiny} text-patina-dim`}>{label}</p>
+      <div className="mt-14 flex items-baseline justify-between gap-4 border-b border-rule pb-2">
+        <p className={`${T.tiny} text-patina-dim`}>
+          {label}
+          {showing ? (
+            <span className="ml-3 text-bone-faint">{showing}</span>
+          ) : null}
+        </p>
         <p className={`${T.tiny} text-bone-faint`}>{aside}</p>
       </div>
 

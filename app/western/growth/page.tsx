@@ -49,7 +49,7 @@ import { T, type ChapterKey } from "@/components/growth-ui";
  *     01  growth-arc           where you are going
  *     02  growth-conversion    how existing competence becomes new capacity
  *     03  growth-resistance    what pulls you back
- *     04  growth-tailwinds     what already helps
+ *     04  growth-tailwinds     what the chart can recruit
  *
  * The seven analytical layers the model computes (movement, arena, questions,
  * conversion, deep pattern, resistance, expression) are not deleted by that
@@ -58,11 +58,32 @@ import { T, type ChapterKey } from "@/components/growth-ui";
  * the page or the panel.
  *
  * Resistance is a movement here rather than a footnote on the road. It and
- * Tailwinds are the two halves of one question — what works against the
+ * Resources are the two halves of one question — what works against the
  * conversion and what for it — and having only one of them on the surface made
  * growth look either like a fight or like a gift, depending which half you
- * dropped.
+ * dropped. They were briefly one two-column component and the columns could
+ * not balance: resistance always has tells, an interrupt and a set of anchors,
+ * while resources is guaranteed only two entries, so the right column ran out
+ * halfway down the left one on every chart. Two sections, full measure, in
+ * sequence — sharing a grammar rather than a grid.
  */
+
+/**
+ * The two exits at the foot of the page.
+ *
+ * One is a Link and one is a button that opens the chat, so they are different
+ * elements by necessity — which is exactly the situation in which two copies
+ * of a class list drift apart. Written once.
+ *
+ * `inscription` rather than the mono micro label the pair used to carry. At
+ * this size a tracked 11px label in a box the width of half the page reads as
+ * a caption someone forgot to finish; the carved face is what the app already
+ * uses for a destination, in the sidebar and in every section title.
+ */
+const EXIT =
+  "inscription block border border-patina-dim px-8 py-7 text-center " +
+  "text-[1rem] leading-none text-patina transition-colors " +
+  "hover:border-patina hover:bg-patina-deep";
 
 function Growth({ chart, t }: { chart: Chart; t: Trajectory }) {
   const { config, edited } = useScoring();
@@ -222,7 +243,7 @@ function Growth({ chart, t }: { chart: Chart; t: Trajectory }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chart.id, t, rulership]);
   return (
-    <div className="mx-auto w-full max-w-6xl px-8 pb-32">
+    <div className="@container mx-auto w-full max-w-6xl px-8 pb-32">
       <PageTitle
         eyebrow={chart.name}
         title="Growth"
@@ -247,49 +268,55 @@ function Growth({ chart, t }: { chart: Chart; t: Trajectory }) {
         <GrowthTailwinds t={t} onOpen={setChapter} />
       </div>
 
-      {/* Timing lives on its own page.
-          It was briefly a fifth section here and it made this page incoherent:
-          the four movements above are a reading of a static axis with no dates
-          anywhere in them by design, and a transit calendar halfway down meant
-          a reader after "who am I becoming" got an ephemeris instead. The link
-          is the right size for it — this page states the trajectory, that one
-          says when it is being worked on. */}
-      <Link
-        href="/western/growth/activation"
-        className={`${T.micro} mt-24 mr-4 inline-block border border-patina-dim px-5 py-3 text-patina transition-colors hover:border-patina hover:bg-patina-deep`}
-      >
-        When is this active? →
-      </Link>
-
       {t.irregularAxis ? (
-        <p className={`mt-14 border-l-2 border-ember pl-5 ${T.note}`}>
+        <p className={`mt-20 max-w-2xl border-l-2 border-ember pl-5 ${T.note}`}>
           The nodes are not in opposite houses in this chart. The arena and
           conversion layers assume they are, so read those two with care — the
           rest of the trajectory is unaffected.
         </p>
       ) : null}
 
-      <button
-        type="button"
-        onClick={() =>
-          ask(
-            `Read the whole growth trajectory for ${chart.name}. The nodal axis runs South Node ` +
-            `${t.from.sign} house ${t.from.house} → North Node ${t.to.sign} house ${t.to.house}. ` +
-            (t.deep.length
-              ? `Standing in the nodal territory: ${t.deep.map((d) => `${d.body} in ${d.sign} house ${d.house} (${d.side})`).join("; ")}. `
-              : "Nothing stands in either nodal house. ") +
-            `Oddessi compresses this to "${t.arc.from} → ${t.arc.into}", and the conversion to ` +
-            `"${t.conversionArc.from} → ${t.conversionArc.into}". Write that trajectory out properly, in three ` +
-            `movements: where they are going, what they already have that gets them there, and where they get ` +
-            `stuck. Treat the South Node as competence and feedstock, never as fault — say what each ability ` +
-            `converts INTO. Name the loop that pulls back to the old strategy and the tell that it is running. ` +
-            `End with one concrete step for this year. No scores, no generic sign descriptions.`,
-          )
-        }
-        className={`${T.micro} mt-24 border border-patina-dim px-5 py-3 text-patina transition-colors hover:border-patina hover:bg-patina-deep`}
-      >
-        Read the whole trajectory →
-      </button>
+      {/* ── Where to go next ─────────────────────────────────────────────────
+
+          Two exits, as two blocks. They were bare inline buttons floating in a
+          field of air, then a pair of captioned paragraphs explaining what was
+          on the other side of each — which is a lot of apparatus for two
+          destinations the reader can already name. The labels are the
+          destinations now, at the size a destination deserves at the foot of a
+          page this long.
+
+          Timing lives on its own page. It was briefly a fifth section here and
+          it made this page incoherent: the four movements above are a reading
+          of a static axis with no dates anywhere in them by design, and a
+          transit calendar halfway down meant a reader after "who am I
+          becoming" got an ephemeris instead. */}
+      <div className="mt-28 grid gap-5 border-t border-rule pt-12 @2xl:grid-cols-2">
+        <Link href="/western/growth/activation" className={EXIT}>
+          Activation Chart
+        </Link>
+
+        <button
+          type="button"
+          onClick={() =>
+            ask(
+              `Read the whole growth trajectory for ${chart.name}. The nodal axis runs South Node ` +
+              `${t.from.sign} house ${t.from.house} → North Node ${t.to.sign} house ${t.to.house}. ` +
+              (t.deep.length
+                ? `Standing in the nodal territory: ${t.deep.map((d) => `${d.body} in ${d.sign} house ${d.house} (${d.side})`).join("; ")}. `
+                : "Nothing stands in either nodal house. ") +
+              `Oddessi compresses this to "${t.arc.from} → ${t.arc.into}", and the conversion to ` +
+              `"${t.conversionArc.from} → ${t.conversionArc.into}". Write that trajectory out properly, in three ` +
+              `movements: where they are going, what they already have that gets them there, and where they get ` +
+              `stuck. Treat the South Node as competence and feedstock, never as fault — say what each ability ` +
+              `converts INTO. Name the loop that pulls back to the old strategy and the tell that it is running. ` +
+              `End with one concrete step for this year. No scores, no generic sign descriptions.`,
+            )
+          }
+          className={EXIT}
+        >
+          Interface
+        </button>
+      </div>
 
       {chapter ? (
         <GrowthDrawer

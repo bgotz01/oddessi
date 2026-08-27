@@ -2,21 +2,65 @@
 
 "use client";
 
-import { bodyColor } from "@/lib/bodies";
-import { bodyGlyph, signGlyph } from "@/lib/symbols";
+import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 import type { Trajectory } from "@/lib/growth";
+import { Band, Expand, Placement, Row, SectionHead } from "@/components/growth-field";
+import {
+  resourceReadings,
+  type ResourceReading,
+} from "@/components/growth-readings";
 import { T, type ChapterKey } from "@/components/growth-ui";
 
 /**
- * 04 · Tailwinds — what is already on your side.
+ * 04 · Resources — what the chart can recruit.
  *
- * Every earlier version of this page covered what the chart is leaving, what it
+ * Every early version of this page covered what the chart is leaving, what it
  * is reaching for and what resists, and nothing at all about what helps. That
  * left the reading lopsided in a way no chart deserves.
  *
- * One caution the section states out loud: the node's ruler and Jupiter always
- * exist, so this list is never empty — which means its LENGTH measures nothing.
- * What is worth reading is which kinds are present, not how many.
+ * ─── Why there are no sentences in it ───────────────────────────────────────
+ *
+ * The model composes a `detail` line per entry and this section used to print
+ * all of them: five placements, each with a two-clause sentence underneath.
+ * The sentences are written per KIND, not per body, so two bodies holding a
+ * soft contact got the same words twice and the reader had to compare
+ * paragraphs to find that out. And a sentence is the wrong shape for the
+ * claim: the label already says what the relation is, the placement already
+ * says where it stands, and the rest was the model explaining its own
+ * vocabulary. Three words carry it, and the long form is one click away.
+ *
+ * ─── Why it is built like Resistance ────────────────────────────────────────
+ *
+ * The two are halves of one question, and for a while they only looked alike:
+ * the same header, the same band grammar, the same four type roles. The rows
+ * were still arranged the other way round — the placement at value size with a
+ * three-word gloss beside it, keyed by kind and identical on every chart that
+ * had that kind. That is the exact arrangement Resistance was pulled up for:
+ * "Mars in Capricorn, house 5" is not an answer to what you can recruit, it is
+ * the citation for one.
+ *
+ * So the reading takes the value slot here too, the placement takes the
+ * citation column, and the readings themselves are derived from the same two
+ * sources the resistance anchors use. See `resourceReadings` for which source
+ * applies to which kind and why.
+ *
+ * ─── The split ──────────────────────────────────────────────────────────────
+ *
+ * Only a soft aspect to the axis is evidence the move is EASIER. Being the
+ * node's ruler is a route, being conjunct the node is alignment, sharing the
+ * node's house is proximity, and Jupiter existing is barely a relation at all.
+ * That caution used to be a paragraph above one undifferentiated list — the
+ * weakest possible place for it, since the reader had to hold it in mind
+ * across five entries that all looked identical. It is the structure now: two
+ * bands, and a header that counts them honestly.
+ *
+ * The length of the list still measures nothing. The node's ruler and Jupiter
+ * are in every chart, so this section is never empty and never has to
+ * apologise for itself.
+ *
+ * Built from the same four roles and the same row as Resistance — a label, a
+ * placement, and what it amounts to — because the two sections are halves of
+ * one question and should not look like two different products.
  */
 export default function GrowthTailwinds({
   t,
@@ -25,70 +69,87 @@ export default function GrowthTailwinds({
   t: Trajectory;
   onOpen: (chapter: ChapterKey) => void;
 }) {
+  const open = () => onOpen("tailwinds");
+
+  const readings = resourceReadings(t);
+  const helps = readings.filter((w) => w.assists);
+  const relations = readings.filter((w) => !w.assists);
+
   return (
     <section className="@container">
-      <button
-        type="button"
-        onClick={() => onOpen("tailwinds")}
-        className="group block text-left"
-      >
-        <p className={`${T.tiny} text-patina-dim`}>04 · Resources</p>
-        <p className="inscription mt-5 text-[1.5rem] leading-tight text-bone">
-          What you can recruit
-        </p>
-      </button>
+      {/* The arriving pole, where Resistance names the departing one. These
+          are relations to the NORTH node, and a header that said "2 with a
+          stake in it" was counting the section instead of placing it — and
+          counting is the one thing this layer has always said not to do. The
+          honest half of that count, how many are evidence of ease, is what the
+          Support band is for. */}
+      <SectionHead
+        index="04"
+        name="Resources"
+        title="What you can recruit"
+        onOpen={open}
+        aside={`${t.to.sign}${t.to.house ? ` · house ${t.to.house}` : ""}`}
+        detail={
+          t.to.house ? (
+            <span className="text-bone-faint/70">
+              {getHouseTitle(t.to.house as House)}
+            </span>
+          ) : null
+        }
+      />
 
-      <p className="mt-5 max-w-2xl text-[1.0625rem] leading-relaxed text-bone-soft">
-        Parts of the chart with a stake in the direction. They do not all{" "}
-        <span className="text-bone">help</span> — only a soft aspect to the axis
-        is evidence the move is easier. The rest are routes, shared ground, or a
-        body fused with where you are going, which is alignment rather than
-        ease. Each one says which it is.
-      </p>
+      <Band label="Support">
+        {helps.length ? (
+          <Rows rows={helps} />
+        ) : (
+          // The one sentence this section gets, and only on the charts that
+          // need it. "Nothing holds a soft contact" is a real finding, and far
+          // better than folding those charts into a single list that implies
+          // five helpers.
+          <p className={`mt-6 max-w-xl ${T.lead}`}>
+            Nothing holds a trine or a sextile to the axis. What follows is
+            relevance, not ease.
+          </p>
+        )}
+      </Band>
 
-      {/* A field, not a grid of cards. Boxing five placements would rebuild
-          exactly the dashboard this page spent its whole life escaping — and
-          the KIND is the claim here, so it leads each entry. "Jupiter exists"
-          and "Venus conjunct the North Node" are not remotely the same
-          statement, and a uniform card makes them look like they are. */}
-      <ul className="mt-12 space-y-9">
-        {t.tailwinds.map((w) => (
-          <li key={w.body} className="grid gap-x-10 gap-y-2 @2xl:grid-cols-[8rem_1fr]">
-            <p
-              className={`${T.tiny} ${w.assists ? "text-patina" : "text-bone-faint"}`}
-            >
-              {w.label}
-              {w.assists ? null : (
-                <span className="mt-1 block text-bone-faint/70">relation</span>
-              )}
-            </p>
-            <div>
-              <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                <span
-                  className="glyph text-[1.125rem]"
-                  style={{ color: bodyColor(w.body) }}
-                >
-                  {bodyGlyph(w.body)}
-                </span>
-                <span className="text-[1.0625rem] font-light text-bone">
-                  {w.body}
-                </span>
-                <span className="glyph text-[0.9375rem] text-bone-soft">
-                  {signGlyph(w.sign)}
-                </span>
-                <span className="text-[0.9375rem] text-bone-soft">
-                  {w.sign} {w.degree}
-                  {w.house ? ` · H${w.house}` : ""}
-                </span>
-              </p>
-              <p className="mt-2 text-[1rem] leading-relaxed text-bone-faint">
-                {w.detail}
-              </p>
-            </div>
-          </li>
-        ))}
-      </ul>
+      {relations.length ? (
+        <Band label="Relations">
+          <Rows rows={relations} />
+        </Band>
+      ) : null}
 
+      <Expand onClick={open} />
     </section>
+  );
+}
+
+/**
+ * The same row as the Resistance placements, and for the same reason.
+ *
+ * This section asks what the chart can recruit, and the answer is not "Mars" —
+ * it is what having Mars where it stands does for the move. So the reading
+ * takes the value slot and the placement shrinks to the citation column, which
+ * is where evidence belongs.
+ */
+function Rows({ rows }: { rows: ResourceReading[] }) {
+  return (
+    <ul>
+      {rows.map((w) => (
+        <Row
+          key={w.body}
+          label={w.label}
+          accent={w.assists ? "patina" : "quiet"}
+          reading={w.reading}
+        >
+          <Placement
+            body={w.body}
+            sign={w.sign}
+            degree={w.degree}
+            house={w.house}
+          />
+        </Row>
+      ))}
+    </ul>
   );
 }

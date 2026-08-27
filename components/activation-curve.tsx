@@ -256,8 +256,32 @@ export default function ActivationCurve({
 
   return (
     <div className="mt-10">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-        <p className={`${T.tiny} text-bone-faint`}>Growth intensity · 0–100</p>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+        {/* Name and meaning, separated.
+            It read "Growth intensity", which named the wrong thing twice over:
+            "growth" implied the number counts growth, and "intensity" is vague
+            enough to be read as either. The page is already titled ACTIVATION,
+            the model function is `growthActivation`, and the source has called
+            this the Activation Index throughout — INDEX being the load-bearing
+            word, since "74%" reads as a probability and "74 / 100" reads as
+            what it is, a constructed composite of real observations.
+            The subtitle carries the one inference that has to be blocked. A
+            reader who takes nothing else from this page should not leave
+            thinking a high number means they are growing more: the same
+            reading falls on someone living their direction and on someone who
+            is not, which is why every period here has a trap as well as an
+            opening.
+            "Pressure" is exact rather than adversarial, and that is checkable:
+            only `PRESSURE_PLANETS` — Saturn, Uranus, Neptune, Pluto — move the
+            number. Jupiter is read, named and shown as a driver and cannot
+            raise it by a point, so the index never rises on a supportive
+            contact and the word is the model's own. */}
+        <div>
+          <p className={`${T.tiny} text-bone-faint`}>Activation index · 0–100</p>
+          <p className={`${T.tiny} mt-1.5 text-bone-faint/60`}>
+            How strongly each period activates growth.
+          </p>
+        </div>
         {/* A control, and it has to look like one.
             Two attempts failed the same way. A bare tracked label opposite the
             section title is the exact shape of a heading on this page, and
@@ -478,14 +502,22 @@ export default function ActivationCurve({
           strokeLinejoin="round"
         />
 
-        {/* Peaks, marked and measured — not named.
-            Two lines of composed reading used to sit over each dot,
-            "TRANSFORMATION / pressure to change", which is an interpretation
-            of a life printed on a drawing of a sky, and the same words are
-            what the drawer says at length when a period is actually opened.
-            What belongs on the chart is where the line tops out and how high:
-            the grade and the years are the caption row under the bars, and the
-            reading is one click away. */}
+        {/* Peaks, marked and DATED.
+            Two lines of composed reading used to sit over each dot —
+            "TRANSFORMATION / pressure to change" — which is an interpretation
+            of a life printed on a drawing of a sky, and the drawer says the
+            same at length when a period is opened. Cutting that to the index
+            value fixed the overclaiming and left a different problem: "80" over
+            a dot is the height of a line a reader can already see is high, and
+            it means nothing without the six-ingredient breakdown behind it. A
+            number that has to be explained is not an annotation.
+            The year is the one fact the drawing cannot show. The x-axis is
+            ticked every five years, so reading a peak's date off it means
+            interpolating between two ticks, and "when" is the question anybody
+            looks at a timeline to answer. The value survives on hover and in
+            Score details, where the breakdown that justifies it also lives.
+            Year, not month: the series is sampled quarterly and then smoothed,
+            so a peak's position is honest to about a season and no better. */}
         {curve.peaks
           .filter((pk) => pk.age >= viewFrom && pk.age <= viewTo)
           .map((pk) => {
@@ -504,7 +536,7 @@ export default function ActivationCurve({
                   fontSize={8.5}
                   letterSpacing={0.8}
                 >
-                  {pk.value}
+                  {yearAt(pk.age)}
                 </text>
               </g>
             );
@@ -561,13 +593,21 @@ export default function ActivationCurve({
             of the strip above: they describe the one point being pointed at,
             and reading them anywhere else means looking away from the line and
             back. The backing rectangle is what keeps them legible where the
-            label crosses a peak annotation or the curve itself. */}
-        {shown ? (
+            label crosses a peak annotation or the curve itself.
+
+            Gated on `hover` alone, not on `shown`. Everything else here falls
+            back to today when the pointer leaves, which is right for a readout
+            that has to say something — but a crosshair is a statement about
+            where the CURSOR is, and with no cursor on the chart it was parked
+            on today's date claiming to point at something nobody was pointing
+            at. NOW already has its own labelled rule; the crosshair saying the
+            same thing in a plate was that mark twice. */}
+        {hover ? (
           <g>
             <line
-              x1={x(shown.age)}
-              x2={x(shown.age)}
-              y1={y(shown.value)}
+              x1={x(hover.age)}
+              x2={x(hover.age)}
+              y1={y(hover.value)}
               y2={H - PAD.bottom}
               stroke="var(--color-bone-faint)"
               strokeWidth={1}
@@ -575,10 +615,10 @@ export default function ActivationCurve({
             />
             <rect
               x={Math.min(
-                Math.max(x(shown.age) - 34, PAD.left),
+                Math.max(x(hover.age) - 34, PAD.left),
                 W - PAD.right - 68,
               )}
-              y={y(shown.value) - 26}
+              y={y(hover.value) - 26}
               width={68}
               height={15}
               fill="var(--color-surface-alt)"
@@ -587,21 +627,21 @@ export default function ActivationCurve({
             />
             <text
               x={Math.min(
-                Math.max(x(shown.age), PAD.left + 34),
+                Math.max(x(hover.age), PAD.left + 34),
                 W - PAD.right - 34,
               )}
-              y={y(shown.value) - 15}
+              y={y(hover.value) - 15}
               textAnchor="middle"
               fill="var(--color-bone)"
               className="datum"
               fontSize={8.5}
               letterSpacing={0.8}
             >
-              age {Math.round(shown.age)} · {monthAt(shown.age)}
+              age {Math.round(hover.age)} · {monthAt(hover.age)}
             </text>
             <circle
-              cx={x(shown.age)}
-              cy={y(shown.value)}
+              cx={x(hover.age)}
+              cy={y(hover.value)}
               r={4}
               fill="var(--color-void)"
               stroke="var(--color-bone)"

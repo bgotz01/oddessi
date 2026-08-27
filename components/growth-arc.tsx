@@ -11,10 +11,12 @@ import type { Trajectory } from "@/lib/growth";
 
 import GrowthRoad from "@/components/growth-road";
 import GrowthCrossing from "@/components/growth-crossing";
+import { Expand } from "@/components/growth-field";
 
 import {
   SHOWN,
   T,
+  prime,
   type ChapterKey,
 } from "@/components/growth-ui";
 
@@ -68,16 +70,6 @@ import {
  * The move above them is specialised, so the generic questions land against a
  * sentence that is true of this chart alone.
  */
-
-/**
- * `formatDegreeMinute` emits a typewriter apostrophe for arcminutes. That is
- * the right thing for a string that may be copied or parsed; on the page the
- * prime is the correct mark, and at superscript size the difference between
- * 29°39' and 29°39\u2032 is the difference between a stray tick and a unit.
- */
-function prime(degree: string): string {
-  return degree.replace(/'/g, "\u2032");
-}
 
 export default function GrowthArc({
   t,
@@ -330,13 +322,7 @@ export default function GrowthArc({
         </div>
         ) : null}
 
-        <button
-          type="button"
-          onClick={() => onOpen("arc")}
-          className={`${T.tiny} mt-7 block w-full text-center text-bone-faint transition-colors hover:text-patina`}
-        >
-          Full arc →
-        </button>
+        <Expand onClick={() => onOpen("arc")} />
       </div>
     </section>
   );

@@ -2,9 +2,10 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { bodyColor } from "@/lib/bodies";
-import { bodyGlyph, signGlyph } from "@/lib/symbols";
-import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
-import { type Trajectory } from "@/lib/growth";
+import { bodyGlyph } from "@/lib/symbols";
+import { type Tailwind, type Trajectory } from "@/lib/growth";
+import { resistanceAnchors } from "@/components/growth-readings";
+import { Placement } from "@/components/growth-field";
 import { T, tabsFor, type ChapterKey } from "@/components/growth-ui";
 
 /**
@@ -56,35 +57,26 @@ function Block({
   );
 }
 
-function Placement({
-  body,
-  sign,
-  degree,
-  house,
-}: {
-  body: string;
-  sign: string;
-  /** Omitted only where the model genuinely has none. */
-  degree?: string;
-  house: number | null;
-}) {
+/** One group of relations, placement first and the long form under it. */
+function Relations({ rows }: { rows: Tailwind[] }) {
   return (
-    <p className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-      <span className="glyph text-[1.25rem]" style={{ color: bodyColor(body) }}>
-        {bodyGlyph(body)}
-      </span>
-      <span className="text-[1.0625rem] font-light text-bone">{body}</span>
-      <span className="glyph text-[1rem] text-bone-soft">{signGlyph(sign)}</span>
-      <span className="text-[1.0625rem] font-light text-bone-soft">{sign}</span>
-      {degree ? (
-        <span className="datum text-[0.75rem] text-bone-faint">{degree}</span>
-      ) : null}
-      {house ? (
-        <span className={T.body}>
-          · house {house} · {getHouseTitle(house as House)}
-        </span>
-      ) : null}
-    </p>
+    <div className="space-y-6">
+      {rows.map((w) => (
+        <div key={w.body}>
+          <Placement
+            size="panel"
+            body={w.body}
+            sign={w.sign}
+            degree={w.degree}
+            house={w.house}
+          />
+          <p className={`mt-2 ${T.micro} ${w.assists ? "text-patina" : "text-bone-faint"}`}>
+            {w.label}
+          </p>
+          <p className={`mt-2 ${T.body}`}>{w.detail}</p>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -153,6 +145,10 @@ export default function GrowthDrawer({
     ((t.crossing?.bodies.length ?? 0)
       ? `Square the axis: ${(t.crossing?.bodies ?? []).map((c) => `${c.body} in ${c.sign} ${c.degree}, house ${c.house}`).join("; ")}. `
       : "");
+
+  const anchors = resistanceAnchors(t);
+  const helps = t.tailwinds.filter((w) => w.assists);
+  const relations = t.tailwinds.filter((w) => !w.assists);
 
   const ASKS: Record<ChapterKey, string> = {
     arc: `${context}Oddessi compresses this to "${t.arc.from} → ${t.arc.into}". The direction is "${t.movement.quality}", practised in house ${t.to.house} — ${t.arena?.territory}. Write the developmental story that compression stands for, specific to these placements, and say what developing that quality actually requires of someone already good at ${t.from.sign}. Oddessi's instruction for the arriving pole is "${t.practice.arriving?.move ?? t.arena?.directive ?? t.movement.movement}" — read that as the move being asked for, and say what it costs someone practised at ${t.from.sign}. Then take the two or three of these questions that bite hardest for THIS chart and say why: ${[...(t.practice.arriving?.questions ?? []), ...t.questions].join(" / ")}. The old competence is FEEDSTOCK, never fault.`,
@@ -253,6 +249,7 @@ export default function GrowthDrawer({
               ) : null}
               <Block title="Against what you already know" aside="south node">
                 <Placement
+                  size="panel"
                   body="South Node"
                   sign={t.from.sign}
                   degree={t.from.degree}
@@ -383,6 +380,7 @@ export default function GrowthDrawer({
                     {t.deep.map((d) => (
                       <div key={d.body}>
                         <Placement
+                          size="panel"
                           body={d.body}
                           sign={d.sign}
                           degree={d.degree}
@@ -438,7 +436,11 @@ export default function GrowthDrawer({
                 <p className={T.read}>{t.resistance.pullback}</p>
                 <p className={`mt-4 ${T.body}`}>{t.resistanceTurn}</p>
               </Block>
-              <Block title="How it shows up" aside="the tells">
+              {/* Named for the page's band, not for itself. A reader who
+                  clicked "Behaviours" and arrived at "How it shows up" has to
+                  work out that they are the same thing before they can read
+                  it. */}
+              <Block title="Behaviours" aside={`${t.from.sign} — going back`}>
                 <ul className="space-y-2.5">
                   {t.resistance.tells.map((tell) => (
                     <li key={tell} className={T.read}>
@@ -447,83 +449,112 @@ export default function GrowthDrawer({
                   ))}
                 </ul>
               </Block>
-              <Block title="Its mechanism">
-                {t.resistance.ruler ? (
-                  <>
-                    <p className={`${T.micro} mb-2 text-bone-faint`}>
-                      the old way answers to
-                    </p>
-                    <Placement
-                      body={t.resistance.ruler.body}
-                      sign={t.resistance.ruler.sign}
-                      degree={t.resistance.ruler.degree}
-                      house={t.resistance.ruler.house}
-                    />
-                  </>
-                ) : null}
-                {t.resistance.anchored.length ? (
-                  <p className={`mt-4 ${T.body}`}>
-                    <span className={`${T.micro} mr-2 text-bone-faint`}>
-                      fused to the old way
-                    </span>
-                    {t.resistance.anchored.join(", ")} — on the South Node itself,
-                    so a whole part of the psyche is invested in staying.
-                  </p>
-                ) : null}
+              {/* The same anchors the page shows, from the same composer, in
+                  the same order. This block used to hand-write its own gloss
+                  for the conjunct bodies and leave the departing house's
+                  tenants out entirely, so the panel was both saying something
+                  different from the page and knowing less than it. */}
+              {anchors.length ? (
+                <Block title="Placements" aside="why the pull is this strong">
+                  <div className="space-y-5">
+                    {anchors.map((anchor) => (
+                      <div key={`${anchor.label}-${anchor.body}`}>
+                        <p className={`${T.micro} text-bone-faint`}>
+                          {anchor.label}
+                        </p>
+                        <p className={`mt-2 ${T.read}`}>{anchor.reading}</p>
+                        <div className="mt-2">
+                          <Placement
+                            size="panel"
+                            body={anchor.body}
+                            sign={anchor.sign}
+                            degree={anchor.degree}
+                            house={anchor.house}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Block>
+              ) : null}
+              {/* The crossing note stays in the drawer alone. A square to the
+                  axis is a different kind of fact from the anchors above — it
+                  cuts sideways rather than pulling back — and the Arc already
+                  flags it on the page. */}
+              <Block title="Anything square to the axis" accent="ember">
                 {(t.crossing?.bodies.length ?? 0) ? (
-                  <p className={`mt-4 ${T.body}`}>
-                    <span className={`${T.micro} mr-2 text-ember`}>unavoidable</span>
+                  <p className={T.body}>
                     {(t.crossing?.bodies ?? []).map((c) => c.body).join(", ")} — square to both ends at
                     once, so no version of the move goes around it. This is the
                     only resistance that genuinely sits mid-journey.
                   </p>
                 ) : (
-                  <p className={`mt-4 ${T.note}`}>
+                  <p className={T.note}>
                     Nothing stands square to the axis, so there is no obstacle met
                     partway. The pull is the origin&rsquo;s own gravity — which is
                     easier to interrupt, and easier not to notice.
                   </p>
                 )}
               </Block>
-              <Block title="Before and after" aside={t.to.sign}>
-                <p className={`${T.micro} text-bone-faint`}>Less</p>
+              {/* Old reflex / New move, matching the page. These were Less and
+                  More, which is the pair the page dropped: the axis is not a
+                  dial with less of one end and more of the other, it is one
+                  move replacing another. */}
+              <Block title="Response" aside="what to say instead">
+                <p className={`${T.micro} text-bone-faint`}>Old reflex</p>
                 <p className={`mt-2 ${T.read} text-bone-soft`}>{t.movement.expression.oldPole}</p>
                 <div className="my-5 h-px w-10 bg-patina-dim" />
-                <p className={`${T.micro} text-patina`}>More</p>
+                <p className={`${T.micro} text-patina`}>New move</p>
                 <p className={`mt-2 ${T.read}`}>{t.movement.expression.developedPole}</p>
               </Block>
             </>
           ) : null}
 
           {/* ── Tailwinds ─────────────────────────────────────────────── */}
+          {/* Split the way the page splits it. One flat list with the caveat
+              underneath was the older design, and it put the single most
+              important thing about this layer — that four of the five kinds
+              are not help — in a paragraph the reader met only after they had
+              already read five entries as though they were.
+
+              The `detail` sentences stay. They are the long form the page
+              deliberately dropped, and a panel is what a reader opens to get
+              it. */}
           {tab === "tailwinds" ? (
-            <Block
-              title="With a stake in the direction"
-              aside={`${t.tailwinds.length} placements`}
-            >
-              <div className="space-y-6">
-                {t.tailwinds.map((w) => (
-                  <div key={w.body}>
-                    <Placement
-                      body={w.body}
-                      sign={w.sign}
-                      degree={w.degree}
-                      house={w.house}
-                    />
-                    <p className={`mt-2 ${T.micro} text-patina`}>{w.label}</p>
-                    <p className={`mt-2 ${T.body}`}>{w.detail}</p>
-                  </div>
-                ))}
-              </div>
-              <p className={`mt-7 ${T.note}`}>
-                The node&rsquo;s ruler and Jupiter are in every chart, so this
-                list is never empty and its length measures nothing. Only{" "}
-                <span className="text-patina">Supports</span> — a soft aspect to
-                the axis — is evidence that the move is easier. The others are
-                relevance: a route, a shared arena, or a body fused with the
-                destination. Read which kinds are here, not how many.
-              </p>
-            </Block>
+            <>
+              <Block
+                title="Support"
+                aside="soft contact with the axis"
+              >
+                {helps.length ? (
+                  <Relations rows={helps} />
+                ) : (
+                  <p className={T.body}>
+                    Nothing holds a trine or a sextile to the axis, so nothing
+                    here is evidence that the move is easier. What follows is
+                    relevance: a route, a shared arena, or a body fused with the
+                    destination.
+                  </p>
+                )}
+              </Block>
+
+              {relations.length ? (
+                <Block
+                  title="Relations"
+                  aside="route, alignment, shared ground"
+                >
+                  <Relations rows={relations} />
+                </Block>
+              ) : null}
+
+              <Block title="How to read the count">
+                <p className={T.note}>
+                  The node&rsquo;s ruler and Jupiter are in every chart, so this
+                  list is never empty and its length measures nothing. Read
+                  which kinds are here, not how many.
+                </p>
+              </Block>
+            </>
           ) : null}
         </div>
 
