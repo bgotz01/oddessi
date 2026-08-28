@@ -5,9 +5,9 @@
 import { bodyColor } from "@/lib/bodies";
 import { bodyGlyph } from "@/lib/symbols";
 import type { Conversion, Trajectory } from "@/lib/growth";
-import GrowthRoad from "@/components/growth-road";
-import { Expand } from "@/components/growth-field";
-import { T, groundNote, shownConversions, type ChapterKey } from "@/components/growth-ui";
+import GrowthRoad from "@/components/western/growth/growth-road";
+import { Expand, SectionHead } from "@/components/western/growth/growth-field";
+import { T, groundNote, shownConversions, type ChapterKey } from "@/components/western/growth/growth-ui";
 
 /**
  * 02 · Conversion — how existing competence becomes new capacity.
@@ -58,41 +58,41 @@ export default function GrowthConversion({
 
   return (
     <section className="@container">
-      <button
-        type="button"
-        onClick={() => onOpen("conversion")}
-        className={`${T.tiny} mb-9 block text-patina-dim`}
-      >
-        02 · Conversion
-      </button>
-
-      <GrowthRoad
-        size="medium"
-        fromLabel="What you already do"
-        toLabel="What it becomes"
-        from={
-          <span className="flex flex-wrap items-baseline gap-x-3">
-            {t.conversionArc.from.toUpperCase()}
-            {/* The body that made this specific, marked on the thing it
-                changed. Without it the left side would read “comparison”. */}
-            {lead ? (
-              <span
-                className="glyph text-[1rem]"
-                style={{ color: bodyColor(lead.body) }}
-                title={`${lead.body} deepens the departing ground — why this reads ${t.conversionArc.from}, not ${t.conversionArc.genericFrom}`}
-              >
-                {bodyGlyph(lead.body)}
-              </span>
-            ) : null}
-          </span>
-        }
-        to={t.conversionArc.into.toUpperCase()}
-        toColor="var(--color-patina)"
-        onFrom={() => onOpen("conversion")}
-        onTo={() => onOpen("conversion")}
+      <SectionHead
+        index="02"
+        name="Conversion"
+        title="How competence converts"
+        onOpen={() => onOpen("conversion")}
       />
 
-      {/* Centered and given room rather than left-flush at half the section's
+      <div className="mt-10">
+        <GrowthRoad
+          size="medium"
+          fromLabel="What you already do"
+          toLabel="What it becomes"
+          from={
+            <span className="flex flex-wrap items-baseline gap-x-3">
+              {t.conversionArc.from.toUpperCase()}
+              {/* The body that made this specific, marked on the thing it
+                changed. Without it the left side would read “comparison”. */}
+              {lead ? (
+                <span
+                  className="glyph text-[1rem]"
+                  style={{ color: bodyColor(lead.body) }}
+                  title={`${lead.body} deepens the departing ground — why this reads ${t.conversionArc.from}, not ${t.conversionArc.genericFrom}`}
+                >
+                  {bodyGlyph(lead.body)}
+                </span>
+              ) : null}
+            </span>
+          }
+          to={t.conversionArc.into.toUpperCase()}
+          toColor="var(--color-patina)"
+          onFrom={() => onOpen("conversion")}
+          onTo={() => onOpen("conversion")}
+        />
+
+        {/* Centered and given room rather than left-flush at half the section's
           width: at the container's full measure a max-w-2xl paragraph stopped
           well short of the road above it, which reads as an accident rather
           than a stopping point. The extra width and the indent make it read
@@ -105,41 +105,42 @@ export default function GrowthConversion({
           left is the pair the road cannot draw: why this ground is not the
           textbook version of its house, and what the body standing in it does
           there. The full paragraph still goes to the chat. */}
-      <p className={`mx-auto mt-10 max-w-3xl ${T.lead} @2xl:pl-10`}>
-        {ground.correction}
-        {ground.charge ? ` ${ground.charge}` : ""}
-      </p>
+        <p className={`mx-auto mt-10 max-w-3xl ${T.lead} @2xl:pl-10`}>
+          {ground.correction}
+          {ground.charge ? ` ${ground.charge}` : ""}
+        </p>
 
-      <Rows
-        label="Core conversions"
-        // Which axis, precisely. A chart whose house pair has a written reading
-        // is being told something stronger than one falling back to the sign.
-        aside={
-          t.conversionsAreAxisSpecific
-            ? `${t.from.sign} H${t.from.house} → ${t.to.sign} H${t.to.house}`
-            : `${t.from.sign} → ${t.to.sign}`
-        }
-        rows={core}
-        // Rows are capped at three between the two groups, so a chart with
-        // more has some it is not showing. That used to be said by the exit
-        // button — "+ 1 more conversion" — and when the button went plain the
-        // fact had nowhere to live. It belongs on the group anyway: the
-        // heading is where this section states what a group IS, and "showing 2
-        // of 3" is exactly that.
-        showing={`${core.length} of ${t.conversions.filter((c) => !c.from_body).length}`}
-      />
-
-      {/* Only when the chart has one. A "chart-specific" heading over an empty
-          list would advertise the absence of the most interesting rows. */}
-      {specific.length ? (
         <Rows
-          label="Chart-specific"
-          aside={`${specific.map((c) => c.from_body).join(" · ")} in the departing ground`}
-          rows={specific}
+          label="Core conversions"
+          // Which axis, precisely. A chart whose house pair has a written reading
+          // is being told something stronger than one falling back to the sign.
+          aside={
+            t.conversionsAreAxisSpecific
+              ? `${t.from.sign} H${t.from.house} → ${t.to.sign} H${t.to.house}`
+              : `${t.from.sign} → ${t.to.sign}`
+          }
+          rows={core}
+          // Rows are capped at three between the two groups, so a chart with
+          // more has some it is not showing. That used to be said by the exit
+          // button — "+ 1 more conversion" — and when the button went plain the
+          // fact had nowhere to live. It belongs on the group anyway: the
+          // heading is where this section states what a group IS, and "showing 2
+          // of 3" is exactly that.
+          showing={`${core.length} of ${t.conversions.filter((c) => !c.from_body).length}`}
         />
-      ) : null}
 
-      <Expand onClick={() => onOpen("conversion")} />
+        {/* Only when the chart has one. A "chart-specific" heading over an empty
+          list would advertise the absence of the most interesting rows. */}
+        {specific.length ? (
+          <Rows
+            label="Chart-specific"
+            aside={`${specific.map((c) => c.from_body).join(" · ")} in the departing ground`}
+            rows={specific}
+          />
+        ) : null}
+
+        <Expand onClick={() => onOpen("conversion")} />
+      </div>
     </section>
   );
 }
@@ -181,7 +182,7 @@ function Rows({
         {rows.map((c) => (
           <li
             key={c.from}
-            className="grid items-baseline gap-x-6 gap-y-1 border-b border-rule-faint py-5 @2xl:grid-cols-[1fr_auto_1fr]"
+            className="mt-6 grid gap-6 @2xl:grid-cols-[1fr_auto_1fr] @2xl:items-start @2xl:gap-8"
           >
             <div>
               <p className={`${T.tiny} text-bone-faint`}>
@@ -196,21 +197,21 @@ function Rows({
                   </span>
                 ) : null}
               </p>
-              <p className="mt-1.5 text-[0.9375rem] leading-snug text-bone-faint">
+              <p className={`mt-3 ${T.phrase} text-bone-soft`}>
                 {c.from}
               </p>
             </div>
 
             <span
               aria-hidden
-              className="glyph hidden text-[0.875rem] text-patina @2xl:block"
+              className="glyph hidden pt-7 text-[1rem] text-patina @2xl:block"
             >
               →
             </span>
 
             <div>
               <p className={`${T.tiny} text-patina`}>{c.intoMode}</p>
-              <p className="mt-1.5 text-[1.0625rem] leading-snug text-bone">
+              <p className={`mt-3 ${T.phrase}`}>
                 {c.into}
               </p>
             </div>

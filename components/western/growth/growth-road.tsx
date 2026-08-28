@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { T } from "@/components/growth-ui";
+import { T } from "@/components/western/growth/growth-ui";
 
 /**
  * A road: two terminals with a line between them.
@@ -64,9 +64,8 @@ export default function GrowthRoad({
           className="group shrink-0 text-left disabled:cursor-default"
         >
           <span
-            className={`inscription block leading-none text-bone-faint transition-colors ${type} ${
-              onFrom ? "group-hover:text-bone-soft" : ""
-            }`}
+            className={`inscription block leading-none text-bone-faint transition-colors ${type} ${onFrom ? "group-hover:text-bone-soft" : ""
+              }`}
           >
             {from}
           </span>
@@ -95,9 +94,8 @@ export default function GrowthRoad({
           className="group shrink-0 text-left disabled:cursor-default @2xl:text-right"
         >
           <span
-            className={`inscription block leading-none text-bone transition-colors ${type} ${
-              onTo ? "group-hover:text-patina" : ""
-            }`}
+            className={`inscription block leading-none text-bone transition-colors ${type} ${onTo ? "group-hover:text-patina" : ""
+              }`}
           >
             {to}
           </span>

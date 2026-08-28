@@ -2,15 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PageTitle, SectionHeading } from "@/components/primitives";
-import HousePositions from "@/components/house-positions";
-import HouseRow from "@/components/house-row";
-import HouseDrawer from "@/components/house-drawer";
+import HousePositions from "@/components/western/houses/house-positions";
+import HouseRow from "@/components/western/houses/house-row";
+import HouseDrawer from "@/components/western/houses/house-drawer";
 import ScoringDetails from "@/components/scoring-details";
 import {
   HouseCircuits,
   PlanetaryInfluences,
   ReadingTheGrid,
-} from "@/components/house-context";
+} from "@/components/western/houses/house-context";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import type { Chart } from "@/lib/charts";

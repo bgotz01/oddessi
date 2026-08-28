@@ -4,9 +4,9 @@ import { useEffect, useState, type ReactNode } from "react";
 import { bodyColor } from "@/lib/bodies";
 import { bodyGlyph } from "@/lib/symbols";
 import { RELATION_NOTE, type Trajectory } from "@/lib/growth";
-import { resistanceAnchors, resourceReadings } from "@/components/growth-readings";
-import { Placement, Row } from "@/components/growth-field";
-import { T, groundNote, tabsFor, type ChapterKey } from "@/components/growth-ui";
+import { resistanceAnchors, resourceReadings } from "@/components/western/growth/growth-readings";
+import { Placement, Row } from "@/components/western/growth/growth-field";
+import { T, groundNote, tabsFor, type ChapterKey } from "@/components/western/growth/growth-ui";
 
 /**
  * The evidence, in one panel with four tabs.
@@ -276,13 +276,12 @@ export default function GrowthDrawer({
                 role="tab"
                 aria-selected={on}
                 onClick={() => setTab(x.key)}
-                className={`${T.tiny} flex-1 border-b-2 px-2 py-3 transition-colors ${
-                  on
-                    ? x.key === "crossing"
-                      ? "border-ember bg-surface text-ember"
-                      : "border-patina bg-surface text-patina"
-                    : "border-transparent bg-void text-bone-faint hover:text-bone-soft"
-                }`}
+                className={`${T.tiny} flex-1 border-b-2 px-2 py-3 transition-colors ${on
+                  ? x.key === "crossing"
+                    ? "border-ember bg-surface text-ember"
+                    : "border-patina bg-surface text-patina"
+                  : "border-transparent bg-void text-bone-faint hover:text-bone-soft"
+                  }`}
               >
                 {x.label}
               </button>
@@ -414,29 +413,29 @@ export default function GrowthDrawer({
                 }
               >
                 {!questionsOpen ? null : (
-                <>
-                {t.practice.arriving ? (
-                  <ul className="mb-7 space-y-3">
-                    {t.practice.arriving.questions.map((q) => (
-                      <li key={q} className={T.read}>
-                        {q}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-                {t.practice.arriving ? (
-                  <p className={`${T.tiny} mb-4 text-bone-faint`}>
-                    The wider axis
-                  </p>
-                ) : null}
-                <ul className="space-y-3">
-                  {wider.map((q) => (
-                    <li key={q} className={t.practice.arriving ? T.body : T.read}>
-                      {q}
-                    </li>
-                  ))}
-                </ul>
-                </>
+                  <>
+                    {t.practice.arriving ? (
+                      <ul className="mb-7 space-y-3">
+                        {t.practice.arriving.questions.map((q) => (
+                          <li key={q} className={T.read}>
+                            {q}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                    {t.practice.arriving ? (
+                      <p className={`${T.tiny} mb-4 text-bone-faint`}>
+                        The wider axis
+                      </p>
+                    ) : null}
+                    <ul className="space-y-3">
+                      {wider.map((q) => (
+                        <li key={q} className={t.practice.arriving ? T.body : T.read}>
+                          {q}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
                 )}
               </Block>
             </>
@@ -502,33 +501,33 @@ export default function GrowthDrawer({
                   t.crossing!.bodies.findIndex((x) => x.house === c.house) === i;
 
                 return (
-                <Block
-                  key={c.body}
-                  title={c.body}
-                  aside={c.interpretation.demand}
-                  accent="ember"
-                >
-                  <p className={T.read}>{c.interpretation.conflict}</p>
+                  <Block
+                    key={c.body}
+                    title={c.body}
+                    aside={c.interpretation.demand}
+                    accent="ember"
+                  >
+                    <p className={T.read}>{c.interpretation.conflict}</p>
 
-                  <p className={`${T.tiny} mt-6 text-bone-faint`}>
-                    How it interrupts
-                  </p>
-                  <p className={`mt-2 ${T.body}`}>
-                    {c.interpretation.interruption}
-                    {/* The house layer. Without it Mars in the twelfth reads
+                    <p className={`${T.tiny} mt-6 text-bone-faint`}>
+                      How it interrupts
+                    </p>
+                    <p className={`mt-2 ${T.body}`}>
+                      {c.interpretation.interruption}
+                      {/* The house layer. Without it Mars in the twelfth reads
                         exactly like Mars in the second — the body names the
                         demand, and only the house says where it surfaces. */}
-                    {c.arena && firstInHouse
-                      ? ` It tends to surface ${c.arena.showsUpAs}.`
-                      : ""}
-                  </p>
+                      {c.arena && firstInHouse
+                        ? ` It tends to surface ${c.arena.showsUpAs}.`
+                        : ""}
+                    </p>
 
-                  <p className={`${T.tiny} mt-6 text-patina`}>Integration</p>
-                  <p className={`mt-2 ${T.body} text-bone`}>
-                    {c.interpretation.integration}
-                    {c.arena && firstInHouse ? ` ${c.arena.integrationArena}` : ""}
-                  </p>
-                </Block>
+                    <p className={`${T.tiny} mt-6 text-patina`}>Integration</p>
+                    <p className={`mt-2 ${T.body} text-bone`}>
+                      {c.interpretation.integration}
+                      {c.arena && firstInHouse ? ` ${c.arena.integrationArena}` : ""}
+                    </p>
+                  </Block>
                 );
               })}
             </>
@@ -833,9 +832,8 @@ export default function GrowthDrawer({
                   {kinds.map((k) => (
                     <li key={k.kind}>
                       <p
-                        className={`${T.tiny} ${
-                          k.kind === "support" ? "text-patina" : "text-bone-faint"
-                        }`}
+                        className={`${T.tiny} ${k.kind === "support" ? "text-patina" : "text-bone-faint"
+                          }`}
                       >
                         {k.label}
                       </p>

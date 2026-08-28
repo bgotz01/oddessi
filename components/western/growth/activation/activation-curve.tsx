@@ -18,11 +18,11 @@ import {
   TICK_STEP,
   VIEW_FROM_YEAR,
   W,
-} from "@/components/activation-axis";
-import { Breakdown, ReadoutStrip } from "@/components/activation-readout";
-import { SeasonGradient, GRADE_TINT } from "@/components/activation-seasons";
-import ActivationStrip from "@/components/activation-strip";
-import { T } from "@/components/growth-ui";
+} from "@/components/western/growth/activation/activation-axis";
+import { Breakdown, ReadoutStrip } from "@/components/western/growth/activation/activation-readout";
+import { SeasonGradient, GRADE_TINT } from "@/components/western/growth/activation/activation-seasons";
+import ActivationStrip from "@/components/western/growth/activation/activation-strip";
+import { T } from "@/components/western/growth/growth-ui";
 
 /**
  * The Activation Index across a life, as one line.

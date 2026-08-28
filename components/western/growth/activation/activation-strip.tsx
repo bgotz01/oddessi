@@ -7,10 +7,10 @@ import {
   type ActivationWindow,
   type Grade,
 } from "@/lib/growth";
-import { plotScale } from "@/components/activation-axis";
-import { GRADE_TINT } from "@/components/activation-seasons";
-import ActivationTooltip, { useTip } from "@/components/activation-tooltip";
-import { T } from "@/components/growth-ui";
+import { plotScale } from "@/components/western/growth/activation/activation-axis";
+import { GRADE_TINT } from "@/components/western/growth/activation/activation-seasons";
+import ActivationTooltip, { useTip } from "@/components/western/growth/activation/activation-tooltip";
+import { T } from "@/components/western/growth/growth-ui";
 
 /**
  * The graded seasons, hung under the curve on the curve's own axis.

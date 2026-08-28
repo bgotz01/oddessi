@@ -1,6 +1,6 @@
 "use client";
 
-import HouseReading from "@/components/house-reading";
+import HouseReading from "@/components/western/houses/house-reading";
 import { OpenMark } from "@/components/study-panel";
 import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 import type { HouseCusp, Placement } from "@/lib/charts";

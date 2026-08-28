@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 import { bodyColor } from "@/lib/bodies";
 import { bodyGlyph, signGlyph } from "@/lib/symbols";
 import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
-import { T, prime } from "@/components/growth-ui";
+import { T, prime } from "@/components/western/growth/growth-ui";
 
 /**
  * The furniture Resistance and Resources are both built from.
@@ -77,35 +77,23 @@ export function SectionHead({
   index,
   name,
   title,
-  aside,
-  detail,
   onOpen,
 }: {
   index: string;
   name: string;
   title: string;
-  /** The header's own datum — the sign and house, or a count. */
-  aside: string;
-  /** A second line under it, quieter. Optional. */
-  detail?: ReactNode;
   onOpen: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-3 @2xl:flex-row @2xl:items-baseline @2xl:justify-between @2xl:gap-8">
-      <button type="button" onClick={onOpen} className="group block text-left">
-        <p className={`${T.tiny} text-patina-dim`}>
-          {index} · {name}
-        </p>
-        <p className="inscription mt-4 text-[1.5rem] leading-tight text-bone transition-colors group-hover:text-patina">
-          {title}
-        </p>
-      </button>
-
-      <p className={`${T.tiny} text-bone-faint @2xl:text-right`}>
-        {aside}
-        {detail ? <span className="mt-1 block">{detail}</span> : null}
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group mb-10 block w-full text-center"
+    >
+      <p className={`${T.micro} text-patina-dim transition-colors group-hover:text-patina`}>
+        {index} · {name} · {title}
       </p>
-    </div>
+    </button>
   );
 }
 
@@ -299,12 +287,14 @@ export function Placement({
  */
 export function Expand({ onClick }: { onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`${T.tiny} mt-12 block w-full border-t border-rule pt-5 text-center text-bone-faint transition-colors hover:text-patina`}
-    >
-      Expand
-    </button>
+    <div className="mt-12 flex justify-center">
+      <button
+        type="button"
+        onClick={onClick}
+        className={`${T.tiny} rounded-sm border border-rule px-8 py-3 text-bone-faint transition-colors hover:border-patina-dim hover:text-patina`}
+      >
+        Expand
+      </button>
+    </div>
   );
 }

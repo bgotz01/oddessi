@@ -2,14 +2,13 @@
 
 "use client";
 
-import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 import type { Trajectory } from "@/lib/growth";
-import { Band, Expand, Placement, Row, SectionHead } from "@/components/growth-field";
+import { Band, Expand, Placement, Row, SectionHead } from "@/components/western/growth/growth-field";
 import {
   resourceReadings,
   type ResourceReading,
-} from "@/components/growth-readings";
-import { T, type ChapterKey } from "@/components/growth-ui";
+} from "@/components/western/growth/growth-readings";
+import { T, type ChapterKey } from "@/components/western/growth/growth-ui";
 
 /**
  * 04 · Resources — what the chart can recruit.
@@ -88,14 +87,6 @@ export default function GrowthTailwinds({
         name="Resources"
         title="What you can recruit"
         onOpen={open}
-        aside={`${t.to.sign}${t.to.house ? ` · house ${t.to.house}` : ""}`}
-        detail={
-          t.to.house ? (
-            <span className="text-bone-faint/70">
-              {getHouseTitle(t.to.house as House)}
-            </span>
-          ) : null
-        }
       />
 
       <Band label="Support">

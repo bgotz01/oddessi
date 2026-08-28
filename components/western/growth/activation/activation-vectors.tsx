@@ -5,7 +5,7 @@
 import { bodyColor } from "@/lib/bodies";
 import { bodyGlyph } from "@/lib/symbols";
 import type { VectorReading } from "@/lib/growth";
-import { T } from "@/components/growth-ui";
+import { T } from "@/components/western/growth/growth-ui";
 
 /**
  * What the chart is asking you to develop — the drawer's centrepiece.

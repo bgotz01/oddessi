@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import Timeline from "@/components/timeline";
-import HousePassage from "@/components/house-passage";
+import HousePassage from "@/components/western/houses/house-passage";
 import WesternCycleDrawer, {
   type CycleTarget,
 } from "@/components/western/cycle-drawer";
@@ -18,7 +18,7 @@ import {
   type BandStatus,
 } from "@/lib/band";
 import { PLANETS } from "@/lib/planets";
-import { Toggle, FilterRow } from "@/components/filter-controls";
+import { Toggle, FilterRow } from "@/components/western/cycles/filter-controls";
 
 interface AllResponse {
   bands: Band[];

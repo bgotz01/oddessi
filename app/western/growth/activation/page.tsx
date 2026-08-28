@@ -5,11 +5,11 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PageTitle } from "@/components/primitives";
-import ActivationCurve from "@/components/activation-curve";
-import ActivationReading from "@/components/activation-reading";
-import ActivationMethod from "@/components/activation-method";
-import ActivationDrawer from "@/components/activation-drawer";
-import ActivationDevelopment from "@/components/activation-development";
+import ActivationCurve from "@/components/western/growth/activation/activation-curve";
+import ActivationReading from "@/components/western/growth/activation/activation-reading";
+import ActivationMethod from "@/components/western/growth/activation/activation-method";
+import ActivationDrawer from "@/components/western/growth/activation/activation-drawer";
+import ActivationDevelopment from "@/components/western/growth/activation/activation-development";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import { useScoring } from "@/components/scoring-context";
@@ -24,9 +24,9 @@ import {
   type ActivationWindow,
   type Trajectory,
 } from "@/lib/growth";
-import { T } from "@/components/growth-ui";
-import { useActivationContext } from "@/components/activation-context";
-import { useActivationShares } from "@/components/activation-shares";
+import { T } from "@/components/western/growth/growth-ui";
+import { useActivationContext } from "@/components/western/growth/activation/activation-context";
+import { useActivationShares } from "@/components/western/growth/activation/activation-shares";
 
 /**
  * Growth · Activation — when the trajectory becomes unusually loud.

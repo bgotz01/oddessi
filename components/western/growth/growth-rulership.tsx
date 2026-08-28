@@ -3,7 +3,7 @@
 import { copyScoring } from "@/lib/scoring";
 import type { Rulership } from "@/lib/rulership";
 import { useScoring } from "@/components/scoring-context";
-import { T } from "@/components/growth-ui";
+import { T } from "@/components/western/growth/growth-ui";
 
 /**
  * The one setting this page actually reads, as two words in the title row.
@@ -70,11 +70,10 @@ export default function GrowthRulership() {
               type="button"
               onClick={() => choose(o.value)}
               aria-pressed={active}
-              className={`${T.tiny} border-b pb-0.5 transition-colors ${
-                active
+              className={`${T.tiny} border-b pb-0.5 transition-colors ${active
                   ? "border-patina text-patina"
                   : "border-transparent text-bone-faint hover:text-bone-soft"
-              }`}
+                }`}
             >
               {o.label}
             </button>

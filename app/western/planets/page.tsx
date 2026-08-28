@@ -2,8 +2,8 @@
 
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import { useChart } from "@/components/chart-context";
-import { NatalWheel } from "@/components/natal-wheel";
-import { BodiesTable } from "@/components/bodies-table";
+import { NatalWheel } from "@/components/western/planets/natal-wheel";
+import { BodiesTable } from "@/components/western/planets/bodies-table";
 
 export default function PlanetsPage() {
   const { chart } = useChart();

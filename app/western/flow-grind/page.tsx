@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { PageTitle, SectionHeading } from "@/components/primitives";
-import HouseMatrix, { QUADRANT_TINT } from "@/components/house-matrix";
-import HouseDrawer from "@/components/house-drawer";
+import HouseMatrix, { QUADRANT_TINT } from "@/components/western/houses/house-matrix";
+import HouseDrawer from "@/components/western/houses/house-drawer";
 import ScoringDetails from "@/components/scoring-details";
 import ScoringEditor from "@/components/scoring-editor";
 import ChartPresets from "@/components/chart-presets";

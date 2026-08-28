@@ -6,8 +6,8 @@ import { useState } from "react";
 import { bodyColor } from "@/lib/bodies";
 import { bodyGlyph } from "@/lib/symbols";
 import type { ActivationCell, ActivationNow, ActivationWindow } from "@/lib/growth";
-import { GRADE_TINT, pressureTint } from "@/components/activation-seasons";
-import { T } from "@/components/growth-ui";
+import { GRADE_TINT, pressureTint } from "@/components/western/growth/activation/activation-seasons";
+import { T } from "@/components/western/growth/growth-ui";
 
 /**
  * The instrument panel, standing beside the chart.

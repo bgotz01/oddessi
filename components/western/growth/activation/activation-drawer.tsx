@@ -12,9 +12,9 @@ import {
   type ActivationWindow,
   type Trajectory,
 } from "@/lib/growth";
-import ActivationVectors from "@/components/activation-vectors";
-import { GRADE_TINT } from "@/components/activation-seasons";
-import { T } from "@/components/growth-ui";
+import ActivationVectors from "@/components/western/growth/activation/activation-vectors";
+import { GRADE_TINT } from "@/components/western/growth/activation/activation-seasons";
+import { T } from "@/components/western/growth/growth-ui";
 
 /**
  * One period, read.
@@ -93,11 +93,10 @@ export default function ActivationDrawer({
   const r = useMemo(() => interpretActivationWindow(w, t), [w, t]);
   const [evidence, setEvidence] = useState(false);
 
-  const ages = `${Math.round(w.ageStart)}${
-    Math.round(w.ageEnd) > Math.round(w.ageStart)
-      ? `–${Math.round(w.ageEnd)}`
-      : ""
-  }`;
+  const ages = `${Math.round(w.ageStart)}${Math.round(w.ageEnd) > Math.round(w.ageStart)
+    ? `–${Math.round(w.ageEnd)}`
+    : ""
+    }`;
 
   /**
    * The skeleton, handed over whole.
@@ -110,39 +109,39 @@ export default function ActivationDrawer({
   const ask = () =>
     onAsk(
       `Read the activation period at age ${ages} (${w.start.slice(0, 7)} to ${w.end.slice(0, 7)}) ` +
-        `for ${chartName}. Oddessi has already composed this reading — expand it into prose for ` +
-        `this person, do NOT re-derive it or substitute a different interpretation.\n\n` +
-        `TITLE: ${r.title} (${r.phrase})\nCLASSIFICATION: ${r.classification}\n` +
-        `ACTIVATION INDEX: ${w.activation}/100\nTHESIS: ${r.thesis}\n` +
-        `ACTIVATED: ${r.activated}\nMECHANISM: ${r.mechanism}\n` +
-        `THE MOVE: ${r.growthMove}\nOPENING: ${r.opening}\nTRAP: ${r.trap}\n` +
-        // The developmental vectors, which are the claim the panel now leads
-        // on. Sent as the same two-column pairs a reader sees, with the
-        // emphasis named, so the prose elaborates this person's actual
-        // conversions instead of restating the orientation in longer words.
-        `DEVELOPMENT VECTORS (rely less \u2192 develop more; from the natal ` +
-        `trajectory, NOT from the transit):\n` +
-        r.vectors.vectors
-          .map(
-            (x) =>
-              `  ${x.from} \u2192 ${x.into} — ${x.fromDetail} \u2192 ${x.into}` +
-              `${x.body ? ` (this chart's own, via ${x.body})` : ""}`,
-          )
-          .join("\n") +
-        `\nEMPHASIS: ${r.vectors.emphasis} — ${r.vectors.note}\n` +
-        `PRESSURES: ${r.vectors.pressures.map((p) => `${p.planet || "nodal rhythm"} · ${p.process}`).join("; ")}\n` +
-        `ARENAS: ${r.arenas.join(", ")}\n` +
-        `KIND OF CHANGE IN THEM: ${r.arenasSummary}\n` +
-        `MAY BECOME CONCRETE THROUGH: ${r.eventPossibilities.join("; ")}\n` +
-        (r.convergence
-          ? `CONVERGENCE: ${r.convergence.thesis}\nTENSIONS: ${r.convergence.tensions.join("; ")}\n`
-          : "") +
-        `\nWrite it as one continuous reading. Build it around the development vectors — they ` +
-        `are what the chart is asking this person to develop, and the period only changes which ` +
-        `end of them is under pressure. Be concrete about the arenas without predicting ` +
-        `events — you may say what a period is likely to become concrete THROUGH, never what ` +
-        `will happen. Treat the South Node as competence being converted, never as fault. End on ` +
-        `the move and the trap. No scores, no fate.`,
+      `for ${chartName}. Oddessi has already composed this reading — expand it into prose for ` +
+      `this person, do NOT re-derive it or substitute a different interpretation.\n\n` +
+      `TITLE: ${r.title} (${r.phrase})\nCLASSIFICATION: ${r.classification}\n` +
+      `ACTIVATION INDEX: ${w.activation}/100\nTHESIS: ${r.thesis}\n` +
+      `ACTIVATED: ${r.activated}\nMECHANISM: ${r.mechanism}\n` +
+      `THE MOVE: ${r.growthMove}\nOPENING: ${r.opening}\nTRAP: ${r.trap}\n` +
+      // The developmental vectors, which are the claim the panel now leads
+      // on. Sent as the same two-column pairs a reader sees, with the
+      // emphasis named, so the prose elaborates this person's actual
+      // conversions instead of restating the orientation in longer words.
+      `DEVELOPMENT VECTORS (rely less \u2192 develop more; from the natal ` +
+      `trajectory, NOT from the transit):\n` +
+      r.vectors.vectors
+        .map(
+          (x) =>
+            `  ${x.from} \u2192 ${x.into} — ${x.fromDetail} \u2192 ${x.into}` +
+            `${x.body ? ` (this chart's own, via ${x.body})` : ""}`,
+        )
+        .join("\n") +
+      `\nEMPHASIS: ${r.vectors.emphasis} — ${r.vectors.note}\n` +
+      `PRESSURES: ${r.vectors.pressures.map((p) => `${p.planet || "nodal rhythm"} · ${p.process}`).join("; ")}\n` +
+      `ARENAS: ${r.arenas.join(", ")}\n` +
+      `KIND OF CHANGE IN THEM: ${r.arenasSummary}\n` +
+      `MAY BECOME CONCRETE THROUGH: ${r.eventPossibilities.join("; ")}\n` +
+      (r.convergence
+        ? `CONVERGENCE: ${r.convergence.thesis}\nTENSIONS: ${r.convergence.tensions.join("; ")}\n`
+        : "") +
+      `\nWrite it as one continuous reading. Build it around the development vectors — they ` +
+      `are what the chart is asking this person to develop, and the period only changes which ` +
+      `end of them is under pressure. Be concrete about the arenas without predicting ` +
+      `events — you may say what a period is likely to become concrete THROUGH, never what ` +
+      `will happen. Treat the South Node as competence being converted, never as fault. End on ` +
+      `the move and the trap. No scores, no fate.`,
     );
 
   return (

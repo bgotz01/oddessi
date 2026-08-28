@@ -3,8 +3,8 @@
 "use client";
 
 import type { ActivationNow, ActivationWindow } from "@/lib/growth";
-import ActivationVectors from "@/components/activation-vectors";
-import { T } from "@/components/growth-ui";
+import ActivationVectors from "@/components/western/growth/activation/activation-vectors";
+import { T } from "@/components/western/growth/growth-ui";
 
 /**
  * Development — what the season is asking for, stated once, in the open.

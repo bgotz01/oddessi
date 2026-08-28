@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PageTitle, SectionHeading } from "@/components/primitives";
-import CycleRow, { type CycleRowData } from "@/components/cycle-row";
-import CycleDrawer from "@/components/cycle-drawer";
+import CycleRow, { type CycleRowData } from "@/components/western/cycles/cycle-row";
+import CycleDrawer from "@/components/western/cycles/cycle-drawer";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import { useJson } from "@/lib/use-json";

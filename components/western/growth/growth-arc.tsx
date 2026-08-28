@@ -9,16 +9,16 @@ import {
 } from "@/lib/astrology/house-categories";
 import type { Trajectory } from "@/lib/growth";
 
-import GrowthRoad from "@/components/growth-road";
-import GrowthCrossing from "@/components/growth-crossing";
-import { Expand } from "@/components/growth-field";
+import GrowthRoad from "@/components/western/growth/growth-road";
+import GrowthCrossing from "@/components/western/growth/growth-crossing";
+import { Expand, SectionHead } from "@/components/western/growth/growth-field";
 
 import {
   SHOWN,
   T,
   prime,
   type ChapterKey,
-} from "@/components/growth-ui";
+} from "@/components/western/growth/growth-ui";
 
 /**
  * 01 · Arc — where you are going.
@@ -90,53 +90,27 @@ export default function GrowthArc({
   return (
     <section className="@container">
       {/* ── Section label ─────────────────────────────────────────────── */}
-      <button
-        type="button"
-        onClick={() => onOpen("arc")}
-        className={`${T.tiny} mb-9 block text-patina-dim transition-colors hover:text-patina`}
-      >
-        01 · Arc
-      </button>
+      <SectionHead
+        index="01"
+        name="Arc"
+        title="Where you are going"
+        onOpen={() => onOpen("arc")}
+      />
 
       {/* ════════════════════════════════════════════════════════════════
           THE ROAD
           ════════════════════════════════════════════════════════════════ */}
 
-      <GrowthRoad
-        fromLabel="South Node · The competence"
-        toLabel="North Node · The direction"
-        from={t.arc.from}
-        to={t.arc.into}
-        toColor={toColor}
-        onFrom={() => onOpen("arc")}
-        onTo={() => onOpen("arc")}
-        mark={
-          t.crossing ? (
-            <span
-              aria-hidden
-              title="A part of the chart cuts across both ends of the nodal axis"
-              className="relative z-10 flex items-center bg-void px-3.5"
-            >
-              <span className="glyph text-[1.125rem] leading-none text-ember">
-                ✕
-              </span>
-            </span>
-          ) : undefined
-        }
-      />
-
       {/* ── Astrological provenance ──────────────────────────────────────
-          House and sign are the two facts a reader actually orients on, so
-          they read as one unit at the top of the scale — "H3 Libra", house
-          first, because the house is the part of life this is happening in
-          and the sign is how it is done. The degree is precision rather than
-          something to read at a glance: it sits behind them at the label
-          size, raised like an exponent so it attaches to the placement
-          without competing for the line. No glyphs — a reader who already
-          knows the South Node from a Libra dot has no use for either symbol
-          here, and for one who doesn't, an unlabelled glyph teaches nothing
-          a word doesn't already say plainer. */}
-      <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-3 @2xl:grid-cols-2">
+          The complete technical profile sits above the archetype road so the
+          reader sees the raw placement first, then the interpretation of it.
+          House and sign read as one unit — "H3 Libra", house first because
+          the house is the part of life this is happening in and the sign is
+          how it is done. Degree sits as a superscript for precision without
+          competing for the line. The house title drops below as context.
+          No glyphs — a reader who already knows the South Node from a Libra
+          dot has no use for either symbol here. */}
+      <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-3 @2xl:grid-cols-2">
         <p className={`${T.tiny} text-bone-faint`}>
           <span className="text-[0.9375rem] text-bone-soft">
             {t.from.house ? `H${t.from.house} ` : ""}
@@ -172,6 +146,34 @@ export default function GrowthArc({
               : ""}
           </span>
         </p>
+      </div>
+
+      {/* ── Archetype road ───────────────────────────────────────────────
+          The interpretation of the placements above: Interpreter → Author.
+          This is the product; the placements above are the provenance. */}
+      <div className="mt-7">
+        <GrowthRoad
+          fromLabel="South Node · The competence"
+          toLabel="North Node · The direction"
+          from={t.arc.from}
+          to={t.arc.into}
+          toColor={toColor}
+          onFrom={() => onOpen("arc")}
+          onTo={() => onOpen("arc")}
+          mark={
+            t.crossing ? (
+              <span
+                aria-hidden
+                title="A part of the chart cuts across both ends of the nodal axis"
+                className="relative z-10 flex items-center bg-void px-3.5"
+              >
+                <span className="glyph text-[1.125rem] leading-none text-ember">
+                  ✕
+                </span>
+              </span>
+            ) : undefined
+          }
+        />
       </div>
 
       {/* ════════════════════════════════════════════════════════════════
@@ -262,64 +264,64 @@ export default function GrowthArc({
         </button>
 
         {questionsOpen ? (
-        <div className="mt-6 grid gap-x-14 gap-y-8 @2xl:grid-cols-2">
-          {/* Old / practised reflex */}
-          <div>
-            <p className={`${T.tiny} text-bone-faint`}>
-              The old move · catch it
-            </p>
-
-            {t.practice.departing ? (
-              <p className="mt-2 text-[1.0625rem] leading-snug text-bone-soft">
-                {t.practice.departing.move}
+          <div className="mt-6 grid gap-x-14 gap-y-8 @2xl:grid-cols-2">
+            {/* Old / practised reflex */}
+            <div>
+              <p className={`${T.tiny} text-bone-faint`}>
+                The old move · catch it
               </p>
-            ) : null}
 
-            <ul className="mt-3.5 space-y-2 border-l border-rule pl-4">
-              {t.reflexQuestions
-                .slice(0, SHOWN)
-                .map((question) => (
-                  <li
-                    key={question}
-                    className="text-[0.9375rem] leading-snug text-bone-faint"
-                  >
-                    {question}
-                  </li>
-                ))}
-            </ul>
-          </div>
+              {t.practice.departing ? (
+                <p className="mt-2 text-[1.0625rem] leading-snug text-bone-soft">
+                  {t.practice.departing.move}
+                </p>
+              ) : null}
 
-          {/* New / developmental opening */}
-          <div>
-            <p
-              className={T.tiny}
-              style={{
-                color: toColor,
-              }}
-            >
-              The new move · open it
-            </p>
+              <ul className="mt-3.5 space-y-2 border-l border-rule pl-4">
+                {t.reflexQuestions
+                  .slice(0, SHOWN)
+                  .map((question) => (
+                    <li
+                      key={question}
+                      className="text-[0.9375rem] leading-snug text-bone-faint"
+                    >
+                      {question}
+                    </li>
+                  ))}
+              </ul>
+            </div>
 
-            {t.practice.arriving ? (
-              <p className="mt-2 text-[1.0625rem] leading-snug text-bone">
-                {t.practice.arriving.move}
+            {/* New / developmental opening */}
+            <div>
+              <p
+                className={T.tiny}
+                style={{
+                  color: toColor,
+                }}
+              >
+                The new move · open it
               </p>
-            ) : null}
 
-            <ul className="mt-3.5 space-y-2 border-l border-patina-dim pl-4">
-              {opening
-                .slice(0, SHOWN)
-                .map((question) => (
-                  <li
-                    key={question}
-                    className="text-[0.9375rem] leading-snug text-bone-soft"
-                  >
-                    {question}
-                  </li>
-                ))}
-            </ul>
+              {t.practice.arriving ? (
+                <p className="mt-2 text-[1.0625rem] leading-snug text-bone">
+                  {t.practice.arriving.move}
+                </p>
+              ) : null}
+
+              <ul className="mt-3.5 space-y-2 border-l border-patina-dim pl-4">
+                {opening
+                  .slice(0, SHOWN)
+                  .map((question) => (
+                    <li
+                      key={question}
+                      className="text-[0.9375rem] leading-snug text-bone-soft"
+                    >
+                      {question}
+                    </li>
+                  ))}
+              </ul>
+            </div>
           </div>
-        </div>
         ) : null}
 
         <Expand onClick={() => onOpen("arc")} />

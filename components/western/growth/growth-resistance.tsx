@@ -2,11 +2,10 @@
 
 "use client";
 
-import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 import type { Trajectory } from "@/lib/growth";
-import { Band, Expand, Placement, Row, SectionHead } from "@/components/growth-field";
-import { resistanceAnchors } from "@/components/growth-readings";
-import { T, type ChapterKey } from "@/components/growth-ui";
+import { Band, Expand, Placement, Row, SectionHead } from "@/components/western/growth/growth-field";
+import { resistanceAnchors } from "@/components/western/growth/growth-readings";
+import { T, type ChapterKey } from "@/components/western/growth/growth-ui";
 
 /**
  * 03 · Resistance — what pulls you back.
@@ -58,14 +57,6 @@ export default function GrowthResistance({
         name="Resistance"
         title="The pull back"
         onOpen={open}
-        aside={`${t.from.sign}${t.from.house ? ` · house ${t.from.house}` : ""}`}
-        detail={
-          t.from.house ? (
-            <span className="text-bone-faint/70">
-              {getHouseTitle(t.from.house as House)}
-            </span>
-          ) : null
-        }
       />
 
       {/* ── Behaviours ───────────────────────────────────────────────────────

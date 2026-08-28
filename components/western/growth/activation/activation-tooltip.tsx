@@ -16,8 +16,8 @@ import {
   type Grade,
   type NodalBeat,
 } from "@/lib/growth";
-import { GRADE_TINT } from "@/components/activation-seasons";
-import { T } from "@/components/growth-ui";
+import { GRADE_TINT } from "@/components/western/growth/activation/activation-seasons";
+import { T } from "@/components/western/growth/growth-ui";
 
 /**
  * What the map says when you point at something.
@@ -86,17 +86,17 @@ export function useTip() {
 
   const show =
     (content: TipContent, place: "above" | "below" = "above") =>
-    (e: React.MouseEvent<HTMLElement>) => {
-      const box = frame.current?.getBoundingClientRect();
-      if (!box) return;
-      const el = e.currentTarget.getBoundingClientRect();
-      setTip({
-        content,
-        x: el.left + el.width / 2 - box.left,
-        y: (place === "below" ? el.bottom : el.top) - box.top,
-        place,
-      });
-    };
+      (e: React.MouseEvent<HTMLElement>) => {
+        const box = frame.current?.getBoundingClientRect();
+        if (!box) return;
+        const el = e.currentTarget.getBoundingClientRect();
+        setTip({
+          content,
+          x: el.left + el.width / 2 - box.left,
+          y: (place === "below" ? el.bottom : el.top) - box.top,
+          place,
+        });
+      };
 
   return { frame, tip, show, clear: () => setTip(null) };
 }
@@ -106,9 +106,8 @@ export default function ActivationTooltip({ tip }: { tip: Tip }) {
     <div
       // Never a hover target itself: the pointer is on the bar, and a tooltip
       // that can take the pointer flickers as it appears under the cursor.
-      className={`pointer-events-none absolute z-30 w-[21rem] -translate-x-1/2 border border-rule bg-surface-alt px-5 py-4 shadow-[0_8px_24px_rgba(0,0,0,0.55)] ${
-        tip.place === "below" ? "" : "-translate-y-full"
-      }`}
+      className={`pointer-events-none absolute z-30 w-[21rem] -translate-x-1/2 border border-rule bg-surface-alt px-5 py-4 shadow-[0_8px_24px_rgba(0,0,0,0.55)] ${tip.place === "below" ? "" : "-translate-y-full"
+        }`}
       style={{
         // Clamped in CSS rather than measured, so it needs no layout pass and
         // cannot lag a fast pointer by a frame.

@@ -19,9 +19,9 @@ import {
   SHARES,
   type Ingredient,
 } from "@/lib/growth";
-import { GRADE_TINT } from "@/components/activation-seasons";
-import { useActivationShares } from "@/components/activation-shares";
-import { T } from "@/components/growth-ui";
+import { GRADE_TINT } from "@/components/western/growth/activation/activation-seasons";
+import { useActivationShares } from "@/components/western/growth/activation/activation-shares";
+import { T } from "@/components/western/growth/growth-ui";
 
 /**
  * How the number is made, where its weights are argued with, and what every
@@ -126,11 +126,10 @@ export default function ActivationMethod({
                     key={x.id}
                     type="button"
                     onClick={() => setTab(x.id)}
-                    className={`${T.micro} -mb-px border-b pb-3 transition-colors ${
-                      tab === x.id
-                        ? "border-bone text-bone"
-                        : "border-transparent text-bone-faint hover:text-bone-soft"
-                    }`}
+                    className={`${T.micro} -mb-px border-b pb-3 transition-colors ${tab === x.id
+                      ? "border-bone text-bone"
+                      : "border-transparent text-bone-faint hover:text-bone-soft"
+                      }`}
                   >
                     {x.label}
                   </button>
@@ -191,11 +190,10 @@ export default function ActivationMethod({
                           key={p.id}
                           type="button"
                           onClick={() => apply(p.shares)}
-                          className={`${T.micro} border px-3.5 py-2 transition-colors ${
-                            presetId === p.id
-                              ? "border-patina-dim bg-patina-deep text-patina"
-                              : "border-rule text-bone-faint hover:border-bone-faint hover:text-bone"
-                          }`}
+                          className={`${T.micro} border px-3.5 py-2 transition-colors ${presetId === p.id
+                            ? "border-patina-dim bg-patina-deep text-patina"
+                            : "border-rule text-bone-faint hover:border-bone-faint hover:text-bone"
+                            }`}
                         >
                           {p.label}
                         </button>

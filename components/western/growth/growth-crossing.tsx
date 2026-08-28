@@ -2,7 +2,7 @@
 
 import type { Trajectory } from "@/lib/growth";
 
-import { T, type ChapterKey } from "@/components/growth-ui";
+import { T, type ChapterKey } from "@/components/western/growth/growth-ui";
 
 /**
  * The Crossing — a flag, and nothing else.

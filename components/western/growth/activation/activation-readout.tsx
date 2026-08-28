@@ -14,9 +14,9 @@ import {
   type Ingredient,
   type IntensityPoint,
 } from "@/lib/growth";
-import { GRADE_TINT } from "@/components/activation-seasons";
-import { useActivationShares } from "@/components/activation-shares";
-import { T } from "@/components/growth-ui";
+import { GRADE_TINT } from "@/components/western/growth/activation/activation-seasons";
+import { useActivationShares } from "@/components/western/growth/activation/activation-shares";
+import { T } from "@/components/western/growth/growth-ui";
 
 /**
  * Everything the curve says in words about the point being read.

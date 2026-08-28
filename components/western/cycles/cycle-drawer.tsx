@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { planetMeta } from "@/lib/planets";
 import { HOUSE_NAMES } from "@/lib/astrology/standard-definitions";
 import { getCycleInterpretation } from "@/lib/cycle-interpretations";
-import type { CycleRowData } from "@/components/cycle-row";
+import type { CycleRowData } from "@/components/western/cycles/cycle-row";
 
 const PLANET_ELABORATIONS: Record<string, { action: string; description: string }> = {
   Jupiter: { action: "Expansion", description: "Enlarges, spreads, amplifies" },

@@ -5,19 +5,19 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PageTitle } from "@/components/primitives";
-import GrowthRulership from "@/components/growth-rulership";
-import GrowthArc from "@/components/growth-arc";
-import GrowthConversion from "@/components/growth-conversion";
-import GrowthResistance from "@/components/growth-resistance";
-import GrowthTailwinds from "@/components/growth-tailwinds";
-import GrowthDrawer from "@/components/growth-drawer";
+import GrowthRulership from "@/components/western/growth/growth-rulership";
+import GrowthArc from "@/components/western/growth/growth-arc";
+import GrowthConversion from "@/components/western/growth/growth-conversion";
+import GrowthResistance from "@/components/western/growth/growth-resistance";
+import GrowthTailwinds from "@/components/western/growth/growth-tailwinds";
+import GrowthDrawer from "@/components/western/growth/growth-drawer";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import { useScoring } from "@/components/scoring-context";
 import type { Chart } from "@/lib/charts";
 import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 import { trajectory, type Trajectory } from "@/lib/growth";
-import { T, type ChapterKey } from "@/components/growth-ui";
+import { T, type ChapterKey } from "@/components/western/growth/growth-ui";
 
 /**
  * Growth — the trajectory this chart is on.
@@ -256,15 +256,15 @@ function Growth({ chart, t }: { chart: Chart; t: Trajectory }) {
           only made sense in one arrangement. */}
       <GrowthArc t={t} onOpen={setChapter} />
 
-      <div className="mt-28">
+      <div className="mt-16 border-t border-rule pt-16">
         <GrowthConversion t={t} onOpen={setChapter} />
       </div>
 
-      <div className="mt-28">
+      <div className="mt-16 border-t border-rule pt-16">
         <GrowthResistance t={t} onOpen={setChapter} />
       </div>
 
-      <div className="mt-28">
+      <div className="mt-16 border-t border-rule pt-16">
         <GrowthTailwinds t={t} onOpen={setChapter} />
       </div>
 
@@ -290,7 +290,7 @@ function Growth({ chart, t }: { chart: Chart; t: Trajectory }) {
           of a static axis with no dates anywhere in them by design, and a
           transit calendar halfway down meant a reader after "who am I
           becoming" got an ephemeris instead. */}
-      <div className="mt-28 grid gap-5 border-t border-rule pt-12 @2xl:grid-cols-2">
+      <div className="mt-16 grid gap-5 border-t border-rule pt-12 @2xl:grid-cols-2">
         <Link href="/western/growth/activation" className={EXIT}>
           Activation Chart
         </Link>

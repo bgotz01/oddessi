@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import HouseReading from "@/components/house-reading";
+import HouseReading from "@/components/western/houses/house-reading";
 import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 import type { HouseCusp, Placement } from "@/lib/charts";
 import type { HouseDominance } from "@/lib/dominance";
