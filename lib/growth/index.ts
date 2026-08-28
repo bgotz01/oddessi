@@ -26,7 +26,7 @@ export {
   type CrossingInterpretation,
   type CrossingPlacement,
 } from "./crossing";
-export { tailwindsOf } from "./tailwinds";
+export { tailwindsOf, RELATION_NOTE } from "./tailwinds";
 export {
   beatLabel,
   growthTiming,

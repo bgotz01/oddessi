@@ -7,7 +7,7 @@ import { bodyGlyph } from "@/lib/symbols";
 import type { Conversion, Trajectory } from "@/lib/growth";
 import GrowthRoad from "@/components/growth-road";
 import { Expand } from "@/components/growth-field";
-import { T, shownConversions, type ChapterKey } from "@/components/growth-ui";
+import { T, groundNote, shownConversions, type ChapterKey } from "@/components/growth-ui";
 
 /**
  * 02 · Conversion — how existing competence becomes new capacity.
@@ -54,6 +54,7 @@ export default function GrowthConversion({
 }) {
   const { core, specific } = shownConversions(t.conversions);
   const lead = t.deep.find((d) => d.side === "departing") ?? null;
+  const ground = groundNote(t);
 
   return (
     <section className="@container">
@@ -95,9 +96,18 @@ export default function GrowthConversion({
           width: at the container's full measure a max-w-2xl paragraph stopped
           well short of the road above it, which reads as an accident rather
           than a stopping point. The extra width and the indent make it read
-          as a considered pull-quote instead. */}
-      <p className="mx-auto mt-10 max-w-3xl text-[1.0625rem] leading-relaxed text-bone-soft @2xl:pl-10">
-        {t.groundReading}
+          as a considered pull-quote instead.
+
+          Two sentences where `groundReading` had three. The one that went was
+          "Growth does not ask you to stop — it asks you to make attachment
+          produce self-directed conviction", which is the road drawn eight
+          pixels above this paragraph and then every row beneath it. What is
+          left is the pair the road cannot draw: why this ground is not the
+          textbook version of its house, and what the body standing in it does
+          there. The full paragraph still goes to the chat. */}
+      <p className={`mx-auto mt-10 max-w-3xl ${T.lead} @2xl:pl-10`}>
+        {ground.correction}
+        {ground.charge ? ` ${ground.charge}` : ""}
       </p>
 
       <Rows

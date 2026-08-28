@@ -47,6 +47,33 @@ import type { Pole, Tailwind, TailwindKind } from "./types";
 
 const NODES = ["North Node", "South Node"];
 
+/**
+ * What each KIND of relation claims, and does not claim.
+ *
+ * These were the second half of every `detail` sentence, which meant they were
+ * written once and printed once per row. A chart with two soft contacts to the
+ * axis printed "available to the move, and easily left unused for a whole life"
+ * against Venus and again against Pluto — identical text under two different
+ * placements, which reads as padding and buries the half that varies.
+ *
+ * They are per-kind facts, so they belong in a per-kind table and want printing
+ * once per kind. `detail` is still composed from them below, because the chat
+ * receives one sentence per relation and a caveat is the part of it worth
+ * carrying; this way there is one copy of each caveat rather than two that can
+ * drift.
+ */
+export const RELATION_NOTE: Record<TailwindKind, string> = {
+  guide:
+    "A route rather than a helper: it can be well or badly placed and still be the way through.",
+  fused:
+    "Fusion is alignment, not ease — depending on the body it can make the move considerably heavier.",
+  support:
+    "Available to the move, and easily left unused for a whole life.",
+  arena: "Shared arena rather than active support.",
+  expansion:
+    "The loosest relation here: Jupiter is in every chart and may have no particular bearing on this direction.",
+};
+
 function find(chart: Chart, body: string): Placement | null {
   return chart.placements.find((p) => p.body === body) ?? null;
 }
@@ -121,7 +148,7 @@ export function tailwindsOf(chart: Chart, to: Pole): Tailwind[] {
     "Guides",
     `Answers for ${to.sign}, so the direction is reached through it${
       where(rulerPlace) ? ` — by way of ${where(rulerPlace)}` : ""
-    }. A route rather than a helper: it can be well or badly placed and still be the way through.`,
+    }. ${RELATION_NOTE.guide}`,
   );
 
   for (const body of fusedToDestination(chart)) {
@@ -129,7 +156,7 @@ export function tailwindsOf(chart: Chart, to: Pole): Tailwind[] {
       body,
       "fused",
       "Carries",
-      "Sitting on the North Node itself, so it is part of the direction rather than an aid to reaching it. Fusion is alignment, not ease — depending on the body it can make the move considerably heavier.",
+      `Sitting on the North Node itself, so it is part of the direction rather than an aid to reaching it. ${RELATION_NOTE.fused}`,
     );
   }
 
@@ -138,7 +165,7 @@ export function tailwindsOf(chart: Chart, to: Pole): Tailwind[] {
       body,
       "support",
       "Supports",
-      "Holds a soft contact with the axis: available to the move, and easily left unused for a whole life.",
+      `Holds a soft contact with the axis. ${RELATION_NOTE.support}`,
     );
   }
 
@@ -147,7 +174,7 @@ export function tailwindsOf(chart: Chart, to: Pole): Tailwind[] {
       t.body,
       "arena",
       "Inhabits",
-      `Already standing in house ${to.house}, so it works the same ground the growth has to happen on. Shared arena rather than active support.`,
+      `Already standing in house ${to.house}, so it works the same ground the growth has to happen on. ${RELATION_NOTE.arena}`,
     );
   }
 
@@ -158,7 +185,7 @@ export function tailwindsOf(chart: Chart, to: Pole): Tailwind[] {
     "Opens",
     `Growth by enlargement rather than by effort${
       where(jup) ? ` — through ${where(jup)}` : ""
-    }. The loosest relation here: Jupiter is in every chart and may have no particular bearing on this direction.`,
+    }. ${RELATION_NOTE.expansion}`,
   );
 
   const ORDER: TailwindKind[] = ["guide", "fused", "support", "arena", "expansion"];

@@ -3,10 +3,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { bodyColor } from "@/lib/bodies";
 import { bodyGlyph } from "@/lib/symbols";
-import { type Tailwind, type Trajectory } from "@/lib/growth";
-import { resistanceAnchors } from "@/components/growth-readings";
-import { Placement } from "@/components/growth-field";
-import { T, tabsFor, type ChapterKey } from "@/components/growth-ui";
+import { RELATION_NOTE, type Trajectory } from "@/lib/growth";
+import { resistanceAnchors, resourceReadings } from "@/components/growth-readings";
+import { Placement, Row } from "@/components/growth-field";
+import { T, groundNote, tabsFor, type ChapterKey } from "@/components/growth-ui";
 
 /**
  * The evidence, in one panel with four tabs.
@@ -33,7 +33,13 @@ function Block({
   children,
 }: {
   title: string;
-  aside?: string;
+  /**
+   * A ReactNode rather than a string because the Questions block hangs its
+   * disclosure control here — the same place study-panel's Block puts the
+   * weight explainer. A second control inside the body would read as a
+   * heading under a heading.
+   */
+  aside?: ReactNode;
   /**
    * Patina is the drawer's default accent — every other tab's territory. The
    * Crossing tab passes "ember" instead, the same colour as the flag on the
@@ -50,19 +56,48 @@ function Block({
         <h4 className={`${T.micro} ${accent === "ember" ? "text-ember" : "text-patina"}`}>
           {title}
         </h4>
-        {aside ? <span className={`${T.micro} text-bone-faint`}>{aside}</span> : null}
+        {aside ? (
+          typeof aside === "string" ? (
+            <span className={`${T.micro} text-bone-faint`}>{aside}</span>
+          ) : (
+            aside
+          )
+        ) : null}
       </div>
       {children}
     </section>
   );
 }
 
-/** One group of relations, placement first and the long form under it. */
-function Relations({ rows }: { rows: Tailwind[] }) {
+/**
+ * One group of relations.
+ *
+ * `Row` is the page's, and using it here is the point. This block and the
+ * Resistance placements are the same object — a labelled placement with a line
+ * saying what it does for the move — and the page unified them behind one
+ * component while the drawer kept two hand-rolled copies that disagreed about
+ * everything: label at 11px here and 11px there, reading at 15px here and 17px
+ * there, placement first here and last there. Two designs for one thing is how
+ * a panel ends up looking like it has more sizes than its scale has steps.
+ *
+ * The reading is `resourceReadings`, not the model's `detail`. `detail` is
+ * composed per KIND, so a chart with two soft contacts to the axis printed the
+ * same sentence under Venus and under Pluto; the page replaced it with a
+ * reading taken from the body's own noun and the house's territory, and the
+ * drawer went on rendering the sentence the page had already retired. What
+ * `detail` knew that the reading does not is the caveat about the kind, and
+ * that is now printed once per kind rather than once per row.
+ */
+function Relations({ rows }: { rows: ReturnType<typeof resourceReadings> }) {
   return (
-    <div className="space-y-6">
+    <ul>
       {rows.map((w) => (
-        <div key={w.body}>
+        <Row
+          key={w.body}
+          label={w.label}
+          accent={w.assists ? "patina" : "quiet"}
+          reading={w.reading}
+        >
           <Placement
             size="panel"
             body={w.body}
@@ -70,13 +105,9 @@ function Relations({ rows }: { rows: Tailwind[] }) {
             degree={w.degree}
             house={w.house}
           />
-          <p className={`mt-2 ${T.micro} ${w.assists ? "text-patina" : "text-bone-faint"}`}>
-            {w.label}
-          </p>
-          <p className={`mt-2 ${T.body}`}>{w.detail}</p>
-        </div>
+        </Row>
       ))}
-    </div>
+    </ul>
   );
 }
 
@@ -107,6 +138,17 @@ export default function GrowthDrawer({
    * triggers a cascading render.
    */
   const [tab, setTab] = useState<ChapterKey>(chapter);
+
+  /**
+   * The Arc's questions, closed by default — the same default the page's own
+   * Arc uses for the same set.
+   *
+   * They are not evidence for the move; they are what a reader does with it
+   * once they accept it. Left open they were up to seven items of interaction
+   * layer sitting between the reading and the tab bar, and the tab is the
+   * longest of the five.
+   */
+  const [questionsOpen, setQuestionsOpen] = useState(false);
 
   useEffect(() => {
     const fn = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -147,15 +189,30 @@ export default function GrowthDrawer({
       : "");
 
   const anchors = resistanceAnchors(t);
-  const helps = t.tailwinds.filter((w) => w.assists);
-  const relations = t.tailwinds.filter((w) => !w.assists);
+  const resources = resourceReadings(t);
+  const helps = resources.filter((w) => w.assists);
+  const relations = resources.filter((w) => !w.assists);
+
+  /**
+   * The kinds this chart actually has, in the order the rows run, each with
+   * the label its rows carry. What every relation of that kind does and does
+   * not claim is a fact about the kind, so it is stated once here instead of
+   * repeated under every placement that happens to be one.
+   */
+  const kinds = t.tailwinds.reduce<{ kind: keyof typeof RELATION_NOTE; label: string }[]>(
+    (out, w) =>
+      out.some((x) => x.kind === w.kind)
+        ? out
+        : [...out, { kind: w.kind, label: w.label }],
+    [],
+  );
 
   const ASKS: Record<ChapterKey, string> = {
     arc: `${context}Oddessi compresses this to "${t.arc.from} → ${t.arc.into}". The direction is "${t.movement.quality}", practised in house ${t.to.house} — ${t.arena?.territory}. Write the developmental story that compression stands for, specific to these placements, and say what developing that quality actually requires of someone already good at ${t.from.sign}. Oddessi's instruction for the arriving pole is "${t.practice.arriving?.move ?? t.arena?.directive ?? t.movement.movement}" — read that as the move being asked for, and say what it costs someone practised at ${t.from.sign}. Then take the two or three of these questions that bite hardest for THIS chart and say why: ${[...(t.practice.arriving?.questions ?? []), ...t.questions].join(" / ")}. The old competence is FEEDSTOCK, never fault.`,
     crossing: `${context}${(t.crossing?.bodies ?? []).map((c) => `${c.body} in ${c.sign} house ${c.house} squares the nodal axis, and Oddessi reads that as "${c.interpretation.demand}" — ${c.interpretation.conflict}`).join(" ")} A square to the axis is not the South Node's gravity: it stands ninety degrees from BOTH ends, so neither the old competence nor the new direction resolves it and it cannot be waited out. Say what this actually looks like in a life — where the interruption keeps surfacing, and what taking the demand INTO the movement would mean rather than getting around it. Never write it up as an obstacle to be removed.`,
     conversion: `${context}The conversion is "${t.conversionArc.from} → ${t.conversionArc.into}". ${t.groundReading} Write this out properly: what this person is genuinely good at, and how each ability becomes raw material for the ${t.to.sign} direction. The conversions Oddessi derives are ${t.conversions.map((c) => `${c.fromMode} → ${c.intoMode}${c.from_body ? ` (only because ${c.from_body} stands in the departing ground)` : ""}`).join("; ")} — take those pairs as the spine and say what each one actually costs and produces. ${t.deep.length ? `Pay particular attention to ${t.deep.map((d) => d.body).join(" and ")} in the nodal territory — that is what makes this chart's old ground non-generic.` : ""} Be concrete.`,
     resistance: `${context}Describe the loop that returns this person to the old strategy under pressure — as a working mechanism, not a criticism. ${t.resistanceTurn} Then describe what living the new direction actually looks like: the before-and-after of a real situation in this person's idiom, not generic sign advice.`,
-    tailwinds: `${context}These placements already point the way this person is being asked to go: ${t.tailwinds.map((w) => `${w.body} in ${w.sign} house ${w.house} (${w.label})`).join("; ")}. Say concretely how each could be used in service of the move from ${t.from.sign} to ${t.to.sign} — what leaning on it looks like in practice. Be honest that soft contacts and Jupiter are offers rather than guarantees: they go unused for whole lives unless someone reaches for them. No scores.`,
+    tailwinds: `${context}These placements already point the way this person is being asked to go: ${t.tailwinds.map((w) => `${w.body} in ${w.sign} house ${w.house} (${w.label} — ${w.detail})`).join("; ")}. Say concretely how each could be used in service of the move from ${t.from.sign} to ${t.to.sign} — what leaning on it looks like in practice. Be honest that soft contacts and Jupiter are offers rather than guarantees: they go unused for whole lives unless someone reaches for them. No scores.`,
   };
 
   return (
@@ -233,13 +290,71 @@ export default function GrowthDrawer({
           })}
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="@container flex-1 overflow-y-auto">
           {/* ── Trajectory ────────────────────────────────────────────── */}
           {tab === "arc" ? (
             <>
+              {/*
+                  The move, stated before the three readings that produce it.
+                  Movement is the sign, Arena is the house, and the starting
+                  ground is what the reader is leaving — all correct, and all
+                  leaving the synthesis to be performed by the reader.
+
+                  Nothing is composed here. `practice.arriving.move` is the
+                  144-entry table — this sign IN THIS HOUSE — and it was
+                  already travelling verbatim to the chat in ASKS.arc as the
+                  instruction for the arriving pole. The panel was sending the
+                  reader's own thesis to the model and never showing it to the
+                  reader.
+
+                  The pair is new move first, where Resistance's Response block
+                  puts the old one first. The jobs are opposite: that block is
+                  what to say instead of a reflex, so the reflex has to be named
+                  before the replacement; this block is where the axis points,
+                  and the old move is the contrast under it.
+
+                  Only rendered when the table has an entry. A chart stored
+                  without an ascendant has no house, so no entry — and the
+                  sign-level fallback is `movement.movement`, which is the very
+                  next block. A synthesis that restates the block beneath it is
+                  not a synthesis.
+              */}
+              {t.practice.arriving ? (
+                <Block
+                  title="The move"
+                  aside={`${t.to.sign}${t.to.house ? ` · house ${t.to.house}` : ""}`}
+                >
+                  <p className={`${T.tiny} text-patina`}>The new move · open it</p>
+                  <p className={`mt-2 ${T.phrase}`}>{t.practice.arriving.move}</p>
+                  {t.practice.departing ? (
+                    <>
+                      <div className="my-5 h-px w-10 bg-patina-dim" />
+                      <p className={`${T.tiny} text-bone-faint`}>
+                        The old move · catch it
+                      </p>
+                      <p className={`mt-2 ${T.read} text-bone-soft`}>
+                        {t.practice.departing.move}
+                      </p>
+                    </>
+                  ) : null}
+                </Block>
+              ) : null}
               <Block title="Movement" aside={`${t.to.sign} · the sign`}>
                 <p className={T.read}>{t.movement.movement}</p>
-                <p className={`mt-3 ${T.body}`}>{t.movement.asks}</p>
+                {/* `asks` and `asking` are the same claim. Every entry in the
+                    table is written "{Sign} asks {stem}: {a}, {b}, and {c}",
+                    so what stood here as a five-line paragraph was a stem and
+                    three items with commas between them — three things to do,
+                    set as one thing to read. The paragraph still goes to the
+                    chat, which is the surface a paragraph is right for. */}
+                <p className={`mt-3 ${T.body}`}>{t.movement.asking.stem}</p>
+                <ul className="mt-3 space-y-2.5">
+                  {t.movement.asking.items.map((item) => (
+                    <li key={item} className={`border-l border-rule pl-4 ${T.read}`}>
+                      {item}
+                    </li>
+                  ))}
+                </ul>
               </Block>
               {t.arena ? (
                 <Block title="Arena" aside={`house ${t.to.house}`}>
@@ -247,7 +362,12 @@ export default function GrowthDrawer({
                   <p className={`mt-3 ${T.body}`}>{t.arena.contains}</p>
                 </Block>
               ) : null}
-              <Block title="Against what you already know" aside="south node">
+              {/* Named "Against what you already know" until the line three
+                  rows down — competence, not fault — was read against its own
+                  heading. "Against" is opposition; the block's whole claim is
+                  that this is the material the move is made from, which is
+                  also what hands it to Conversion. */}
+              <Block title="Starting ground" aside="south node">
                 <Placement
                   size="panel"
                   body="South Node"
@@ -271,8 +391,30 @@ export default function GrowthDrawer({
                   it context rather than the finding. */}
               <Block
                 title="Questions"
-                aside={`${wider.length + (t.practice.arriving?.questions.length ?? 0)} in full`}
+                aside={
+                  <button
+                    type="button"
+                    onClick={() => setQuestionsOpen((v) => !v)}
+                    aria-expanded={questionsOpen}
+                    className={`group ${T.micro} flex items-baseline gap-2.5 text-bone-faint transition-colors hover:text-bone-soft`}
+                  >
+                    <span
+                      aria-hidden
+                      className="glyph inline-block shrink-0 text-[0.625rem] text-patina-dim transition-transform group-hover:text-patina"
+                      style={
+                        questionsOpen ? { transform: "rotate(90deg)" } : undefined
+                      }
+                    >
+                      ▸
+                    </span>
+                    {questionsOpen
+                      ? "hide"
+                      : `${wider.length + (t.practice.arriving?.questions.length ?? 0)} in full`}
+                  </button>
+                }
               >
+                {!questionsOpen ? null : (
+                <>
                 {t.practice.arriving ? (
                   <ul className="mb-7 space-y-3">
                     {t.practice.arriving.questions.map((q) => (
@@ -294,6 +436,8 @@ export default function GrowthDrawer({
                     </li>
                   ))}
                 </ul>
+                </>
+                )}
               </Block>
             </>
           ) : null}
@@ -316,7 +460,15 @@ export default function GrowthDrawer({
                 aside={`${t.crossing.bodies.length === 1 ? "one body" : `${t.crossing.bodies.length} bodies`} · square`}
                 accent="ember"
               >
-                <div className="space-y-3">
+                {/* The meaning, then the bodies, then the geometry. It ran the
+                    other way and opened on degrees — which is the mechanism
+                    that produces the fact rather than the fact, and a reader
+                    who stops after one paragraph should stop holding the
+                    claim, not the arithmetic behind it. */}
+                <p className={T.phrase}>
+                  A demand the axis itself cannot answer.
+                </p>
+                <div className="mt-5 space-y-3">
                   {t.crossing.bodies.map((c) => (
                     <Placement
                       key={c.body}
@@ -335,7 +487,21 @@ export default function GrowthDrawer({
                 </p>
               </Block>
 
-              {t.crossing.bodies.map((c) => (
+              {t.crossing.bodies.map((c, i) => {
+                /**
+                 * The arena is keyed by HOUSE, not by body, so a stellium
+                 * squaring the axis printed the same two sentences under every
+                 * one of its bodies — three identical "it tends to surface in
+                 * how you come across" on a chart with Sun, Mercury and the
+                 * Ascendant together in the first. Shown against the first body
+                 * to stand in a given house and suppressed thereafter: the fact
+                 * is true of the house, and saying it once is saying it.
+                 */
+                const firstInHouse =
+                  c.house !== null &&
+                  t.crossing!.bodies.findIndex((x) => x.house === c.house) === i;
+
+                return (
                 <Block
                   key={c.body}
                   title={c.body}
@@ -352,25 +518,65 @@ export default function GrowthDrawer({
                     {/* The house layer. Without it Mars in the twelfth reads
                         exactly like Mars in the second — the body names the
                         demand, and only the house says where it surfaces. */}
-                    {c.arena ? ` It tends to surface ${c.arena.showsUpAs}.` : ""}
+                    {c.arena && firstInHouse
+                      ? ` It tends to surface ${c.arena.showsUpAs}.`
+                      : ""}
                   </p>
 
                   <p className={`${T.tiny} mt-6 text-patina`}>Integration</p>
                   <p className={`mt-2 ${T.body} text-bone`}>
                     {c.interpretation.integration}
-                    {c.arena ? ` ${c.arena.integrationArena}` : ""}
+                    {c.arena && firstInHouse ? ` ${c.arena.integrationArena}` : ""}
                   </p>
                 </Block>
-              ))}
+                );
+              })}
             </>
           ) : null}
 
           {/* ── Conversion ────────────────────────────────────────────── */}
           {tab === "conversion" ? (
             <>
-              <Block title="What the ground actually is" aside={`house ${t.from.house}`}>
-                <p className={T.body}>{t.groundReading}</p>
+              {/*
+                  What `groundReading` says, said as the thing it is.
+
+                  The sentence read: "The ground you are leaving is not generic
+                  mind and exchange. Pluto stands in house 3, and this ground is
+                  dug at until it gives way. Growth does not ask you to stop —
+                  it asks you to make investigation produce self-directed
+                  conviction." Three claims, and only the first is this block's:
+                  the ground is not the textbook version of its house. The
+                  second is the block below, which prints every embedded body's
+                  charge. The third is the conversion arc, which is the block
+                  below that and every row in it.
+
+                  So this is the correction alone — EXCHANGE → INVESTIGATION,
+                  and which body caused it. `genericFrom` and `from` are both
+                  already on the arc for exactly this comparison; the page makes
+                  it too, in a tooltip. The paragraph still travels to the chat,
+                  where a sentence is the right unit.
+              */}
+              <Block
+                title="The ground"
+                aside={t.from.house ? `house ${t.from.house}` : t.from.sign}
+              >
+                {/* One noun and no arrow, deliberately. An arrow in this
+                    system means "converts into" — it is what the page's
+                    ATTACHMENT → ACCOUNT hero says and what every row below
+                    says. Setting the correction as `perspective → attachment`
+                    put the same word on the opposite side of the same mark,
+                    which reads as the conversion running backwards. The
+                    correction is not a conversion; it is what this ground is
+                    called before any conversion starts. */}
+                <p className={`${T.phrase} uppercase`}>
+                  {t.conversionArc.from}
+                </p>
+                {/* The correction only. The charge this returns alongside it
+                    is what "Embedded in the territory" prints directly below,
+                    which is why the page takes both and this takes one. */}
+                <p className={`mt-4 ${T.note}`}>{groundNote(t).correction}</p>
               </Block>
+
               {t.deep.length ? (
                 <Block
                   title="Embedded in the territory"
@@ -386,7 +592,7 @@ export default function GrowthDrawer({
                           degree={d.degree}
                           house={d.house}
                         />
-                        <p className={`mt-2 ${T.micro} text-bone-faint`}>
+                        <p className={`mt-2 ${T.tiny} text-bone-faint`}>
                           {d.side === "departing"
                             ? "ground being left"
                             : "ground being entered"}{" "}
@@ -398,33 +604,63 @@ export default function GrowthDrawer({
                   </div>
                 </Block>
               ) : null}
-              <Block title="Feedstock, not fault" aside={`${t.conversions.length} in full`}>
-                <div className="space-y-5">
+              {/*
+                  Titled "Feedstock, not fault" until it was pointed out that
+                  this names the principle rather than the contents — a reader
+                  looking for the conversions had to already agree with an
+                  argument to find them. The principle is not lost: the Arc says
+                  it in words that need no gloss ("competence, not fault"), and
+                  the block above now says it structurally.
+
+                  Two columns and an arrow, matching the page. Stacked, each row
+                  was a label, a sentence, and an arrowed sentence — three lines
+                  that had to be read in order to see one transformation. The
+                  arrow is its own column so it lands on the same axis in every
+                  row, and the whole thing reads down as a column of
+                  transformations. The breakpoint is the panel's width, not the
+                  window's: at 512px there is room, on a phone there is not.
+              */}
+              <Block title="Conversions" aside={`${t.conversions.length} in full`}>
+                <ul>
                   {t.conversions.map((c) => (
-                    <div key={c.from}>
-                      {/* The mode pair leads here too. The page shows three of
-                          these and the drawer shows all of them, so a reader
-                          arriving from a row has to find the same row. */}
-                      <p className={`${T.tiny} flex flex-wrap items-baseline gap-x-2 text-bone-faint`}>
-                        <span>{c.fromMode}</span>
-                        <span className="glyph text-patina">→</span>
-                        <span className="text-patina">{c.intoMode}</span>
-                        {c.from_body ? (
-                          <span style={{ color: bodyColor(c.from_body) }}>
-                            {c.from_body}
-                          </span>
-                        ) : null}
-                      </p>
-                      <p className={`mt-1.5 ${T.read}`}>
-                        {c.from}
-                      </p>
-                      <p className={`mt-1 ${T.body}`}>
-                        <span className="glyph mr-2 text-patina">→</span>
-                        {c.into}
-                      </p>
-                    </div>
+                    <li
+                      key={c.from}
+                      className="grid items-baseline gap-x-5 gap-y-1 border-b border-rule-faint py-4 first:pt-0 last:border-0 last:pb-0 @sm:grid-cols-[1fr_auto_1fr]"
+                    >
+                      <div>
+                        {/* The mode pair leads here too. The page shows three
+                            of these and the drawer shows all of them, so a
+                            reader arriving from a row has to find the same
+                            row. */}
+                        <p className={`${T.tiny} text-bone-faint`}>
+                          {c.fromMode}
+                          {c.from_body ? (
+                            <span
+                              className="glyph ml-2 text-[0.8125rem]"
+                              style={{ color: bodyColor(c.from_body) }}
+                              title={`${c.from_body} put this row here`}
+                            >
+                              {bodyGlyph(c.from_body)}
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className={`mt-1.5 ${T.body}`}>{c.from}</p>
+                      </div>
+
+                      <span
+                        aria-hidden
+                        className="glyph hidden text-[0.875rem] text-patina @sm:block"
+                      >
+                        →
+                      </span>
+
+                      <div>
+                        <p className={`${T.tiny} text-patina`}>{c.intoMode}</p>
+                        <p className={`mt-1.5 ${T.read}`}>{c.into}</p>
+                      </div>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </Block>
             </>
           ) : null}
@@ -432,22 +668,54 @@ export default function GrowthDrawer({
           {/* ── Resistance ────────────────────────────────────────────── */}
           {tab === "resistance" ? (
             <>
-              <Block title="The pull back" aside={t.from.sign}>
-                <p className={T.read}>{t.resistance.pullback}</p>
-                <p className={`mt-4 ${T.body}`}>{t.resistanceTurn}</p>
-              </Block>
+              {/*
+                  Behaviours first, which is the order the page settled on and
+                  the drawer never followed. The page's own note calls these
+                  its hero — things you can catch yourself doing, four or five
+                  words each — and drops the mechanism prose entirely.
+
+                  The drawer opened on that prose instead: two paragraphs
+                  explaining the loop, above the three lines that let a reader
+                  recognise it. Recognition happens at a glance or it does not
+                  happen, and nobody arrives at this tab wanting the theory
+                  first. The paragraphs stay — the panel is where the long form
+                  belongs, and it is the argument for the bullets rather than a
+                  restatement of them — they just stop being the doorway.
+              */}
               {/* Named for the page's band, not for itself. A reader who
                   clicked "Behaviours" and arrived at "How it shows up" has to
                   work out that they are the same thing before they can read
                   it. */}
+              {/* At phrase size, matching the page: each tell IS the finding
+                  rather than a description of one, and this tab leads on them
+                  the way Arc leads on the move and Crossing on the demand. Set
+                  at reading size they were the only tab lead in the panel that
+                  looked like body copy. */}
               <Block title="Behaviours" aside={`${t.from.sign} — going back`}>
-                <ul className="space-y-2.5">
+                <ul className="space-y-3">
                   {t.resistance.tells.map((tell) => (
-                    <li key={tell} className={T.read}>
+                    <li key={tell} className={`border-l border-rule pl-4 ${T.phrase}`}>
                       {tell}
                     </li>
                   ))}
                 </ul>
+              </Block>
+              {/* The gravity sentence used to sit four blocks down, in the
+                  empty branch of a block about squares to the axis. It is not
+                  about squares — it names what this whole tab is, and it is
+                  the only place the word for it appears. It has to be here,
+                  because on a chart with no crossing there is no Crossing tab
+                  to move it to. */}
+              <Block title="The pull back" aside={t.from.sign}>
+                <p className={T.read}>{t.resistance.pullback}</p>
+                <p className={`mt-4 ${T.body}`}>{t.resistanceTurn}</p>
+                {(t.crossing?.bodies.length ?? 0) ? null : (
+                  <p className={`mt-4 ${T.note}`}>
+                    Nothing stands square to the axis, so there is no obstacle
+                    met partway. This is the origin&rsquo;s own gravity — which
+                    is easier to interrupt, and easier not to notice.
+                  </p>
+                )}
               </Block>
               {/* The same anchors the page shows, from the same composer, in
                   the same order. This block used to hand-write its own gloss
@@ -456,55 +724,55 @@ export default function GrowthDrawer({
                   different from the page and knowing less than it. */}
               {anchors.length ? (
                 <Block title="Placements" aside="why the pull is this strong">
-                  <div className="space-y-5">
+                  <ul>
                     {anchors.map((anchor) => (
-                      <div key={`${anchor.label}-${anchor.body}`}>
-                        <p className={`${T.micro} text-bone-faint`}>
-                          {anchor.label}
-                        </p>
-                        <p className={`mt-2 ${T.read}`}>{anchor.reading}</p>
-                        <div className="mt-2">
-                          <Placement
-                            size="panel"
-                            body={anchor.body}
-                            sign={anchor.sign}
-                            degree={anchor.degree}
-                            house={anchor.house}
-                          />
-                        </div>
-                      </div>
+                      <Row
+                        key={`${anchor.label}-${anchor.body}`}
+                        label={anchor.label}
+                        reading={anchor.reading}
+                      >
+                        <Placement
+                          size="panel"
+                          body={anchor.body}
+                          sign={anchor.sign}
+                          degree={anchor.degree}
+                          house={anchor.house}
+                        />
+                      </Row>
                     ))}
-                  </div>
+                  </ul>
                 </Block>
               ) : null}
-              {/* The crossing note stays in the drawer alone. A square to the
-                  axis is a different kind of fact from the anchors above — it
-                  cuts sideways rather than pulling back — and the Arc already
-                  flags it on the page. */}
-              <Block title="Anything square to the axis" accent="ember">
-                {(t.crossing?.bodies.length ?? 0) ? (
-                  <p className={T.body}>
-                    {(t.crossing?.bodies ?? []).map((c) => c.body).join(", ")} — square to both ends at
-                    once, so no version of the move goes around it. This is the
-                    only resistance that genuinely sits mid-journey.
-                  </p>
-                ) : (
-                  <p className={T.note}>
-                    Nothing stands square to the axis, so there is no obstacle met
-                    partway. The pull is the origin&rsquo;s own gravity — which is
-                    easier to interrupt, and easier not to notice.
-                  </p>
-                )}
-              </Block>
+              {/* Where a whole Block explaining the crossing used to be.
+                  Making Crossing a tab was the decision that a square is not
+                  resistance — it cuts sideways rather than pulling back — and
+                  then re-explaining it inside Resistance spent that decision
+                  as fast as it was made. What is owed here is that the reader
+                  not mistake the pull for the only thing in their way, which
+                  is a pointer, not a reading. */}
+              {(t.crossing?.bodies.length ?? 0) ? (
+                <div className="border-b border-rule px-8 py-5">
+                  <button
+                    type="button"
+                    onClick={() => setTab("crossing")}
+                    className={`${T.micro} text-ember transition-colors hover:text-bone`}
+                  >
+                    Separate from this:{" "}
+                    {(t.crossing?.bodies ?? []).map((c) => c.body).join(", ")}{" "}
+                    {(t.crossing?.bodies.length ?? 0) === 1 ? "cuts" : "cut"}{" "}
+                    across the axis →
+                  </button>
+                </div>
+              ) : null}
               {/* Old reflex / New move, matching the page. These were Less and
                   More, which is the pair the page dropped: the axis is not a
                   dial with less of one end and more of the other, it is one
                   move replacing another. */}
               <Block title="Response" aside="what to say instead">
-                <p className={`${T.micro} text-bone-faint`}>Old reflex</p>
+                <p className={`${T.tiny} text-bone-faint`}>Old reflex</p>
                 <p className={`mt-2 ${T.read} text-bone-soft`}>{t.movement.expression.oldPole}</p>
                 <div className="my-5 h-px w-10 bg-patina-dim" />
-                <p className={`${T.micro} text-patina`}>New move</p>
+                <p className={`${T.tiny} text-patina`}>New move</p>
                 <p className={`mt-2 ${T.read}`}>{t.movement.expression.developedPole}</p>
               </Block>
             </>
@@ -547,12 +815,36 @@ export default function GrowthDrawer({
                 </Block>
               ) : null}
 
-              <Block title="How to read the count">
+              {/* The kinds, and what each one does not claim.
+                  Every sentence here used to be appended to every row of its
+                  kind — so a chart with two soft contacts said "available to
+                  the move, and easily left unused for a whole life" twice, once
+                  under each placement, which reads as padding and crowds out
+                  the half that actually varies. They are facts about the kind,
+                  so they are stated once per kind, and only for the kinds this
+                  chart has. */}
+              <Block title="How to read these" aside={`${kinds.length} kinds`}>
                 <p className={T.note}>
                   The node&rsquo;s ruler and Jupiter are in every chart, so this
                   list is never empty and its length measures nothing. Read
                   which kinds are here, not how many.
                 </p>
+                <ul className="mt-6 space-y-4">
+                  {kinds.map((k) => (
+                    <li key={k.kind}>
+                      <p
+                        className={`${T.tiny} ${
+                          k.kind === "support" ? "text-patina" : "text-bone-faint"
+                        }`}
+                      >
+                        {k.label}
+                      </p>
+                      <p className={`mt-1.5 ${T.note}`}>
+                        {RELATION_NOTE[k.kind]}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
               </Block>
             </>
           ) : null}

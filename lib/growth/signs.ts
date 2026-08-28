@@ -42,6 +42,23 @@ export interface SignEntry {
   /** One paragraph. What this sign is asking for, in plain developmental terms. */
   asks: string;
   /**
+   * The same claim as `asks`, as the list it has always been.
+   *
+   * All twelve are written "{Sign} asks {stem}: {a}, {b}, and {c}" — a
+   * three-item list stored as a sentence, which is the only reason the panel
+   * had to set it as a paragraph. Split here rather than at render time:
+   * splitting prose in a component is the component choosing words, and it
+   * breaks the first time an entry is written in a different shape.
+   *
+   * `asks` stays. The chat and the page context want the paragraph, and a
+   * surface that sets running text should not have to reassemble one.
+   *
+   * Within an entry the three items are parallel — all gerunds, or all
+   * imperatives, or all noun phrases — because they were authored as one
+   * sentence. Keep it that way when editing: they are read as a set.
+   */
+  asking: { stem: string; items: string[] };
+  /**
    * Questions that force the quality to develop, for when this sign is the
    * pole being moved TOWARD.
    */
@@ -121,6 +138,15 @@ export const SIGN: Record<string, SignEntry> = {
     quality: "Self-directed conviction",
     movement: "Toward self-directed conviction",
     asks: "Aries asks for autonomy of judgement and action: initiating without first establishing consensus, choosing without exhaustively comparing the alternatives, and becoming comfortable occupying a position that is distinctly your own.",
+    /** The same claim as `asks`, as the list it is written as. */
+    asking: {
+      stem: "Aries asks for autonomy of judgement and action",
+      items: [
+        "Initiating without first establishing consensus",
+        "Choosing without exhaustively comparing the alternatives",
+        "Becoming comfortable occupying a position that is distinctly your own",
+      ],
+    },
     questions: [
       "What do I actually think?",
       "What do I want, before anyone else weighs in?",
@@ -179,6 +205,15 @@ export const SIGN: Record<string, SignEntry> = {
     quality: "Genuine mutuality",
     movement: "Toward genuine mutuality",
     asks: "Libra asks for the other person to become real rather than managed: negotiating as an equal instead of accommodating in advance, tolerating the discomfort of an unresolved disagreement, and letting a relationship have terms rather than merely having peace.",
+    /** The same claim as `asks`, as the list it is written as. */
+    asking: {
+      stem: "Libra asks for the other person to become real rather than managed",
+      items: [
+        "Negotiating as an equal instead of accommodating in advance",
+        "Tolerating the discomfort of an unresolved disagreement",
+        "Letting a relationship have terms rather than merely having peace",
+      ],
+    },
     questions: [
       "What would I ask for if I were not managing their reaction?",
       "Where am I keeping the peace instead of making an agreement?",
@@ -243,6 +278,15 @@ export const SIGN: Record<string, SignEntry> = {
     quality: "Steadiness you build",
     movement: "Toward steadiness that is built rather than proved",
     asks: "Taurus asks for enough: a worth that does not require another round of demonstration, a pace the body can actually keep, and the patience to let something accumulate instead of being restarted.",
+    /** The same claim as `asks`, as the list it is written as. */
+    asking: {
+      stem: "Taurus asks for enough",
+      items: [
+        "A worth that does not require another round of demonstration",
+        "A pace the body can actually keep",
+        "The patience to let something accumulate instead of being restarted",
+      ],
+    },
     questions: [
       "What is already enough that I keep treating as insufficient?",
       "What am I building that would collapse if I stopped proving it?",
@@ -301,6 +345,15 @@ export const SIGN: Record<string, SignEntry> = {
     quality: "Depth held in common",
     movement: "Toward depth held in common",
     asks: "Scorpio asks you to be implicated: to want something you cannot secure alone, to let another person hold what matters, and to stop managing your own exposure as though safety were the point.",
+    /** The same claim as `asks`, as the list it is written as. */
+    asking: {
+      stem: "Scorpio asks you to be implicated",
+      items: [
+        "Want something you cannot secure alone",
+        "Let another person hold what matters",
+        "Stop managing your own exposure as though safety were the point",
+      ],
+    },
     questions: [
       "What am I keeping to myself that would be lighter if shared?",
       "Where am I controlling exposure instead of choosing trust?",
@@ -359,6 +412,15 @@ export const SIGN: Record<string, SignEntry> = {
     quality: "The plainly asked question",
     movement: "Toward the plainly asked question",
     asks: "Gemini asks for curiosity without a thesis: asking instead of knowing, staying with the near and the specific, and letting an answer be provisional rather than defended.",
+    /** The same claim as `asks`, as the list it is written as. */
+    asking: {
+      stem: "Gemini asks for curiosity without a thesis",
+      items: [
+        "Asking instead of knowing",
+        "Staying with the near and the specific",
+        "Letting an answer be provisional rather than defended",
+      ],
+    },
     questions: [
       "What do I not actually know here?",
       "What am I explaining that I should be asking about?",
@@ -417,6 +479,15 @@ export const SIGN: Record<string, SignEntry> = {
     quality: "A conviction worth staking",
     movement: "Toward a conviction worth staking",
     asks: "Sagittarius asks for a direction with a wager in it: a belief you will act on before it is proved, a frame large enough to be wrong at scale, and the willingness to go somewhere you cannot see the end of.",
+    /** The same claim as `asks`, as the list it is written as. */
+    asking: {
+      stem: "Sagittarius asks for a direction with a wager in it",
+      items: [
+        "A belief you will act on before it is proved",
+        "A frame large enough to be wrong at scale",
+        "The willingness to go somewhere you cannot see the end of",
+      ],
+    },
     questions: [
       "What do I believe that I have not acted on?",
       "What would I say if I were not qualifying it?",
@@ -475,6 +546,15 @@ export const SIGN: Record<string, SignEntry> = {
     quality: "Belonging you admit to needing",
     movement: "Toward belonging you admit to needing",
     asks: "Cancer asks for a private life worth returning to: needing people out loud, letting yourself be tended rather than only tending, and building a base instead of only a record.",
+    /** The same claim as `asks`, as the list it is written as. */
+    asking: {
+      stem: "Cancer asks for a private life worth returning to",
+      items: [
+        "Needing people out loud",
+        "Letting yourself be tended rather than only tending",
+        "Building a base instead of only a record",
+      ],
+    },
     questions: [
       "What do I need that I have never said plainly?",
       "Who takes care of me?",
@@ -533,6 +613,15 @@ export const SIGN: Record<string, SignEntry> = {
     quality: "Authority you own",
     movement: "Toward authority you own rather than endure",
     asks: "Capricorn asks you to stand behind the work: to accept the position rather than merely the workload, to build something with your name on it, and to let responsibility be chosen instead of absorbed.",
+    /** The same claim as `asks`, as the list it is written as. */
+    asking: {
+      stem: "Capricorn asks you to stand behind the work",
+      items: [
+        "Accept the position rather than merely the workload",
+        "Build something with your name on it",
+        "Let responsibility be chosen instead of absorbed",
+      ],
+    },
     questions: [
       "What am I responsible for that I have never claimed?",
       "Where am I doing the work without taking the role?",
@@ -591,6 +680,15 @@ export const SIGN: Record<string, SignEntry> = {
     quality: "Authorship you are seen in",
     movement: "Toward authorship you are willing to be seen in",
     asks: "Leo asks for a signature: making something that is recognisably yours, being seen on purpose rather than by accident, and letting delight be a sufficient reason.",
+    /** The same claim as `asks`, as the list it is written as. */
+    asking: {
+      stem: "Leo asks for a signature",
+      items: [
+        "Making something that is recognisably yours",
+        "Being seen on purpose rather than by accident",
+        "Letting delight be a sufficient reason",
+      ],
+    },
     questions: [
       "What would I make if no one graded it?",
       "Where am I hiding inside the group?",
@@ -649,6 +747,15 @@ export const SIGN: Record<string, SignEntry> = {
     quality: "The shared project",
     movement: "Toward the shared project",
     asks: "Aquarius asks you to join something: to hold a principle above a preference, to let the group's work matter more than your position in it, and to be one of many rather than the one.",
+    /** The same claim as `asks`, as the list it is written as. */
+    asking: {
+      stem: "Aquarius asks you to join something",
+      items: [
+        "Hold a principle above a preference",
+        "Let the group's work matter more than your position in it",
+        "Be one of many rather than the one",
+      ],
+    },
     questions: [
       "What am I part of that is larger than my role in it?",
       "Where is my preference standing in for a principle?",
@@ -707,6 +814,15 @@ export const SIGN: Record<string, SignEntry> = {
     quality: "Craft that is finished",
     movement: "Toward craft that is actually finished",
     asks: "Virgo asks for the useful small thing done and handed over: discrimination rather than dissolution, a standard you can meet, and work that ends instead of work that recedes.",
+    /** The same claim as `asks`, as the list it is written as. */
+    asking: {
+      stem: "Virgo asks for the useful small thing done and handed over",
+      items: [
+        "Discrimination rather than dissolution",
+        "A standard you can meet",
+        "Work that ends instead of work that recedes",
+      ],
+    },
     questions: [
       "What is good enough to ship today?",
       "Where is refinement postponing delivery?",
@@ -765,6 +881,15 @@ export const SIGN: Record<string, SignEntry> = {
     quality: "What cannot be managed",
     movement: "Toward what cannot be managed",
     asks: "Pisces asks you to stop optimising: to let a thing be ambiguous without resolving it, to trust something you cannot verify, and to allow yourself an experience that has no use.",
+    /** The same claim as `asks`, as the list it is written as. */
+    asking: {
+      stem: "Pisces asks you to stop optimising",
+      items: [
+        "Let a thing be ambiguous without resolving it",
+        "Trust something you cannot verify",
+        "Allow yourself an experience that has no use",
+      ],
+    },
     questions: [
       "What am I trying to fix that only needs to be felt?",
       "Where is my competence protecting me from something?",

@@ -11,6 +11,8 @@
  * Both now point here, and nothing in this file imports a component.
  */
 
+import type { Trajectory } from "@/lib/growth";
+
 /**
  * Which tab of the drawer a click is asking for.
  *
@@ -188,4 +190,44 @@ export function tabsFor(hasCrossing: boolean) {
  */
 export function prime(degree: string): string {
   return degree.replace(/'/g, "′");
+}
+
+/**
+ * What `groundReading` says, minus the sentence the road already draws.
+ *
+ * The model composes one paragraph making three claims: the departing ground
+ * is not the textbook version of its house, a body standing there is why, and
+ * growth asks that ground to produce the arriving quality. The third is the
+ * conversion arc — the ATTACHMENT → ACCOUNT road it sits directly beneath on
+ * the page, and every row underneath it. Printing it a third time in prose is
+ * why the paragraph read as preamble.
+ *
+ * `groundReading` itself is untouched. The chat still receives the paragraph,
+ * which is the surface a paragraph is right for — the same split as `asks` and
+ * `asking` on a sign.
+ *
+ * Returned in two parts because the two surfaces need different amounts. The
+ * page has no block for the embedded bodies, so the charge has nowhere else to
+ * live and it prints both; the drawer prints the correction and lets its
+ * "Embedded in the territory" block say the rest, which is where it was going
+ * to appear forty pixels further down anyway.
+ */
+export function groundNote(t: Trajectory): {
+  correction: string;
+  charge: string | null;
+} {
+  const lead = t.deep.find((d) => d.side === "departing");
+
+  if (!lead) {
+    return {
+      correction:
+        "Nothing stands in the ground being left, so this is the house's own material rather than a body's reading of it.",
+      charge: null,
+    };
+  }
+
+  return {
+    correction: `${lead.body} stands in the ground being left — not the generic ${t.conversionArc.genericFrom.toLowerCase()} the house supplies.`,
+    charge: `${lead.charge.charAt(0).toUpperCase()}${lead.charge.slice(1)}.`,
+  };
 }
