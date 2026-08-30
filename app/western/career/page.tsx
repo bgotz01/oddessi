@@ -21,16 +21,11 @@ import CareerSignatureAxes from "@/components/western/career/career-signature-ax
  *
  * The page makes one argument, in order:
  *
- *   THE ARCHITECTURE  the three addresses everything below is a measurement
- *                     OF — the MC, the ruler of the 10th, whatever stands in
- *                     it. Stated as a heading rather than a footnote, because
- *                     a reader who never registers which points the page is
- *                     about has been handed a graph of nothing in particular.
  *   THE CURVE         how densely those addresses are contacted across a life
  *   THE WINDOWS       what configuration exists, which is a different question
  *                     with a different answer and no size to it
- *   THE EVIDENCE      which contacts are responsible at whatever moment is
- *                     being pointed at
+ *   THE TRANSITS      every contact in a chosen window, ordered by how directly
+ *                     it addresses the vocational structure
  *
  * What the page will not do is join those into a forecast. The index is a
  * density of contact; the windows are shapes; neither is an outcome, and the
@@ -106,42 +101,12 @@ function Career({ chart, rulership }: { chart: Chart; rulership: Rulership }) {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-8 pb-32">
-      <PageTitle eyebrow={chart.name} title="Career" lede="" />
-
-      {/* The architecture, stated as the heading it always was. It sat in a
-          bullet list at legend size, which is where a chart puts its
-          furniture — and this is not furniture. Everything below is a
-          measurement OF these three addresses. */}
-      <div className="mt-16 flex flex-wrap items-start justify-between gap-x-8 gap-y-4">
-        <div>
-          <p className={`${T.tiny} text-bone-faint`}>Vocational architecture</p>
-          <p className="mt-3 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span className="inscription text-[1.5rem] leading-tight text-bone">
-              MC {architecture.mc.sign} {architecture.mc.degree}
-            </span>
-            <span className="text-[1.25rem] text-bone-faint">·</span>
-            <span className="inscription text-[1.5rem] leading-tight text-bone">
-              {architecture.tenthSign} on the 10th
-            </span>
-          </p>
-          <p className={`${T.tiny} mt-2.5 text-bone-faint`}>
-            Ruled by {architecture.ruler}
-            {architecture.rulerPlacement
-              ? ` in ${architecture.rulerPlacement.sign}, house ${architecture.rulerPlacement.houseNumber ?? "—"
-              }`
-              : ""}
-            <span className="text-bone-faint/60">
-              {" · "}
-              {architecture.tenants.length
-                ? `${architecture.tenants.map((p) => p.body).join(" · ")} in the 10th`
-                : "no planets in the 10th"}
-            </span>
-          </p>
-        </div>
-
-        <CareerMethod feed={model.feed} coverage={coverage} />
-      </div>
-
+      <PageTitle
+        eyebrow={chart.name}
+        title="Career"
+        lede=""
+        aside={<CareerMethod feed={model.feed} coverage={coverage} />}
+      />
       {state.status === "loading" ? (
         <p className={`${T.micro} mt-16 text-bone-faint`}>Reading cycles…</p>
       ) : state.status === "error" ? (

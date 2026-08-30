@@ -256,33 +256,24 @@ export function CareerReadingPanel({
       <div className="mt-6 grid gap-x-10 gap-y-6 md:grid-cols-2">
         <div>
           <p className={`${T.tiny} text-bone-faint`}>What it is asking</p>
-          <p className={`${T.lead} mt-2.5`}>{reading.theMove}</p>
+          <p className={`${T.read} mt-3`}>{reading.moveBullet}</p>
         </div>
         <div>
           <p className={`${T.tiny} text-bone-faint`}>How it works</p>
-          <p className={`${T.body} mt-2.5`}>{reading.mechanism}</p>
+          <p className={`${T.read} mt-3`}>{reading.mechanismBullet}</p>
         </div>
       </div>
 
-      {/* Noun phrases rather than the sentences, which the chat gets instead.
-          A stack of four things to recognise is carried out of the room; four
-          sentences saying the same are read once. */}
+      {/* One primary noun phrase per side rather than the sentences, which the
+          chat gets instead. */}
       <div className="mt-7 grid gap-x-10 gap-y-6 md:grid-cols-2">
         <div>
           <p className={`${T.tiny} text-patina-dim`}>The opening</p>
-          <ul className={`${T.note} mt-2.5 space-y-1.5 text-bone-soft`}>
-            {reading.openings.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
+          <p className={`${T.read} mt-3`}>{reading.openings[0]}</p>
         </div>
         <div>
           <p className={`${T.tiny} text-ember`}>The trap</p>
-          <ul className={`${T.note} mt-2.5 space-y-1.5 text-bone-soft`}>
-            {reading.traps.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
+          <p className={`${T.read} mt-3`}>{reading.traps[0]}</p>
         </div>
       </div>
 

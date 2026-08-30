@@ -65,8 +65,8 @@ const HALF = 176;
  * four processes wrapped over two lines this reached 376px, which fits neither
  * above nor below a strip sitting mid-screen in a 720px window. A tooltip that
  * has outgrown every position available to it is a panel, and the panel
- * already exists one click below. Trimmed to three contacts it measures ~334,
- * and this constant sits just above that.
+ * already exists one click away in the chart sidebar. Trimmed to three
+ * contacts it measures ~334, and this constant sits just above that.
  *
  * If the content grows a row, re-measure. A number that has drifted below the
  * real height fails in exactly one way — it opens upward when there is no room
@@ -256,7 +256,7 @@ function WindowTip({ w }: { w: CareerWindow }) {
       </ul>
 
       <p className={`${T.tiny} mt-3.5 border-t border-rule pt-3 text-bone-faint`}>
-        click to read it below
+        click to inspect all transits
       </p>
     </>
   );

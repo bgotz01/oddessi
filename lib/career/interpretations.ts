@@ -69,6 +69,8 @@ export interface ProcessEntry {
   verb: string;
   /** "by …" — the mechanism, as a clause completing "it works …". */
   how: string;
+  /** The same mechanism compressed into a scannable bullet fragment. */
+  mechanismNoun: string;
   /** What this process makes possible. Completes "the opening is to …". */
   opening: string;
   /** This process's own failure mode, as a complete sentence. */
@@ -100,6 +102,7 @@ export const PROCESS: Record<string, ProcessEntry> = {
     verb: "enlarges",
     how:
       "putting more within reach than the current arrangement was built to hold",
+    mechanismNoun: "More options and reach than the current arrangement can hold",
     opening:
       "recognise the larger option and decide whether it is worth taking",
     trap:
@@ -119,6 +122,7 @@ export const PROCESS: Record<string, ProcessEntry> = {
     verb: "tests",
     how:
       "making the structure answer to limits, consequences and sustained responsibility",
+    mechanismNoun: "Limits, consequences and sustained responsibility",
     opening:
       "strengthen what deserves to last and accept the responsibility that comes with it",
     trap:
@@ -138,6 +142,7 @@ export const PROCESS: Record<string, ProcessEntry> = {
     verb: "disrupts",
     how:
       "loosening an arrangement that had come to feel fixed or inevitable",
+    mechanismNoun: "A fixed arrangement loosening",
     opening:
       "use the disruption to discover what needs greater freedom or a different route",
     trap:
@@ -157,6 +162,7 @@ export const PROCESS: Record<string, ProcessEntry> = {
     verb: "softens",
     how:
       "making the existing definition less convincing before another one is fully formed",
+    mechanismNoun: "The old definition fading before a new one forms",
     opening:
       "stay with the uncertainty long enough to distinguish a genuine pull from an attractive projection",
     trap:
@@ -176,6 +182,7 @@ export const PROCESS: Record<string, ProcessEntry> = {
     verb: "reworks",
     how:
       "exposing what has become too exhausted, rigid or compromised to continue unchanged",
+    mechanismNoun: "What is exhausted, rigid or compromised becoming impossible to ignore",
     opening:
       "release the version that can no longer carry the work and build from what remains essential",
     trap:
@@ -197,6 +204,7 @@ export const UNKNOWN_PROCESS: ProcessEntry = {
   noun: "An activation",
   verb: "touches",
   how: "contacting the structure",
+  mechanismNoun: "Direct contact with the vocational structure",
   opening: "notice what is being asked before deciding what to do about it",
   trap: "The period passes without being used.",
   openingNoun: "Attention on the structure",
@@ -234,6 +242,8 @@ export interface AddressEntry {
   activated: string;
   /** The instruction this address takes. The centrepiece of a reading. */
   move: string;
+  /** The primary instruction compressed into one scannable bullet fragment. */
+  moveNoun: string;
   /** What this address makes possible, as a sentence completing the process's. */
   opening: string;
   /** How this address specifically gets wasted. */
@@ -254,6 +264,7 @@ export const ADDRESS: Record<CareerTargetKind, AddressEntry> = {
 
     move:
       "Examine the public position itself. Ask whether what you are becoming known for still represents the work you want to stand behind, and where the visible role needs to change with the substance underneath it.",
+    moveNoun: "Alignment between the public position and the work underneath it",
 
     opening:
       "The visible position is unusually available for reconsideration.",
@@ -276,6 +287,7 @@ export const ADDRESS: Record<CareerTargetKind, AddressEntry> = {
 
     move:
       "Look beneath the position at what produces it: the skills, methods, relationships, decisions or capacities through which the career actually operates. Work on the engine before judging the dashboard.",
+    moveNoun: "Adjustment of the engine behind the public position",
 
     opening:
       "The underlying machinery of the career is unusually available for adjustment.",
@@ -298,6 +310,7 @@ export const ADDRESS: Record<CareerTargetKind, AddressEntry> = {
 
     move:
       "Identify the faculty being contacted and examine how it is currently being used in the work. The value of this address is its specificity: one instrument can change without requiring a verdict on the entire career.",
+    moveNoun: "Focused revision of the faculty under contact",
 
     opening:
       "One identifiable part of the vocational toolkit is unusually available for development or revision.",
@@ -320,6 +333,7 @@ export const ADDRESS: Record<CareerTargetKind, AddressEntry> = {
 
     move:
       "Read the transit as context rather than as an event. Notice the conditions shaping this stretch of vocational life and how they alter the environment in which more precise contacts occur.",
+    moveNoun: "The transit read as career context rather than a single event",
 
     opening:
       "The broader vocational field is carrying this process for an extended period.",

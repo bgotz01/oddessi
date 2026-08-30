@@ -49,8 +49,12 @@ export interface CareerReading {
   activated: string;
   /** How the pressure works — the process's mechanism. */
   mechanism: string;
+  /** The primary mechanism compressed for the on-page bullet. */
+  mechanismBullet: string;
   /** The vocational instruction. The centrepiece. */
   theMove: string;
+  /** The primary instruction compressed for the on-page bullet. */
+  moveBullet: string;
   /** What the period makes possible, and how it gets wasted — as sentences. */
   opening: string;
   trap: string;
@@ -223,7 +227,11 @@ export function interpretCareerWindow(
     thesis,
     activated: at.activated,
     mechanism,
+    mechanismBullet: lead
+      ? `${lead.planet} ${fn.verb} ${lower(at.label)} — ${lower(fn.mechanismNoun)}`
+      : "The structure between contacts",
     theMove: at.move,
+    moveBullet: at.moveNoun,
     // Process first, then the address — each half written to stand alone, so
     // the join reads as two sentences rather than as a filled-in template.
     opening: `The opening is to ${fn.opening}. ${at.opening}`,

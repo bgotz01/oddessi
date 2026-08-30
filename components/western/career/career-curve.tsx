@@ -10,6 +10,7 @@ import {
 } from "@/lib/career";
 import { T } from "@/components/western/growth/growth-ui";
 import CareerStrip from "@/components/western/career/career-strip";
+import CareerTransitSidebar from "@/components/western/career/career-transit-sidebar";
 import {
   CareerBreakdown,
   CareerReadingPanel,
@@ -103,24 +104,24 @@ export default function CareerCurve({
         </p>
       </div>
 
-      <div className="mt-3">
-        <CareerReadout point={shown} window={shownWindow} />
-      </div>
+      <div className="mt-3 grid items-start gap-x-8 gap-y-8 xl:grid-cols-[minmax(0,1fr)_19rem]">
+        <div className="min-w-0">
+          <CareerReadout point={shown} window={shownWindow} />
 
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="mt-6 w-full"
-        style={{ height: "clamp(220px, 30vw, 320px)" }}
-        onMouseMove={(event) => setHover(sampleAt(event))}
-        onMouseLeave={() => setHover(null)}
-        onClick={() => {
-          if (hover) {
-            const under = windowAt(hover.age);
-            if (under) setSelectedId(under.id);
-          }
-        }}
-        aria-label="Career activation across the life"
-      >
+          <svg
+            viewBox={`0 0 ${W} ${H}`}
+            className="mt-6 w-full"
+            style={{ height: "clamp(220px, 30vw, 320px)" }}
+            onMouseMove={(event) => setHover(sampleAt(event))}
+            onMouseLeave={() => setHover(null)}
+            onClick={() => {
+              if (hover) {
+                const under = windowAt(hover.age);
+                if (under) setSelectedId(under.id);
+              }
+            }}
+            aria-label="Career activation across the life"
+          >
         <defs>
           <linearGradient id="career-area" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="var(--color-patina)" stopOpacity="0.24" />
@@ -264,16 +265,24 @@ export default function CareerCurve({
             />
           </g>
         ) : null}
-      </svg>
+          </svg>
 
-      <CareerStrip
-        windows={model.windows}
-        age={model.age}
-        viewFrom={viewFrom}
-        viewTo={viewTo}
-        selected={selected}
-        onSelect={(window) => setSelectedId(window.id)}
-      />
+          <CareerStrip
+            windows={model.windows}
+            age={model.age}
+            viewFrom={viewFrom}
+            viewTo={viewTo}
+            selected={selected}
+            onSelect={(window) => setSelectedId(window.id)}
+          />
+        </div>
+
+        <CareerTransitSidebar
+          window={selected ?? current}
+          pinned={Boolean(selected)}
+          onClear={() => setSelectedId(null)}
+        />
+      </div>
 
       {/* Fixed height while closed, so opening it is the only thing that ever
           moves the block below. */}
