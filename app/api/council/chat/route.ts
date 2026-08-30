@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import OpenAI from 'openai';
 import { PAGE_REFS, buildContextBlock, buildMemoryBlock } from '@/lib/pageContext';
-import { buildChartBlock } from '@/lib/chart-context';
+import { buildChartBlock, buildTransitBlock } from '@/lib/chart-context';
 import type { Chart } from '@/lib/charts';
 import { MODELS } from '@/lib/models';
 import { prisma } from '@/lib/prisma';
@@ -52,7 +52,18 @@ export async function POST(req: NextRequest) {
         // The chart under study, when the client has it attached. First after the
         // persona, because every other block is read against it.
         if (chart) {
-            resolvedPrompt = `${resolvedPrompt}\n\n${buildChartBlock(chart as Chart)}`;
+            const c = chart as Chart;
+            resolvedPrompt = `${resolvedPrompt}\n\n${buildChartBlock(c)}`;
+
+            // The transits, read straight after the chart they move against. A
+            // cache read, so a failure here costs the seats their dates and
+            // nothing else — the natal block above is still intact.
+            try {
+                const transits = await buildTransitBlock(c.id, c.birth.date);
+                if (transits) resolvedPrompt = `${resolvedPrompt}\n\n${transits}`;
+            } catch (error) {
+                console.error('Failed to load transits for the council:', error);
+            }
         }
 
         // Resolve ref IDs server-side — content never needs to be sent from the client

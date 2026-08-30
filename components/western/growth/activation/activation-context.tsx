@@ -93,8 +93,20 @@ export function useActivationContext(
         "not weights: Pluto is not a stronger Saturn, it is transformation " +
         "where Saturn is commitment — never rank them. Nothing here is fate; " +
         "a window says the trajectory is being worked on, never what will " +
-        "happen. Dates are month-precision at best, because the beats use the " +
-        "mean node. Data exists only inside `feedCovers`.",
+        "happen. Two kinds of date appear below and they are not " +
+        "equally precise: a window's `dates` and every `age` come from the " +
+        "beat grid, which uses the MEAN node and is month-precision at best, " +
+        "so give those as months or ages and never as days. An activation's " +
+        "`contact`, `exact` and `retrogradePasses` come straight off the " +
+        "ephemeris and are exact to the day — quote them as they stand. " +
+        "Aspects are computed against the Sun, Moon, Mercury, Venus, Mars, the " +
+        "North Node, the Ascendant and the Midheaven; the Descendant and Imum " +
+        "Coeli are the far ends of those same two axes and are not listed " +
+        "twice. The two angles lean on the birth TIME far harder than anything " +
+        "else here \u2014 the Midheaven moves about a degree every four " +
+        "minutes \u2014 so if this chart's time was rounded or remembered, its " +
+        "angle dates are wrong by months while still looking exact. Data " +
+        "exists only inside `feedCovers`.",
       chart: chart.name,
       asOf: new Date().toISOString().slice(0, 10),
       age: Math.round(model.age),
@@ -147,6 +159,18 @@ export function useActivationContext(
               strength: a.direct ? "direct — on the node degree" : "structural",
               hits: kindLabel(a.kind),
               target: a.target,
+              // The contact's own dates, which are precise where the window's
+              // are not. The window is a season built by grouping overlapping
+              // transits, so its edges are a property of the grouping; these
+              // came off the ephemeris.
+              contact: `${a.start} → ${a.end}`,
+              exact: a.peak ?? null,
+              retrogradePasses:
+                a.segments.length > 1
+                  ? a.segments
+                      .slice(1)
+                      .map((seg) => `${seg.start} → ${seg.end}`)
+                  : null,
               transitingThrough: a.through
                 ? `House ${a.through.house} — ${a.through.title}`
                 : null,

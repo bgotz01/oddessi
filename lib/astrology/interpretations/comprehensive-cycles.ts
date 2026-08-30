@@ -41,7 +41,7 @@ export function getComprehensiveLifeCycleInterpretation(
     type: 'house-transit' | 'aspect-cycle' | 'planetary-return',
     planet: Planet,
     houseNumber?: number,
-    natalPlanet?: Planet,
+    natalPlanet?: Planet | string,
     aspectType?: AspectType,
     actualDuration?: string
 ): LifeCycleInterpretation | null {
@@ -205,10 +205,44 @@ function generateHouseTransitInterpretation(planet: Planet, house: number, actua
 // ASPECT CYCLE INTERPRETATIONS
 // ============================================================================
 
+/**
+ * The other end of an angular axis.
+ *
+ * Only the Ascendant and the Midheaven are sampled, because each stands for a
+ * whole axis. Which END a contact lands on is decided by the aspect, not by
+ * the stored target — and the two ends mean opposite things, so reading every
+ * contact as though it fell on the Midheaven would call a transit through
+ * someone's private life a career event.
+ */
+const OPPOSITE_ANGLE: Record<string, string> = {
+    'Midheaven': 'Imum Coeli',
+    'Ascendant': 'Descendant',
+};
+
+/**
+ * Which end of the axis this aspect actually falls on.
+ *
+ * A conjunction lands on the sampled angle. An opposition lands on its far end
+ * — conjunct the Imum Coeli IS opposite the Midheaven, the same moment named
+ * from the other side. A square crosses the axis and belongs to neither end,
+ * so it keeps the sampled angle and the caller says "across" rather than "on".
+ */
+function angularEnd(natalPoint: Planet | string, aspectType: AspectType): {
+    end: string;
+    /** True when the aspect sits across the axis rather than on either end. */
+    across: boolean;
+} {
+    const opposite = OPPOSITE_ANGLE[natalPoint.toString()];
+    if (!opposite) return { end: natalPoint.toString(), across: false };
+    if (aspectType === AspectType.Opposition) return { end: opposite, across: false };
+    if (aspectType === AspectType.Square) return { end: natalPoint.toString(), across: true };
+    return { end: natalPoint.toString(), across: false };
+}
+
 function generateAspectCycleInterpretation(
     transitingPlanet: Planet,
     aspectType: AspectType,
-    natalPlanet: Planet,
+    natalPlanet: Planet | string,
     actualDuration?: string
 ): LifeCycleInterpretation {
     const transitName = getPlanetName(transitingPlanet);
@@ -216,12 +250,22 @@ function generateAspectCycleInterpretation(
     const aspectName = getAspectName(aspectType);
     const aspectEnergy = getAspectEnergy(aspectType);
     const transitEnergy = getPlanetEnergy(transitingPlanet);
-    const natalThemes = getNatalPlanetThemes(natalPlanet);
+    // For the angles, the themes come from the END the aspect lands on, not
+    // from the point that happens to be stored. An opposition to the Midheaven
+    // is a conjunction to the Imum Coeli, and reading it as a career event
+    // rather than a home-and-roots one gets the meaning exactly backwards.
+    const { end, across } = angularEnd(natalPlanet, aspectType);
+    const natalThemes = getNatalPlanetThemes(end);
 
-    const title = `${transitName} ${aspectName} ${natalName}: ${getAspectCycleTitle(aspectType, natalPlanet)}`;
+    const title = `${transitName} ${aspectName} ${natalName}: ${getAspectCycleTitle(aspectType, end)}`;
 
     // Overview: use planet-specific adjective, not "transformative" for all
-    const overview = `Transiting ${transitName}'s ${transitEnergy.adjective} energy ${aspectEnergy.effect} with your natal ${natalName}, creating ${aspectEnergy.type} in ${natalThemes.areas}. ${aspectEnergy.instruction}.`;
+    const axisNote = across
+        ? ` This crosses the ${natalName}\u2013${OPPOSITE_ANGLE[natalName] ?? ''} axis rather than landing on either end, so both are in play.`
+        : end !== natalName
+            ? ` Measured to your ${natalName}, this contact falls on the opposite end of that axis \u2014 your ${end}.`
+            : '';
+    const overview = `Transiting ${transitName}'s ${transitEnergy.adjective} energy ${aspectEnergy.effect} with your natal ${natalName}, creating ${aspectEnergy.type} in ${natalThemes.areas}.${axisNote} ${aspectEnergy.instruction}.`;
 
     // Key Themes: cap at 6, blend planet + aspect
     const keyThemes = [
@@ -448,7 +492,7 @@ function generatePlanetaryReturnInterpretation(planet: Planet): LifeCycleInterpr
 // HELPER FUNCTIONS
 // ============================================================================
 
-function getPlanetName(planet: Planet): string {
+function getPlanetName(planet: Planet | string): string {
     return planet.toString();
 }
 
@@ -674,7 +718,7 @@ function getAspectEnergy(aspectType: AspectType): any {
     };
 }
 
-function getNatalPlanetThemes(planet: Planet): any {
+function getNatalPlanetThemes(planet: Planet | string): any {
     const themes: Record<string, any> = {
         'Sun': {
             themes: ['Identity', 'Purpose', 'Vitality', 'Leadership'],
@@ -695,6 +739,39 @@ function getNatalPlanetThemes(planet: Planet): any {
         'Mars': {
             themes: ['Action', 'Energy', 'Courage', 'Sexuality'],
             areas: 'action, energy, courage, and assertiveness'
+        },
+        // The two angles and the node are not bodies, and none of them has a
+        // hand-written interpretation table — so for these three this entry is
+        // not a fallback, it IS the reading. Without them all three composed
+        // down to "personal growth and self-expression", which is the generic
+        // default and says nothing: a transit to the Midheaven read exactly
+        // like a transit to anything else.
+        'Ascendant': {
+            themes: ['Self-Presentation', 'Approach', 'Vitality', 'First Impressions'],
+            areas: 'how you meet the world, your bearing, and the manner others encounter first'
+        },
+        'Midheaven': {
+            themes: ['Vocation', 'Public Standing', 'Direction', 'Reputation'],
+            areas: 'vocation, public standing, and the direction your work is taking'
+        },
+        'North Node': {
+            themes: ['Direction', 'Development', 'Unfamiliar Ground', 'Growth'],
+            areas: 'the direction you are developing toward and the ground you are least practised on'
+        },
+        // The far ends of the two angular axes. Nothing is ever COMPUTED
+        // against these — an opposition to the Midheaven is the same instant as
+        // a conjunction to the Imum Coeli, so storing both would be the same
+        // date twice. They are here because that same instant is READ from the
+        // other end: the contact that presses on public standing is the one
+        // pressing on home and roots, and which of the two a person is asking
+        // about is not something the dates can settle.
+        'Imum Coeli': {
+            themes: ['Home', 'Roots', 'Private Life', 'Foundations'],
+            areas: 'home, family roots, private life, and the base everything else is built on'
+        },
+        'Descendant': {
+            themes: ['Partnership', 'The Other', 'Relating', 'Agreements'],
+            areas: 'partnership, close relationships, and what you meet in other people'
         }
     };
     return themes[planet.toString()] || {
@@ -750,7 +827,7 @@ function getAspectName(aspectType: AspectType): string {
     return aspectType.toString();
 }
 
-function getAspectCycleTitle(aspectType: AspectType, natalPlanet: Planet): string {
+function getAspectCycleTitle(aspectType: AspectType, natalPlanet: Planet | string): string {
     const action = aspectType === AspectType.Conjunction ? 'Renewal' :
         aspectType === AspectType.Square ? 'Challenge' :
             aspectType === AspectType.Opposition ? 'Integration' :

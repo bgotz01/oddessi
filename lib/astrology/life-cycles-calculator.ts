@@ -17,7 +17,12 @@ export interface LifeCycle {
     significance: 'High' | 'Very High' | 'Life-Changing';
     themes: string[];
     houseNumber?: number; // For house transits
-    natalPlanet?: Planet; // For aspect cycles
+    /**
+     * What the aspect is made to. A planet, the north node, or one of the two
+     * angles — which is why this is not `Planet`. The angles are real natal
+     * targets and not a loosening of the type.
+     */
+    natalPlanet?: Planet | string;
     aspectType?: AspectType; // For aspect cycles
     sign?: ZodiacSign; // For sign ingresses
     cycleLength: string; // "2.5 years", "12 years", etc.
@@ -60,13 +65,50 @@ export interface LifeCycleOptions {
 const SPAN_YEARS = 90;
 
 /**
+ * The angles, named as the rest of the app names them.
+ *
+ * `lib/charts.ts` already calls them "Ascendant" and "Midheaven" when it
+ * synthesises placements for display, and these strings end up in the same
+ * `natalPlanet` column the planet names do. Two spellings of the Midheaven in
+ * one table would be indistinguishable from two different points.
+ */
+/**
+ * How far past today the span must reach, whatever the birth date says.
+ *
+ * Only ever binds for someone old enough that birth + SPAN_YEARS has nearly
+ * arrived; for everyone else the ninety-year span ends decades later and this
+ * is not consulted. It is a floor, not the window — the window is a life.
+ */
+const LOOKAHEAD_FLOOR_YEARS = 25;
+
+const ANGLE_ASCENDANT = 'Ascendant';
+const ANGLE_MIDHEAVEN = 'Midheaven';
+const ANGLES: string[] = [ANGLE_ASCENDANT, ANGLE_MIDHEAVEN];
+
+/**
+ * A point a transit can be measured against.
+ *
+ * Deliberately not `PlanetPosition`. Half of these are not planets and have no
+ * sign, speed or house of their own — an angle is a longitude and a name, and
+ * the scan needs nothing else.
+ */
+interface NatalPoint {
+    planet: string;
+    longitude: number;
+}
+
+/**
  * Calculate major life cycles - the long-term themes and periods that shape life chapters
  */
 export async function calculateLifeCycles(options: LifeCycleOptions): Promise<LifeCyclePeriods> {
     const {
         natalChart,
-        lookbackYears = 15,
-        lookaheadYears = 10,
+        // `lookbackYears` is deliberately not bound. It is ignored — the span
+        // starts at birth — and binding it with a plausible default made the
+        // window look configurable at a glance when it is not. Reading `15`
+        // here and concluding the cache only reaches back fifteen years is the
+        // exact misreading the field invites.
+        lookaheadYears = LOOKAHEAD_FLOOR_YEARS,
         includeJupiter = true,
         includeMinorAspects = false,
         unlimitedUpcoming = false,
@@ -97,13 +139,40 @@ export async function calculateLifeCycles(options: LifeCycleOptions): Promise<Li
     // one is an aspect to the other: conjunct the north IS opposite the south,
     // and a square hits both at once. Adding the south node would double the
     // rows and every one of them would be a restatement.
-    const majorNatalPoints = natalChart.planets.filter(p =>
-        [Planet.Sun, Planet.Moon, Planet.Mercury, Planet.Venus, Planet.Mars, Planet.NorthNode].includes(p.planet as Planet)
-    );
+    const majorNatalPoints: NatalPoint[] = natalChart.planets
+        .filter(p =>
+            [Planet.Sun, Planet.Moon, Planet.Mercury, Planet.Venus, Planet.Mars, Planet.NorthNode].includes(p.planet as Planet)
+        )
+        .map(p => ({ planet: p.planet as string, longitude: p.longitude }));
 
-    // Add Ascendant and Midheaven if available
+    // The angles.
+    //
+    // Two of the four, on exactly the argument the north node is sampled alone
+    // on: an angle is one end of an axis, so every aspect to one end is an
+    // aspect to the other. Conjunct the Midheaven IS opposite the Imum Coeli;
+    // conjunct the Ascendant IS opposite the Descendant. Adding the other two
+    // would double the rows and every added row would be a restatement.
+    //
+    // The Ascendant and the Midheaven are NOT one axis, which is why both are
+    // here. They sit ninety degrees apart only in the equal-house fiction —
+    // under Placidus the quadrants are unequal, which is the whole reason the
+    // cusps are worth computing at all. So when a planet reaches the Midheaven
+    // says nothing about when it reaches the Ascendant, and neither can be
+    // derived from the other.
+    //
+    // These are the most birth-time-sensitive points in a chart. The Midheaven
+    // moves about a degree every four minutes, so a chart saved with a rounded
+    // or remembered birth time carries angles wrong by degrees and dates here
+    // wrong by months. Nothing downstream can detect that, because a wrong
+    // angle produces a perfectly well-formed transit.
     if (natalChart.angles) {
-        // Add angles as natal points for aspect cycles
+        const { ascendant, midheaven } = natalChart.angles;
+        if (typeof ascendant === 'number') {
+            majorNatalPoints.push({ planet: ANGLE_ASCENDANT, longitude: ascendant });
+        }
+        if (typeof midheaven === 'number') {
+            majorNatalPoints.push({ planet: ANGLE_MIDHEAVEN, longitude: midheaven });
+        }
     }
 
     // The span is BIRTH-RELATIVE, not a fixed stretch of calendar.
@@ -389,7 +458,7 @@ async function calculateHouseTransitCycles(
  */
 async function calculateAspectCycles(
     transitingPlanet: Planet,
-    natalPoints: any[],
+    natalPoints: NatalPoint[],
     natalChart: BirthChart,
     startDate: Date,
     endDate: Date,
@@ -444,7 +513,7 @@ async function calculateAspectCycles(
  */
 async function calculateAspectPasses(
     transitingPlanet: Planet,
-    natalPoint: any,
+    natalPoint: NatalPoint,
     aspectType: AspectType,
     startDate: Date,
     endDate: Date,
@@ -454,7 +523,7 @@ async function calculateAspectPasses(
     const aspectAngle = ASPECT_DEFINITIONS[aspectType]?.angle;
     if (aspectAngle === undefined) return [];
 
-    const orb = getAspectCycleOrb(transitingPlanet, aspectType, natalPoint.planet as Planet);
+    const orb = getAspectCycleOrb(transitingPlanet, aspectType, natalPoint.planet);
 
     // Sample weekly for aspect cycles
     const weeklyInterval = 7 * 24 * 60 * 60 * 1000;
@@ -551,7 +620,7 @@ async function calculateAspectPasses(
     return passes.map(p => {
         const cycle = createAspectCycle(
             transitingPlanet,
-            natalPoint.planet as Planet,
+            natalPoint.planet,
             aspectType,
             p.start,
             p.end,
@@ -645,7 +714,7 @@ function createHouseTransitCycle(
 
 function createAspectCycle(
     transitingPlanet: Planet,
-    natalPlanet: Planet,
+    natalPlanet: Planet | string,
     aspectType: AspectType,
     startDate: Date,
     endDate: Date,
@@ -654,6 +723,11 @@ function createAspectCycle(
 ): LifeCycle {
     const status = getCycleStatus(startDate, endDate, currentDate);
     const actualDuration = calculateActualDuration(startDate, endDate);
+    // No hand-written table covers the angles, so this composes one from the
+    // angle's own vocabulary rather than returning null — see
+    // `getNatalPlanetThemes`. Writing thirty fixed paragraphs for five planets
+    // by three aspects by two angles would put the same text in front of every
+    // chart; the structure is computed and the model writes the detail.
     const interpretation = getComprehensiveLifeCycleInterpretation('aspect-cycle', transitingPlanet, undefined, natalPlanet, aspectType, actualDuration);
 
     return {
@@ -721,9 +795,25 @@ function calculateActualDuration(startDate: Date, endDate: Date): string {
  */
 const NODE_ASPECT_ORB = 3.0;
 
-function getAspectCycleOrb(planet: Planet, aspectType: AspectType, natalPoint?: Planet): number {
+/**
+ * An angle's orb — a point's, not a body's.
+ *
+ * The wide orbs below stand for a planet's sphere of influence. An angle has no
+ * body for one to be a sphere of, which is the same reason the nodes are held
+ * to three degrees. The angles have a second reason the nodes do not: they are
+ * the fastest-moving points in a natal chart, so their position already carries
+ * whatever error the recorded birth time carries. A wide orb on top of that
+ * yields a window too long to be wrong.
+ */
+const ANGLE_ASPECT_ORB = 3.0;
+
+function getAspectCycleOrb(planet: Planet, aspectType: AspectType, natalPoint?: Planet | string): number {
     if (natalPoint === Planet.NorthNode || natalPoint === Planet.SouthNode) {
         return NODE_ASPECT_ORB;
+    }
+
+    if (natalPoint && ANGLES.includes(natalPoint)) {
+        return ANGLE_ASPECT_ORB;
     }
 
     // Wider orbs for cycles since we want to capture the entire period of influence
@@ -844,17 +934,22 @@ function getHouseTransitThemes(planet: Planet, house: number): string[] {
     return themes[`${planet}-${house}`] || ['Personal Growth', 'Life Changes', 'New Perspectives'];
 }
 
-function getAspectCycleDescription(transitingPlanet: Planet, natalPlanet: Planet, aspectType: AspectType): string {
+function getAspectCycleDescription(transitingPlanet: Planet, natalPlanet: Planet | string, aspectType: AspectType): string {
     return `A ${getAspectCycleDuration(transitingPlanet)} period where ${transitingPlanet}'s transformative energy ${aspectType === AspectType.Conjunction ? 'merges with' : aspectType === AspectType.Square ? 'challenges' : aspectType === AspectType.Opposition ? 'opposes' : 'harmonizes with'} your natal ${natalPlanet}, creating deep shifts in ${getPlanetTheme(natalPlanet)} areas of life.`;
 }
 
-function getAspectCycleThemes(transitingPlanet: Planet, natalPlanet: Planet, aspectType: AspectType): string[] {
-    const planetThemes: Partial<Record<Planet, string[]>> = {
+function getAspectCycleThemes(transitingPlanet: Planet, natalPlanet: Planet | string, aspectType: AspectType): string[] {
+    // The angles carry no interpretation table, so unlike the planets these
+    // strings are not a fallback — they are the whole of what a reader gets
+    // before the model writes over them. Worth being true rather than generic.
+    const planetThemes: Record<string, string[]> = {
         [Planet.Sun]: ['Identity', 'Purpose', 'Vitality', 'Leadership'],
         [Planet.Moon]: ['Emotions', 'Family', 'Security', 'Intuition'],
         [Planet.Mercury]: ['Communication', 'Learning', 'Ideas', 'Travel'],
         [Planet.Venus]: ['Love', 'Beauty', 'Values', 'Creativity'],
-        [Planet.Mars]: ['Action', 'Courage', 'Sexuality', 'Competition']
+        [Planet.Mars]: ['Action', 'Courage', 'Sexuality', 'Competition'],
+        [ANGLE_ASCENDANT]: ['Self-presentation', 'Approach', 'Vitality', 'How others meet you'],
+        [ANGLE_MIDHEAVEN]: ['Vocation', 'Public standing', 'Direction', 'What you are known for']
     };
 
     return planetThemes[natalPlanet] || ['Personal Growth', 'Life Changes'];
@@ -865,13 +960,15 @@ function getOrdinalHouse(house: number): string {
     return ordinals[house] || `${house}th`;
 }
 
-function getPlanetTheme(planet: Planet): string {
-    const themes: Partial<Record<Planet, string>> = {
+function getPlanetTheme(planet: Planet | string): string {
+    const themes: Record<string, string> = {
         [Planet.Sun]: 'identity and purpose',
         [Planet.Moon]: 'emotional and family',
         [Planet.Mercury]: 'communication and learning',
         [Planet.Venus]: 'love and creative',
-        [Planet.Mars]: 'action and desire'
+        [Planet.Mars]: 'action and desire',
+        [ANGLE_ASCENDANT]: 'self-presentation and approach',
+        [ANGLE_MIDHEAVEN]: 'vocational and public'
     };
     return themes[planet] || 'personal';
 }

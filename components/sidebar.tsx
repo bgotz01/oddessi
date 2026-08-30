@@ -61,6 +61,7 @@ const NAV: NavGroup[] = [
           { href: "/western/growth/activation", label: "Activation" },
         ],
       },
+      { href: "/western/career", label: "Career" },
       {
         href: "/western/cycles",
         label: "Cycles",

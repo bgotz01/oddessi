@@ -4,6 +4,7 @@ import type { Chart } from "@/lib/charts";
 import { MODELS, DEFAULT_MODEL } from "@/lib/models";
 import { DEFAULT_INTERFACE_PROMPT } from "@/lib/interface-prefs";
 import { buildMemoryBlock } from "@/lib/pageContext";
+import { buildTransitBlock } from "@/lib/chart-context";
 import { computeReading, type Gender } from "@/lib/chinese/pillars";
 import {
   SYSTEMS,
@@ -341,11 +342,26 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // The transits. A cache read rather than a calculation, but still a database
+  // round trip, and still Western — so it is gated the same way the chart block
+  // is and fails the same way the pillars do. A chat that has lost its dates is
+  // worse than one that never had them only if it pretends otherwise, and the
+  // block says so itself when the cache is empty.
+  let transitBlock = "";
+  if (chart && has("western")) {
+    try {
+      transitBlock = await buildTransitBlock(chart.id, chart.birth.date);
+    } catch (error) {
+      console.error("Failed to load transits for chat:", error);
+    }
+  }
+
   // Assemble the system message. Memory sits directly after the chart it
   // belongs to, so a lesson is never read apart from the placements it was
   // drawn from.
   const parts: string[] = [savedPrompt];
   if (chart && has("western")) parts.push("\n\n" + buildChartBlock(chart));
+  if (transitBlock) parts.push("\n\n" + transitBlock);
   if (chineseBlock) parts.push("\n\n" + chineseBlock);
   if (chart && has("numerology")) {
     parts.push("\n\n" + buildNumerologyBlock(chart));

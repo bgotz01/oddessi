@@ -2051,7 +2051,7 @@ export function getLifeCycleInterpretation(
     type: 'house-transit' | 'aspect-cycle' | 'planetary-return',
     planet: Planet,
     houseNumber?: number,
-    natalPlanet?: Planet,
+    natalPlanet?: Planet | string,
     aspectType?: string
 ): LifeCycleInterpretation | null {
     if (type !== 'house-transit' || !houseNumber) return null;

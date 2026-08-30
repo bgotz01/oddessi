@@ -144,6 +144,16 @@ export interface Activation {
   ageEnd: number;
   start: string;
   end: string;
+  /**
+   * The moment of exactness, when the trigger has one.
+   *
+   * Dropped here for a long time, which cost the page the only precise date it
+   * had. A window says the contact is somewhere in a two-year stretch; the
+   * peak says when it lands. House transits have no peak — a planet does not
+   * cross a cusp more exactly at one moment than another — so this is absent
+   * for them rather than guessed at.
+   */
+  peak?: string;
   status: BandStatus;
   segments: Segment[];
   aspect?: string;
@@ -201,6 +211,7 @@ function toActivation(t: AxisTrigger): Activation {
     ageEnd: t.ageEnd,
     start: t.start,
     end: t.end,
+    peak: t.peak,
     status: t.status,
     segments: t.segments,
     aspect: t.aspect,

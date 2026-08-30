@@ -347,3 +347,140 @@ export async function fetchAllCycles(
     windowEnd: iso(windowEnd),
   };
 }
+
+// ─── The chat's view ─────────────────────────────────────────────────────────
+//
+// Everything above is read by a page and drawn. This last section is read by
+// the language model instead, which changes what "everything" is allowed to
+// mean: a page renders what fits on screen and lets the reader scroll, whereas
+// a system prompt is rebuilt on every message and pays for each row forever.
+
+/**
+ * Jupiter's horizon, in years either side of now.
+ *
+ * The four slow planets are carried for the whole cached span. Jupiter is not,
+ * and this is the same argument `activation-windows.ts` makes when it refuses
+ * to let Jupiter grade a season: it touches something every few months, so
+ * across a life it accounts for well over half the cache — 277 rows of 477 on
+ * the chart this was sized against — while saying almost nothing about which
+ * stretches matter. Carried near-term it answers "what is opening this year",
+ * which is a real question. Carried for ninety years it is bulk.
+ */
+const JUPITER_BACK_YEARS = 2;
+const JUPITER_AHEAD_YEARS = 5;
+
+const LIFELONG_PLANETS = ["Saturn", "Uranus", "Neptune", "Pluto"];
+
+/**
+ * Reading order for the block, which is not the order the query returns.
+ *
+ * Sorting by first contact makes the sequence an accident of which planet
+ * happened to touch something earliest in this particular life, so the same
+ * block changes shape from chart to chart for no reason a reader could use.
+ * Jupiter sits last because it is the one carried on a window rather than for
+ * the whole span, and the section it heads is a different claim from the four
+ * above it.
+ */
+export const PROMPT_PLANET_ORDER = [...LIFELONG_PLANETS, "Jupiter"];
+
+export interface PromptCycle {
+  planet: string;
+  kind: CycleType;
+  /** What is being touched: "☌ Sun", "House 7", "Return". */
+  what: string;
+  start: string;
+  end: string;
+  /** The moment of exactness. Absent on house transits, which have no peak. */
+  peak?: string;
+  /**
+   * Retrograde re-entries — the passes back into orb after the planet first
+   * left it. The first direct pass is `start`→ the first re-entry's start, so
+   * these are the extra contacts and not a restatement of the window.
+   */
+  reentries: Array<{ start: string; end: string }>;
+  significance: string;
+  status: "completed" | "active" | "upcoming";
+}
+
+/**
+ * The label `subtitleFor` builds, minus the glyph.
+ *
+ * On a timeline the glyph is the fast read and the word beside it is the
+ * caption. In a prompt there is no fast read, so "☌ Conjunction Mercury" is
+ * just the same word twice — once in a form the model has to decode.
+ */
+function promptLabel(row: Row): string {
+  if (row.type === "planetary-return") return "Return";
+  if (row.type === "aspect-cycle" && row.natalPlanet && row.aspectType) {
+    return `${row.aspectType} ${row.natalPlanet}`;
+  }
+  if (row.type === "house-transit" && row.houseNumber) {
+    return `House ${row.houseNumber}`;
+  }
+  return row.type;
+}
+
+/** Status from the dates, never from the stored column. */
+function statusAt(start: Date, end: Date, now: Date): PromptCycle["status"] {
+  if (now < start) return "upcoming";
+  if (now > end) return "completed";
+  return "active";
+}
+
+/**
+ * The cached transits for one chart, shaped for a system prompt.
+ *
+ * Reads the same `life_cycle_cache` rows the Cycles pages draw from, so the
+ * chat and the timeline can never disagree about a date. Nothing is computed
+ * here; the ephemeris pass already happened.
+ */
+export async function fetchCyclesForPrompt(
+  chartId: string,
+): Promise<PromptCycle[]> {
+  const now = new Date();
+  const jupiterFrom = new Date(now);
+  jupiterFrom.setFullYear(jupiterFrom.getFullYear() - JUPITER_BACK_YEARS);
+  const jupiterTo = new Date(now);
+  jupiterTo.setFullYear(jupiterTo.getFullYear() + JUPITER_AHEAD_YEARS);
+
+  const rows = (await prisma.lifeCycleCache.findMany({
+    where: {
+      chartId,
+      OR: [
+        { planet: { in: LIFELONG_PLANETS } },
+        {
+          planet: "Jupiter",
+          startDate: { lte: jupiterTo },
+          endDate: { gte: jupiterFrom },
+        },
+      ],
+    },
+    orderBy: [{ startDate: "asc" }],
+  })) as unknown as Row[];
+
+  const rank = (planet: string) => {
+    const i = PROMPT_PLANET_ORDER.indexOf(planet);
+    return i === -1 ? PROMPT_PLANET_ORDER.length : i;
+  };
+
+  return rows
+    .sort(
+      (a, b) =>
+        rank(a.planet) - rank(b.planet) ||
+        a.startDate.getTime() - b.startDate.getTime(),
+    )
+    .map((row) => {
+    const segments = buildSegments(row.startDate, row.endDate, row.interpretation);
+    return {
+      planet: row.planet,
+      kind: row.type as CycleType,
+      what: promptLabel(row),
+      start: iso(row.startDate),
+      end: iso(row.endDate),
+      peak: row.peakDate ? iso(row.peakDate) : undefined,
+      reentries: segments.slice(1),
+      significance: row.significance,
+      status: statusAt(row.startDate, row.endDate, now),
+    };
+  });
+}
