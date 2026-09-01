@@ -21,6 +21,7 @@ import ScoringEditor from "@/components/scoring-editor";
 import ChartPresets from "@/components/chart-presets";
 import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 import { easePoints, houseEase, quadrantOf } from "@/lib/ease";
+import HouseGeometry from "@/components/western/houses/house-geometry";
 
 /**
  * The twelve houses, following arc's order of operations: what bodies do to a
@@ -230,6 +231,11 @@ function Houses({ chart }: { chart: Chart }) {
           onExplainWeight={explainWeight}
         />
         <ReadingTheGrid />
+      </section>
+
+      <section className="mb-16">
+        <SectionHeading aside="opposing axes">Geometry</SectionHeading>
+        <HouseGeometry houses={chart.houses} />
       </section>
 
       <section className="mb-16">

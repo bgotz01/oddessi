@@ -7,6 +7,8 @@ import {
   YEAR_MS,
   type CareerCurveModel,
   type CareerPoint,
+  type CareerWindow,
+  type CareerWindowGrade,
 } from "@/lib/career";
 import { T } from "@/components/western/growth/growth-ui";
 import CareerStrip from "@/components/western/career/career-strip";
@@ -16,6 +18,74 @@ import {
   CareerReadingPanel,
   CareerReadout,
 } from "@/components/western/career/career-readout";
+
+/**
+ * What colour each career grade takes on the curve line.
+ *
+ * Matches the logic in activation-seasons: named seasons use their grade
+ * colour, quiet gaps use a muted bone so the line stays continuous without
+ * competing with the coloured stretches.
+ */
+const CAREER_LINE_TINT: Record<CareerWindowGrade | "quiet", string> = {
+  quiet: "color-mix(in srgb, var(--color-bone-faint) 55%, var(--color-void))",
+  active: "var(--color-patina)",
+  convergence: "var(--color-patina)",
+  turningPoint: "var(--color-ember)",
+};
+
+/**
+ * The career seasons as a horizontal linear gradient for the curve stroke.
+ *
+ * Two stops per window (flat colour across its span), so the hue changes
+ * exactly at the season boundary rather than ramping between them.
+ * Same technique as SeasonGradient in activation-seasons.tsx.
+ */
+function CareerSeasonGradient({
+  id,
+  windows,
+  x,
+  viewFrom,
+  viewTo,
+}: {
+  id: string;
+  windows: CareerWindow[];
+  x: (age: number) => number;
+  viewFrom: number;
+  viewTo: number;
+}) {
+  type Span = { from: number; to: number; grade: CareerWindowGrade | "quiet" };
+  const segs: Span[] = [];
+  let at = viewFrom;
+  for (const w of [...windows].sort((a, b) => a.ageStart - b.ageStart)) {
+    const from = Math.max(w.ageStart, viewFrom, at);
+    const to = Math.min(w.ageEnd, viewTo);
+    if (to <= from) continue;
+    if (from > at) segs.push({ from: at, to: from, grade: "quiet" });
+    segs.push({ from, to, grade: w.grade });
+    at = to;
+  }
+  if (at < viewTo) segs.push({ from: at, to: viewTo, grade: "quiet" });
+
+  const span = viewTo - viewFrom;
+  const pct = (age: number) =>
+    Math.min(Math.max((age - viewFrom) / span, 0), 1);
+
+  return (
+    <linearGradient
+      id={id}
+      gradientUnits="userSpaceOnUse"
+      x1={x(viewFrom)}
+      y1={0}
+      x2={x(viewTo)}
+      y2={0}
+    >
+      {segs.flatMap((s, i) => [
+        <stop key={`${i}a`} offset={pct(s.from)} stopColor={CAREER_LINE_TINT[s.grade]} />,
+        <stop key={`${i}b`} offset={pct(s.to)} stopColor={CAREER_LINE_TINT[s.grade]} />,
+      ])}
+    </linearGradient>
+  );
+}
 
 const W = 1000;
 const H = 300;
@@ -122,96 +192,103 @@ export default function CareerCurve({
             }}
             aria-label="Career activation across the life"
           >
-        <defs>
-          <linearGradient id="career-area" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="var(--color-patina)" stopOpacity="0.24" />
-            <stop offset="1" stopColor="var(--color-patina)" stopOpacity="0.01" />
-          </linearGradient>
-        </defs>
+            <defs>
+              <linearGradient id="career-area" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="var(--color-patina)" stopOpacity="0.24" />
+                <stop offset="1" stopColor="var(--color-patina)" stopOpacity="0.01" />
+              </linearGradient>
+              <CareerSeasonGradient
+                id="career-seasons"
+                windows={model.windows}
+                x={x}
+                viewFrom={viewFrom}
+                viewTo={viewTo}
+              />
+            </defs>
 
-        {GRID.map((value) => (
-          <g key={value}>
-            <line x1={PAD.left} x2={W - PAD.right} y1={y(value)} y2={y(value)} stroke="var(--color-rule-faint)" />
-            <text x={PAD.left - 8} y={y(value) + 3} textAnchor="end" fill="var(--color-bone-faint)" className="datum" fontSize={9}>{value}</text>
-          </g>
-        ))}
+            {GRID.map((value) => (
+              <g key={value}>
+                <line x1={PAD.left} x2={W - PAD.right} y1={y(value)} y2={y(value)} stroke="var(--color-rule-faint)" />
+                <text x={PAD.left - 8} y={y(value) + 3} textAnchor="end" fill="var(--color-bone-faint)" className="datum" fontSize={9}>{value}</text>
+              </g>
+            ))}
 
-        {years.map((year) => {
-          const age = ageOfYear(year);
-          return (
-            <g key={year}>
-              <line x1={x(age)} x2={x(age)} y1={H - PAD.bottom} y2={H - PAD.bottom + 4} stroke="var(--color-rule)" />
-              <text x={x(age)} y={H - PAD.bottom + 15} textAnchor="middle" fill="var(--color-bone-soft)" className="datum" fontSize={9}>{year}</text>
-              <text x={x(age)} y={H - PAD.bottom + 25} textAnchor="middle" fill="var(--color-bone-faint)" className="datum" fontSize={8}>age {Math.round(age)}</text>
-            </g>
-          );
-        })}
+            {years.map((year) => {
+              const age = ageOfYear(year);
+              return (
+                <g key={year}>
+                  <line x1={x(age)} x2={x(age)} y1={H - PAD.bottom} y2={H - PAD.bottom + 4} stroke="var(--color-rule)" />
+                  <text x={x(age)} y={H - PAD.bottom + 15} textAnchor="middle" fill="var(--color-bone-soft)" className="datum" fontSize={9}>{year}</text>
+                  <text x={x(age)} y={H - PAD.bottom + 25} textAnchor="middle" fill="var(--color-bone-faint)" className="datum" fontSize={8}>age {Math.round(age)}</text>
+                </g>
+              );
+            })}
 
-        {/* Before the vocational floor.
+            {/* Before the vocational floor.
             The line is continuous because the architecture is genuinely being
             contacted from birth — a Pluto square to the Midheaven at seven is
             the same transit whenever it lands. What is not true that early is
             the noun, so the span is greyed and named rather than cut, and no
             peak or window is drawn inside it. */}
-        {model.floorAge > viewFrom ? (
-          <g>
-            <rect
-              x={x(viewFrom)}
-              width={Math.max(x(model.floorAge) - x(viewFrom), 0)}
-              y={PAD.top}
-              height={H - PAD.top - PAD.bottom}
-              fill="var(--color-void)"
-              opacity={0.45}
-            />
-            <line
-              x1={x(model.floorAge)}
-              x2={x(model.floorAge)}
-              y1={PAD.top}
-              y2={H - PAD.bottom}
-              stroke="var(--color-rule)"
-              strokeDasharray="2 3"
-            />
-            <text
-              x={x(viewFrom) + 6}
-              y={PAD.top + 11}
-              fill="var(--color-bone-faint)"
-              className="datum"
-              fontSize={8}
-            >
-              pre-vocational
-            </text>
-          </g>
-        ) : null}
+            {model.floorAge > viewFrom ? (
+              <g>
+                <rect
+                  x={x(viewFrom)}
+                  width={Math.max(x(model.floorAge) - x(viewFrom), 0)}
+                  y={PAD.top}
+                  height={H - PAD.top - PAD.bottom}
+                  fill="var(--color-void)"
+                  opacity={0.45}
+                />
+                <line
+                  x1={x(model.floorAge)}
+                  x2={x(model.floorAge)}
+                  y1={PAD.top}
+                  y2={H - PAD.bottom}
+                  stroke="var(--color-rule)"
+                  strokeDasharray="2 3"
+                />
+                <text
+                  x={x(viewFrom) + 6}
+                  y={PAD.top + 11}
+                  fill="var(--color-bone-faint)"
+                  className="datum"
+                  fontSize={8}
+                >
+                  pre-vocational
+                </text>
+              </g>
+            ) : null}
 
-        <path d={area} fill="url(#career-area)" />
-        <path d={line} fill="none" stroke="var(--color-patina)" strokeWidth={2} strokeLinejoin="round" />
+            <path d={area} fill="url(#career-area)" />
+            <path d={line} fill="none" stroke="url(#career-seasons)" strokeWidth={2} strokeLinejoin="round" />
 
-        {model.peaks.map((peak) => (
-          <g key={peak.age}>
-            <circle cx={x(peak.age)} cy={y(peak.value)} r={3} fill="var(--color-ember)" />
-            <text x={x(peak.age)} y={y(peak.value) - 9} textAnchor="middle" fill="var(--color-bone-faint)" className="datum" fontSize={8.5}>{yearAt(peak.age)}</text>
-          </g>
-        ))}
+            {model.peaks.map((peak) => (
+              <g key={peak.age}>
+                <circle cx={x(peak.age)} cy={y(peak.value)} r={3} fill="var(--color-ember)" />
+                <text x={x(peak.age)} y={y(peak.value) - 9} textAnchor="middle" fill="var(--color-bone-faint)" className="datum" fontSize={8.5}>{yearAt(peak.age)}</text>
+              </g>
+            ))}
 
-        {model.age > 0 && model.age < viewTo ? (
-          <g>
-            <line x1={x(model.age)} x2={x(model.age)} y1={PAD.top - 8} y2={H - PAD.bottom} stroke="var(--color-signal)" strokeWidth={2} />
-            <text x={x(model.age)} y={PAD.top - 13} textAnchor="middle" fill="var(--color-signal)" className="datum" fontSize={8.5}>NOW</text>
-          </g>
-        ) : null}
+            {model.age > 0 && model.age < viewTo ? (
+              <g>
+                <line x1={x(model.age)} x2={x(model.age)} y1={PAD.top - 8} y2={H - PAD.bottom} stroke="var(--color-signal)" strokeWidth={2} />
+                <text x={x(model.age)} y={PAD.top - 13} textAnchor="middle" fill="var(--color-signal)" className="datum" fontSize={8.5}>NOW</text>
+              </g>
+            ) : null}
 
-        {selected ? (
-          <rect
-            x={x(selected.ageStart)}
-            width={Math.max(x(selected.ageEnd) - x(selected.ageStart), 2)}
-            y={PAD.top}
-            height={H - PAD.top - PAD.bottom}
-            fill="var(--color-bone)"
-            opacity={0.07}
-          />
-        ) : null}
+            {selected ? (
+              <rect
+                x={x(selected.ageStart)}
+                width={Math.max(x(selected.ageEnd) - x(selected.ageStart), 2)}
+                y={PAD.top}
+                height={H - PAD.top - PAD.bottom}
+                fill="var(--color-bone)"
+                opacity={0.07}
+              />
+            ) : null}
 
-        {/* The crosshair, painted last so nothing overlaps it.
+            {/* The crosshair, painted last so nothing overlaps it.
             Age and month ride with the cursor rather than sitting in a corner
             of the strip above: they describe the one point being pointed at,
             and reading them anywhere else means looking away from the line and
@@ -224,47 +301,47 @@ export default function CareerCurve({
             CURSOR is, and with no cursor it would park on today claiming to
             point at something nobody is pointing at. NOW already has its own
             labelled rule. */}
-        {hover ? (
-          <g>
-            <line
-              x1={x(hover.age)}
-              x2={x(hover.age)}
-              y1={y(hover.value)}
-              y2={H - PAD.bottom}
-              stroke="var(--color-bone-faint)"
-              strokeWidth={1}
-              opacity={0.35}
-            />
-            <rect
-              x={Math.min(Math.max(x(hover.age) - 40, PAD.left), W - PAD.right - 80)}
-              y={y(hover.value) - 26}
-              width={80}
-              height={15}
-              fill="var(--color-surface-alt)"
-              stroke="var(--color-rule)"
-              strokeWidth={1}
-            />
-            <text
-              x={Math.min(Math.max(x(hover.age), PAD.left + 40), W - PAD.right - 40)}
-              y={y(hover.value) - 15}
-              textAnchor="middle"
-              fill="var(--color-bone)"
-              className="datum"
-              fontSize={8.5}
-              letterSpacing={0.8}
-            >
-              age {Math.round(hover.age)} · {monthAt(hover.age)}
-            </text>
-            <circle
-              cx={x(hover.age)}
-              cy={y(hover.value)}
-              r={4}
-              fill="var(--color-void)"
-              stroke="var(--color-bone)"
-              strokeWidth={1.5}
-            />
-          </g>
-        ) : null}
+            {hover ? (
+              <g>
+                <line
+                  x1={x(hover.age)}
+                  x2={x(hover.age)}
+                  y1={y(hover.value)}
+                  y2={H - PAD.bottom}
+                  stroke="var(--color-bone-faint)"
+                  strokeWidth={1}
+                  opacity={0.35}
+                />
+                <rect
+                  x={Math.min(Math.max(x(hover.age) - 40, PAD.left), W - PAD.right - 80)}
+                  y={y(hover.value) - 26}
+                  width={80}
+                  height={15}
+                  fill="var(--color-surface-alt)"
+                  stroke="var(--color-rule)"
+                  strokeWidth={1}
+                />
+                <text
+                  x={Math.min(Math.max(x(hover.age), PAD.left + 40), W - PAD.right - 40)}
+                  y={y(hover.value) - 15}
+                  textAnchor="middle"
+                  fill="var(--color-bone)"
+                  className="datum"
+                  fontSize={8.5}
+                  letterSpacing={0.8}
+                >
+                  age {Math.round(hover.age)} · {monthAt(hover.age)}
+                </text>
+                <circle
+                  cx={x(hover.age)}
+                  cy={y(hover.value)}
+                  r={4}
+                  fill="var(--color-void)"
+                  stroke="var(--color-bone)"
+                  strokeWidth={1.5}
+                />
+              </g>
+            ) : null}
           </svg>
 
           <CareerStrip

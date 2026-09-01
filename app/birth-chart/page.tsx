@@ -7,6 +7,7 @@ import { useChart } from "@/components/chart-context";
 import NewChartForm from "@/components/new-chart-form";
 import ChartManageModal from "@/components/ChartManageModal";
 import { BODY_GLYPH, signGlyph } from "@/lib/symbols";
+import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 
 // ── inline editable field ─────────────────────────────────────────────────────
 
@@ -92,6 +93,47 @@ export default function BirthChartPage() {
   const [showNewChart, setShowNewChart] = useState(false);
   const [showManage, setShowManage] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [copiedCusps, setCopiedCusps] = useState(false);
+
+  function copyText(text: string, done: () => void) {
+    const fallback = () => {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.cssText = "position:fixed;top:0;left:0;opacity:0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    };
+    // Signal "copied" immediately — don't wait on the promise, which the
+    // browser may hold until the document regains focus (several seconds).
+    done();
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).catch(fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  function copyPlacements() {
+    if (!chart) return;
+    const lines = chart.placements.map((p) =>
+      `${p.body}: ${p.sign} ${p.degree}${p.house ? ` (${p.house})` : ""}`
+    );
+    const text = `${chart.name} — Birth Chart Placements\n\n${lines.join("\n")}`;
+    copyText(text, () => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  }
+
+  function copyCusps() {
+    if (!chart) return;
+    const lines = chart.houses.map((h) =>
+      `House ${h.number} (${h.roman}) — ${getHouseTitle(h.number as House)}: ${h.sign} ${h.degree}`
+    );
+    const text = `${chart.name} — House Cusps\n\n${lines.join("\n")}`;
+    copyText(text, () => { setCopiedCusps(true); setTimeout(() => setCopiedCusps(false), 2000); });
+  }
 
   async function patch(fields: Record<string, string | null>) {
     if (!chart) return;
@@ -314,7 +356,30 @@ export default function BirthChartPage() {
 
       {/* Placements */}
       <section className="mb-16">
-        <SectionHeading aside={`${chart.placements.length} placements`}>Placements</SectionHeading>
+        <SectionHeading
+          aside={
+            <span className="flex items-center gap-3">
+              <span>{chart.placements.length} placements</span>
+              <button
+                onClick={copyPlacements}
+                className="datum flex items-center gap-1 text-[0.625rem] tracking-[0.12em] text-bone-faint uppercase transition-colors hover:text-bone"
+                aria-label="Copy placements"
+              >
+                {copied ? (
+                  "Copied ✓"
+                ) : (
+                  <>
+                    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+                      <rect x="3.5" y="3.5" width="6" height="6" rx="0.75" stroke="currentColor" strokeWidth="1" />
+                      <path d="M2.5 7.5H1.5a.75.75 0 0 1-.75-.75v-6A.75.75 0 0 1 1.5 0h6a.75.75 0 0 1 .75.75v1" stroke="currentColor" strokeWidth="1" />
+                    </svg>
+                    Copy
+                  </>
+                )}
+              </button>
+            </span>
+          }
+        >Placements</SectionHeading>
         <div className="border-t border-rule">
           {chart.placements.map((p) => (
             <div
@@ -335,6 +400,55 @@ export default function BirthChartPage() {
           ))}
         </div>
       </section>
+
+      {/* House Cusps */}
+      {chart.houses.length > 0 && (
+        <section className="mb-16">
+          <SectionHeading
+            aside={
+              <span className="flex items-center gap-3">
+                <span>house system</span>
+                <button
+                  onClick={copyCusps}
+                  className="datum flex items-center gap-1 text-[0.625rem] tracking-[0.12em] text-bone-faint uppercase transition-colors hover:text-bone"
+                  aria-label="Copy house cusps"
+                >
+                  {copiedCusps ? (
+                    "Copied ✓"
+                  ) : (
+                    <>
+                      <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+                        <rect x="3.5" y="3.5" width="6" height="6" rx="0.75" stroke="currentColor" strokeWidth="1" />
+                        <path d="M2.5 7.5H1.5a.75.75 0 0 1-.75-.75v-6A.75.75 0 0 1 1.5 0h6a.75.75 0 0 1 .75.75v1" stroke="currentColor" strokeWidth="1" />
+                      </svg>
+                      Copy
+                    </>
+                  )}
+                </button>
+              </span>
+            }
+          >House Cusps</SectionHeading>
+          <div className="border-t border-rule">
+            {chart.houses.map((h) => (
+              <div
+                key={h.number}
+                className="grid grid-cols-[2rem_1fr_auto] items-baseline gap-4 border-b border-rule-faint py-3 md:grid-cols-[2rem_1.5rem_10rem_1fr_6rem]"
+              >
+                <span className="datum text-[0.75rem] text-bone-faint">{h.number}</span>
+                <span className="inscription text-[0.6875rem] text-bone-faint">{h.roman}</span>
+                <span className="inscription text-[0.6875rem] text-bone">
+                  {getHouseTitle(h.number as House)}
+                </span>
+                <span className="hidden md:block">
+                  <span className="glyph mr-2 text-bone-faint">{signGlyph(h.sign)}</span>
+                  <span className="text-[0.9375rem] font-light italic text-bone-soft">{h.sign}</span>
+                </span>
+                <span className="datum text-[0.75rem] text-bone-faint md:text-right">{h.degree}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {showNewChart && <NewChartModal onClose={() => setShowNewChart(false)} />}
       {showManage && <ChartManageModal charts={charts} onClose={() => setShowManage(false)} onReorder={reorderCharts} />}
