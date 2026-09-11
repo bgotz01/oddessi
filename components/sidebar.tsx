@@ -67,6 +67,20 @@ const NAV: NavGroup[] = [
         label: "Cycles",
         children: [{ href: "/western/cycles/explorer", label: "Explorer" }],
       },
+      // Last in Western, and a sibling rather than a child of Cycles, because
+      // it is the only page in the group that never opens the chart: the
+      // collective cycles are the same for every reader. Nesting it under
+      // Cycles would have implied it narrows those, when it is the layer above
+      // them.
+      {
+        href: "/western/macro",
+        label: "Macro",
+        children: [
+          { href: "/western/macro/neptune", label: "Neptune" },
+          { href: "/western/macro/uranus", label: "Uranus" },
+          { href: "/western/macro/pluto", label: "Pluto" },
+        ],
+      },
     ],
   },
   {

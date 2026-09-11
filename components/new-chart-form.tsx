@@ -54,28 +54,29 @@ export default function NewChartForm({ onSuccess }: { onSuccess?: () => void } =
   const [done, setDone] = useState<string | null>(null);
 
   // Debounced location search. All state updates happen inside async callbacks,
-  // never synchronously in the effect body.
+  // never synchronously in the effect body. Cleanup ignores stale responses
+  // instead of aborting them because aborted fetches surface in the dev overlay.
   useEffect(() => {
     if (query.trim().length < 3 || place?.label === query) return;
 
-    const controller = new AbortController();
-    let fetchStarted = false;
+    let live = true;
 
     const timer = setTimeout(() => {
-      fetchStarted = true;
       setSearching(true);
-      fetch(`/api/geocode?q=${encodeURIComponent(query)}`, {
-        signal: controller.signal,
-      })
+      fetch(`/api/geocode?q=${encodeURIComponent(query)}`)
         .then((r) => (r.ok ? r.json() : { results: [] }))
-        .then((json: { results?: Place[] }) => setResults(json.results ?? []))
+        .then((json: { results?: Place[] }) => {
+          if (live) setResults(json.results ?? []);
+        })
         .catch(() => { })
-        .finally(() => setSearching(false));
+        .finally(() => {
+          if (live) setSearching(false);
+        });
     }, 400);
 
     return () => {
+      live = false;
       clearTimeout(timer);
-      if (fetchStarted) controller.abort();
     };
   }, [query, place]);
 
@@ -130,6 +131,7 @@ export default function NewChartForm({ onSuccess }: { onSuccess?: () => void } =
       setQuery("");
       setPlace(null);
       setResults([]);
+      setSearching(false);
       router.refresh();
       onSuccess?.();
     } catch {
@@ -214,6 +216,7 @@ export default function NewChartForm({ onSuccess }: { onSuccess?: () => void } =
             onChange={(e) => {
               setQuery(e.target.value);
               setPlace(null);
+              setSearching(false);
             }}
             placeholder="City, country"
           />
@@ -229,6 +232,7 @@ export default function NewChartForm({ onSuccess }: { onSuccess?: () => void } =
                     setPlace(r);
                     setQuery(r.label);
                     setResults([]);
+                    setSearching(false);
                   }}
                   className="w-full border-l-2 border-transparent px-3 py-2.5 text-left text-[0.8125rem] text-bone-soft transition-colors hover:border-patina hover:bg-surface-alt hover:text-bone"
                 >

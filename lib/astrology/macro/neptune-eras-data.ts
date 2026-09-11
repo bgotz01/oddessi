@@ -1,0 +1,262 @@
+// lib/astrology/macro/neptune-eras-data.ts
+
+export type NeptuneEraElement = "earth" | "air" | "water" | "fire";
+export type NeptuneEraStatus = "completed" | "active" | "upcoming";
+
+export interface NeptuneEra {
+  sign: string;
+  glyph: string;
+  house: number;
+  years: string;
+  startYear: number;
+  endYear: number;
+  ideal: string;
+  representative: string;
+  archetype: string;
+  archetypeNote: string;
+  powerSource: string;
+  concept: string;
+  conceptNote: string;
+  structure: string;
+  majorEvent: {
+    date: string;
+    label: string;
+  };
+  mantra: string;
+  element: NeptuneEraElement;
+  status: NeptuneEraStatus;
+  expanded: string;
+}
+
+export const NEPTUNE_ERAS = [
+  {
+    sign: "Libra",
+    glyph: "♎",
+    house: 7,
+    years: "~1942–1956",
+    startYear: 1942,
+    endYear: 1956,
+    ideal: "Power through shared order",
+    representative:
+      "The United Nations, Bretton Woods, universal human rights, international diplomacy, postwar alliances, the idealized nuclear family",
+    archetype: "The Diplomat",
+    archetypeNote: "The broker of a workable peace. Legitimacy comes from creating an order that opposing sides can recognize and enter.",
+    powerSource: "Agreement",
+    concept: "Order",
+    conceptNote: "Libra idealizes relationship and proportion. After rupture, the collective dream becomes a shared order: a way for opposing sides to live together under mutually recognized rules.",
+    structure: "Rules-based cooperation",
+    majorEvent: { date: "1945 onward", label: "Post-WWII order" },
+    mantra: "I want to build a shared order.",
+    element: "air",
+    status: "completed" as const,
+    expanded: `
+      This era opens inside global war and closes in the architecture built to prevent its return. The symbolic emphasis is not simply peace, but negotiated order: institutions whose authority comes from agreement among parties.
+
+      The United Nations, Bretton Woods system, human-rights language, and postwar alliance structure all turn relationship into infrastructure. Even domestic culture projects an intensely curated image of partnership and social harmony.
+
+      Neptune idealizes the Libran settlement. The promise is that a sufficiently elegant agreement can contain conflict — while the danger is that the image of balance can conceal who still carries the cost.
+    `,
+  },
+
+  {
+    sign: "Scorpio",
+    glyph: "♏",
+    house: 8,
+    years: "~1956–1970",
+    startYear: 1956,
+    endYear: 1970,
+
+    ideal: "Power through hidden leverage",
+
+    representative:
+      "Cold War intelligence, nuclear deterrence, spy culture, psychoanalysis, decolonization, civil-rights confrontation, the sexual revolution",
+
+    archetype: "The Rebel",
+
+    archetypeNote:
+      "The figure who confronts the forces hidden beneath the official order. Power comes from exposing secrets, finding pressure points, breaking taboos, and forcing irreversible change.",
+
+    powerSource: "Leverage",
+
+    concept: "Power",
+
+    conceptNote:
+      "Scorpio idealizes hidden power, depth, and leverage. Beneath the negotiated order lies another layer of reality: secrets, pressure points, suppressed conflict, and the forces that actually determine who has power.",
+    structure: "Hidden power structures",
+
+    majorEvent: {
+      date: "1962",
+      label: "Cuban Missile Crisis",
+    },
+
+    mantra: "I want to uncover what really holds power.",
+
+    element: "water",
+    status: "completed" as const,
+
+    expanded: `
+    The negotiated order of the postwar world remains in place, but attention shifts beneath its surface. The central question is no longer simply who has formal authority, but what actually gives one side power over another.
+
+    Nuclear deterrence makes this logic explicit. Power comes from possessing a hidden capability whose existence changes the behavior of everyone else. Intelligence agencies, espionage, covert operations, and Cold War strategy similarly organize power around secrets, information, pressure points, and leverage.
+
+    The same movement appears within society. Psychoanalysis looks beneath conscious behavior for buried motives. Civil-rights and decolonization movements expose power structures concealed beneath claims of social order. The sexual revolution challenges taboos that had governed private life without always being openly discussed.
+
+    The Scorpio era therefore does not simply rebel against the Libran order. It reveals what that order cannot contain: suppressed conflict, unequal power, forbidden desire, and forces operating beneath official appearances.
+
+    Neptune idealizes this search for hidden truth. Intensity can be mistaken for authenticity, suspicion for insight, and destruction for liberation. But the era leaves behind a powerful intuition: to understand the world, look beneath what it says about itself and find the leverage that actually moves it.
+  `,
+  },
+
+
+  {
+    sign: "Sagittarius",
+    glyph: "♐",
+    house: 9,
+    years: "~1970–1984",
+    startYear: 1970,
+    endYear: 1984,
+    ideal: "Power through expanded horizons",
+    representative:
+      "Post-hippie counterculture, communes, New Age spirituality, ecology, global travel, mass higher education, satellite broadcasting, self-help culture, early globalization",
+    archetype: "The Seeker",
+    archetypeNote: "The person who leaves the inherited map in search of a larger life. Freedom means travel, experiment, self-discovery, and exposure to unfamiliar ways of living.",
+    powerSource: "Vision",
+    concept: "Expansion",
+    conceptNote: "Sagittarius idealizes horizons, belief, and expansion. After liberation from the old order, the collective desire turns outward: what else is possible, and what else is out there?",
+    structure: "Expanded cultural horizons",
+    majorEvent: { date: "1970s", label: "Counterculture" },
+    mantra: "I want to discover what else is out there.",
+    element: "fire",
+    status: "completed" as const,
+    expanded: `
+      The hippie movement peaks before this passage, but the 1970s are when its worldview disperses: into communes, New Age spirituality, ecology, global travel, alternative education, and self-help.
+
+      The Scorpio era breaks through hidden systems; Sagittarius turns that liberation outward. Travel, spirituality, education, and alternative lifestyles become paths beyond inherited limits.
+
+      Satellite media and cheaper travel widen the imaginable world. Ideas circulate across borders with new speed, while globalization begins to feel less like an abstraction and more like a lived horizon.
+
+      Neptune idealizes the Sagittarian quest. The horizon becomes magnetic: sometimes genuinely liberating, sometimes merely escapist. By the end of the passage, the most persuasive visions are ready to harden into Capricornian institutions.
+    `,
+  },
+  {
+    sign: "Capricorn",
+    glyph: "♑",
+    house: 10,
+    years: "~1984–1998",
+    startYear: 1984,
+    endYear: 1998,
+    ideal: "Power through institutions",
+    representative:
+      "Wall Street, finance, leveraged buyouts, shareholder value, the rise of the investment bank, professional ambition",
+    archetype: "The Financier",
+    archetypeNote: "Master of the universe. Success means climbing a hierarchy and accumulating money, status, and institutional authority.",
+    powerSource: "Institution",
+    concept: "Authority",
+    conceptNote:
+      "Capricorn idealizes institutional authority. Success means entering the hierarchy, mastering its rules, and rising high enough to wield its power.",
+    structure: "Centralized institutional power",
+    majorEvent: {
+      date: "1980s onward",
+      label: "Financialization / deregulation",
+    },
+    mantra: "I want to be powerful.",
+    element: "earth",
+    status: "completed" as const,
+    expanded: `
+      1984 is almost uncannily appropriate as a starting point for the financialization story.
+
+      Deregulation, leveraged buyouts, junk bonds, the rise of increasingly powerful investment banks — the 1980s brought the cultural elevation of the financier. Shareholder-value thinking expanded capital markets and made the corporate climb the dominant aspiration of a generation.
+
+      Neptune idealizes the Capricornian structure. The institution doesn't just exist — it becomes mythologized, the arena in which the worthy compete for power.
+    `,
+  },
+  {
+    sign: "Aquarius",
+    glyph: "♒",
+    house: 11,
+    years: "~1998–2012",
+    startYear: 1998,
+    endYear: 2012,
+    ideal: "Power through networks",
+    representative:
+      "Internet, Google (1998), PayPal (1998), Napster (1999), Wikipedia (2001), Facebook (2004), YouTube (2005), Twitter (2006), Web 2.0",
+    archetype: "The Technologist",
+    archetypeNote: "The builder of the infrastructure connecting everyone. Value comes from who you know and what you can access — not who you report to.",
+    powerSource: "Network",
+    concept: "Connection",
+    conceptNote: "Aquarius idealizes connection. Institutions no longer need to mediate every relationship; technical networks allow individuals, information, and communities to connect directly across traditional boundaries.",
+    structure: "Distributed connectivity",
+    majorEvent: { date: "late 1990s onward", label: "Internet" },
+    mantra: "I want to be connected.",
+    element: "air",
+    status: "completed" as const,
+    expanded: `
+      The internet already existed before 1998 — but around this period it transitions toward becoming the organizing infrastructure of society.
+
+      The dominant idea shifts from hierarchy to network. The social graph is built almost precisely within this window: by ~2011–12, hundreds of millions are on Facebook, YouTube is established, Twitter exists, smartphones have arrived, and Instagram launches in 2010.
+
+      The endpoint is almost perfect. Aquarius built the network.
+    `,
+  },
+  {
+    sign: "Pisces",
+    glyph: "♓",
+    house: 12,
+    years: "~2012–2026",
+    startYear: 2012,
+    endYear: 2026,
+    ideal: "Power through attention",
+    representative:
+      "Instagram, influencers, streaming, reality culture, TikTok, OnlyFans, the creator economy, personal brands",
+    archetype: "The Influencer",
+    archetypeNote: "You don't need to build the network. You become an image inside it. The individual as collective projection.",
+    powerSource: "Attention",
+    concept: "Image",
+    conceptNote: "Once everybody is connected, what flows through the network? Images. Stories. Dreams. Personalities. Entertainment. Identities. The network becomes a gigantic projection machine.",
+    structure: "Distributed attention",
+    majorEvent: { date: "2010s onward", label: "Social media" },
+    mantra: "I want to become the dream.",
+    element: "water",
+    status: "completed" as const,
+    expanded: `
+      The progression from Aquarius to Pisces is almost literal:
+
+      Aquarius built social media. Pisces became social media.
+
+      The network moves from being primarily about connections between people toward attention directed toward personalities. This isn't the Aries individual — it's the inverse: the individual as collective projection, the persona inside the infrastructure others built.
+
+      The Pisces archetype doesn't necessarily have agency in the traditional sense. They are a surface onto which attention is directed. The dream is to dissolve into the collective gaze.
+    `,
+  },
+  {
+    sign: "Aries",
+    glyph: "♈",
+    house: 1,
+    years: "~2026–2039",
+    startYear: 2026,
+    endYear: 2039,
+    ideal: "Power through agency",
+    representative:
+      "AI-enabled individuals, founders, protagonists, mission-driven builders — something we don't yet have a complete category for",
+    archetype: "The Protagonist",
+    archetypeNote: "Followers become downstream of the mission rather than the mission itself. The person is still visible — but the visibility serves the doing.",
+    powerSource: "Agency",
+    concept: "Mission",
+    conceptNote: "Aries idealizes agency: the ability of the individual to act directly on the world. Capability matters because it expands what one person can accomplish, turning visibility from an end in itself into leverage for a mission.",
+    structure: "Distributed agency",
+    majorEvent: { date: "mid-2020s onward", label: "AI" },
+    mantra: "I want to act.",
+    element: "fire",
+    status: "active" as const,
+    expanded: `
+      If we say Aries = "individualism," it doesn't work. Pisces already produced hyper-individualized culture.
+
+      The distinction is in what confers power. The internet let one person reach 10 million people. AI may let one person do the work previously requiring 100. Those are fundamentally different forms of empowerment — from reach to capability.
+
+      The Aries archetype doesn't need to reject social media. But followers become downstream of the mission rather than the mission itself.
+
+      Pisces celebrity: "Here is my life. Watch me."
+      Aries protagonist: "Here is what I'm trying to accomplish. Watch me do it."
+    `,
+  },
+] as const satisfies readonly NeptuneEra[];

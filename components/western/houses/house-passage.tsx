@@ -42,13 +42,23 @@ function isoOf(ms: number): string {
 }
 
 /**
- * Flatten one planet's house transits into a gapless sequence.
+ * Flatten one planet's house transits into a sequence of stints.
  *
  * The source overlaps: a planet that stations retrograde re-enters the house
  * behind it while the house ahead is still open, so at a given instant two
  * transits can claim it. The one that started most recently wins — that is the
  * house it actually moved into — which is what makes a retrograde show up here
  * as a step backwards rather than as two bars fighting over the same pixels.
+ *
+ * The source also has HOLES, and those are left alone. The cache is built by
+ * sampling the ephemeris every fourteen days, so a cusp crossing always falls
+ * between two samples and the house behind is recorded as ending up to a
+ * fortnight before the house ahead begins. That void is not real — a planet is
+ * always in some house — but it is the honest edge of what was measured, and
+ * this used to be closed by stretching the earlier stint forward to meet the
+ * next. That made the ribbon continuous at the cost of the tooltip: it quoted a
+ * date the ephemeris had never been asked about. The dates win. The ribbon
+ * shows the gap.
  */
 function stintsFor(bands: Band[]): Stint[] {
   const intervals: Interval[] = [];
@@ -89,19 +99,6 @@ function stintsFor(bands: Band[]): Stint[] {
       last.end = isoOf(to);
     } else {
       stints.push({ house: winner.house, start: isoOf(from), end: isoOf(to) });
-    }
-  }
-
-  // Bridge gaps between consecutive stints. The DB can store a day or two of
-  // void between one house ending and the next beginning (rounding artefacts
-  // or a one-day retrograde cusp). A gap of 1 day is acceptable; anything
-  // larger is a rendering hole and we close it by stretching the earlier
-  // stint's end date forward to meet the next one's start.
-  for (let i = 0; i < stints.length - 1; i++) {
-    const gap =
-      Date.parse(stints[i + 1].start) - Date.parse(stints[i].end);
-    if (gap > 86_400_000) {
-      stints[i].end = stints[i + 1].start;
     }
   }
 
@@ -192,7 +189,15 @@ function PassageRow({
   onHover: (hover: Hover | null) => void;
   onStintClick: (house: number, start: string, end: string) => void;
 }) {
-  const current = stints.find((s) => statusOfStint(s, now) === "active");
+  // Where the planet is now. The calculator resolves each cusp crossing, so
+  // the stints tile and one of them is always active — but a chart cached
+  // before that landed can still have a hole, and the row should name a house
+  // rather than go blank while the pointer is in one. Fall back to the stint
+  // just behind, guarded on there being one still ahead so a row that has
+  // simply run out of data stays quiet.
+  const active = stints.find((s) => statusOfStint(s, now) === "active");
+  const ahead = stints.findIndex((s) => Date.parse(s.start) > now.getTime());
+  const current = active ?? (ahead > 0 ? stints[ahead - 1] : undefined);
 
   return (
     <div

@@ -229,15 +229,20 @@ export async function getCachedLifeCycles(
 
 /**
  * Determine current status based on dates.
- * 45-day grace window so cycles starting within ~45 days show as active.
+ *
+ * Read side of the same rule the calculator writes with, and it carried the
+ * same 45-day grace window for the same reason: a start date that could sit
+ * weeks after the real cusp crossing. Bisected boundaries removed the reason,
+ * so both ends drop it together — leaving it here would keep the read side
+ * calling a cycle active six weeks before it begins, whatever the calculator
+ * had decided.
  */
 function determineCurrentStatus(
     startDate: Date,
     endDate: Date,
     now: Date
 ): 'completed' | 'active' | 'upcoming' {
-    const gracePeriodMs = 45 * 24 * 60 * 60 * 1000;
-    if (now < new Date(startDate.getTime() - gracePeriodMs)) return 'upcoming';
+    if (now < startDate) return 'upcoming';
     if (now > endDate) return 'completed';
     return 'active';
 }

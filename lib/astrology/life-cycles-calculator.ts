@@ -1,3 +1,4 @@
+//lib/astrology/life-cycles-calculator.ts
 import { DateTime } from 'luxon';
 import { Planet, AspectType, ZodiacSign, BirthChart } from '@/types/astrology';
 import { SWISSEPH_PLANETS, ASPECT_DEFINITIONS } from './constants';
@@ -305,6 +306,65 @@ export async function calculateLifeCycles(options: LifeCycleOptions): Promise<Li
 }
 
 /**
+ * How close to the true cusp crossing the bisection has to get before it stops.
+ *
+ * An hour is far below anything the interface shows — every date downstream is
+ * rendered to the day — so this is precision to spare rather than precision
+ * that matters. It costs about nine ephemeris calls per crossing, and a chart
+ * has a couple of hundred crossings across all five planets, which is a few
+ * percent on top of a scan that already samples every fourteen days.
+ */
+const CUSP_PRECISION_MS = 60 * 60 * 1000;
+
+/**
+ * Narrow a house change down to the moment it happened.
+ *
+ * The coarse scan only establishes that the planet was in one house on one
+ * date and in another a fortnight later. The crossing is somewhere in between,
+ * and picking either end of that bracket for it is what used to leave a void
+ * between consecutive houses. Each round halves the bracket, so fourteen days
+ * comes down to under an hour in nine.
+ *
+ * Returns the first instant the planet is NOT in `houseBefore` — the boundary
+ * both segments share, so one ends exactly where the next begins.
+ *
+ * Anything other than `houseBefore` counts as past the cusp, rather than
+ * testing for the house ahead specifically. The two are the same whenever a
+ * single cusp is crossed, which is every realistic case here: the fastest of
+ * these planets covers about three degrees in a sample interval, so a third
+ * house would have to be narrower than that to sit between them. Where the sky
+ * does something stranger, converging on the FIRST crossing still leaves the
+ * segments tiling, which is the property that matters.
+ */
+async function findCuspCrossing(
+    before: Date,
+    after: Date,
+    houseBefore: number,
+    planet: Planet,
+    cusps: number[],
+    sw: any,
+): Promise<Date> {
+    let lo = before.getTime(); // known to be in houseBefore
+    let hi = after.getTime();  // known not to be
+
+    while (hi - lo > CUSP_PRECISION_MS) {
+        const mid = lo + Math.floor((hi - lo) / 2);
+        const position = await calculatePlanetPosition(new Date(mid), planet, sw);
+
+        // An ephemeris failure mid-bisection is not worth failing the whole
+        // scan over. Stop early and hand back the bracket as it stands: the
+        // boundary is less precise, but it is still a single shared instant
+        // and the segments still tile.
+        if (!position) break;
+
+        if (getHouseForLongitude(position.longitude, cusps) === houseBefore) lo = mid;
+        else hi = mid;
+    }
+
+    return new Date(hi);
+}
+
+/**
  * Calculate house transit cycles - when planets move through natal houses
  */
 async function calculateHouseTransitCycles(
@@ -346,18 +406,44 @@ async function calculateHouseTransitCycles(
 
     if (samples.length === 0) return cycles;
 
-    // Build sequential house segments — consecutive samples in the same house
+    // Build sequential house segments — consecutive samples in the same house.
+    //
+    // Where the run changes, the boundary is narrowed to the crossing itself
+    // and SHARED by both segments. Taking the raw sample dates instead — the
+    // last one that saw the old house, the first that saw the new — left the
+    // whole sample interval unclaimed, which is how a fortnight of "Jupiter is
+    // in no house" got into the cache. A planet is always in some house, so
+    // the segments must tile.
     type Segment = { house: number; start: Date; end: Date; count: number };
     const segments: Segment[] = [];
 
-    for (const sample of samples) {
+    for (let i = 0; i < samples.length; i++) {
+        const sample = samples[i];
         const last = segments[segments.length - 1];
+
         if (last && last.house === sample.house) {
             last.end = sample.date;
             last.count++;
-        } else {
-            segments.push({ house: sample.house, start: sample.date, end: sample.date, count: 1 });
+            continue;
         }
+
+        // First segment starts where the scan does; every later one starts at
+        // the cusp the planet just crossed, which is also where its
+        // predecessor ends.
+        let start = sample.date;
+        if (last) {
+            start = await findCuspCrossing(
+                samples[i - 1].date,
+                sample.date,
+                last.house,
+                planet,
+                natalChart.houses.cusps,
+                sw,
+            );
+            last.end = start;
+        }
+
+        segments.push({ house: sample.house, start, end: sample.date, count: 1 });
     }
 
     // Convert segments to cycles. Re-entries into the same house within a
@@ -422,10 +508,12 @@ async function calculateHouseTransitCycles(
         nonOverlapping.push(c);
     }
 
-    // Gap-fill pass: a gap ≤ 2× the sample interval (28 days) between consecutive
-    // candidates is a sampling artefact — the planet crossed the cusp between two
-    // sample points, not a real void. Extend the earlier candidate's end to meet
-    // the next candidate's start so the cycle timeline has no holes.
+    // Gap-fill backstop. Segments now meet at the cusp crossing itself, so in
+    // the normal case there is nothing here to fill. It survives for the one
+    // path that can still open a hole — an ephemeris failure during bisection,
+    // which falls back to the coarse bracket — and for cached rows written
+    // before boundaries were resolved. A gap that size is a sampling artefact
+    // either way, never a real void: the planet is always in some house.
     const GAP_FILL_MS = 2 * sampleInterval; // 28 days
     for (let i = 0; i < nonOverlapping.length - 1; i++) {
         const cur = nonOverlapping[i];
@@ -751,12 +839,18 @@ function createAspectCycle(
 }
 
 // Helper functions
+/**
+ * A cycle is active between its dates. Nothing subtler than that.
+ *
+ * This used to open 45 days early, compensating for a sampling interval that
+ * could put a recorded start well after the real cusp crossing — better to
+ * call a transit active a little early than to deny one already underway.
+ * Boundaries are now bisected to the hour, so there is nothing left to
+ * compensate for and the window only lies: it would call a cycle beginning in
+ * six weeks active today.
+ */
 function getCycleStatus(startDate: Date, endDate: Date, currentDate: Date): 'completed' | 'active' | 'upcoming' {
-    // 45-day grace window: if a cycle starts within 45 days, treat it as active.
-    // This compensates for the 30-day sampling interval which can push firstEntry
-    // up to a month after the planet actually crossed the house cusp.
-    const gracePeriodMs = 45 * 24 * 60 * 60 * 1000;
-    if (currentDate < new Date(startDate.getTime() - gracePeriodMs)) return 'upcoming';
+    if (currentDate < startDate) return 'upcoming';
     if (currentDate > endDate) return 'completed';
     return 'active';
 }

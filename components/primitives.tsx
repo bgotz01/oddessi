@@ -1,3 +1,4 @@
+//components/primitives.tsx
 import type { ReactNode } from "react";
 import type { BandStatus } from "@/lib/band";
 
