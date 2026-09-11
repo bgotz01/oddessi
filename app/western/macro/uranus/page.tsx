@@ -8,7 +8,7 @@ import UranusEraDrawer from "@/components/western/macro/uranus-era-drawer";
 import { URANUS_ERAS } from "@/lib/astrology/macro/uranus-eras-data";
 import type { UranusEraElement } from "@/lib/astrology/macro/uranus-eras-data";
 
-const ERAS = [...URANUS_ERAS].reverse();
+const ERAS = URANUS_ERAS;
 
 const ELEMENT_COLOR: Record<UranusEraElement, string> = {
   earth: "#8ebf7a",
@@ -28,6 +28,7 @@ function eraWidthPct(index: number) {
   const boundary = ERAS[index + 1]?.startYear ?? era.endYear;
   return ((boundary - era.startYear) / TOTAL_SPAN) * 100;
 }
+
 
 function UranusTimeline({
   selectedEraId,
@@ -84,8 +85,7 @@ function UranusTimeline({
           return (
             <span
               key={era.id}
-              className={`datum absolute text-[0.75rem] text-bone-faint ${index === 0 ? "" : "-translate-x-1/2"
-                }`}
+              className={`datum absolute text-[0.75rem] text-bone-faint ${index === 0 ? "" : "-translate-x-1/2"}`}
               style={{ left: `${pct}%` }}
             >
               {era.startYear}
@@ -108,8 +108,7 @@ function UranusTimeline({
               key={era.id}
               onClick={() => onSelect(era.id)}
               aria-pressed={selected}
-              className={`grid cursor-pointer grid-rows-[4.5rem_5rem_7.5rem_4.5rem_6.5rem] gap-2 px-2 py-3 text-center transition-colors hover:bg-surface-alt ${selected ? "bg-surface-alt" : ""
-                }`}
+              className={`grid cursor-pointer grid-rows-[4.5rem_3rem_4.5rem_minmax(4.5rem,1fr)] gap-2 px-2 py-3 text-center transition-colors hover:bg-surface-alt ${selected ? "bg-surface-alt" : ""}`}
               style={{
                 width: `${widthPct}%`,
                 borderLeft: `2px solid ${color}`,
@@ -131,26 +130,26 @@ function UranusTimeline({
                   {era.timeframe}
                 </span>
               </div>
-              <span className="flex items-start justify-center break-words text-[0.9375rem] leading-snug text-bone-soft">
-                <span style={{ color }}>{era.system}</span>
+
+              <span
+                className="datum flex items-start justify-center break-words text-[0.6875rem] leading-relaxed uppercase tracking-[0.14em]"
+                style={{ color }}
+              >
+                {era.domain}
               </span>
-              <span className="flex flex-col items-center justify-start gap-1 break-words text-[0.9375rem] leading-snug text-bone-soft">
-                <span className="datum text-[0.625rem] uppercase tracking-[0.16em] text-bone-faint">
-                  Old order
-                </span>
-                {era.oldOrder}
-              </span>
-              <span className="flex flex-col items-center justify-start gap-1 break-words text-[0.9375rem] leading-snug text-bone">
-                <span className="datum text-[0.625rem] uppercase tracking-[0.16em] text-bone-faint">
+
+              <span className="flex flex-col items-center justify-start gap-1 break-words text-[1.0625rem] leading-snug text-bone">
+                <span className="datum text-[0.5625rem] uppercase tracking-[0.12em] text-bone-faint/60">
                   Shock
                 </span>
                 {era.shock}
               </span>
-              <span className="flex flex-col items-center justify-start gap-1 break-words text-[0.9375rem] leading-snug text-bone-soft">
-                <span className="datum text-[0.625rem] uppercase tracking-[0.16em] text-bone-faint">
-                  New order
+
+              <span className="flex flex-col items-center justify-start gap-1 break-words border-t border-rule-faint pt-2.5 text-[1.0625rem] leading-snug text-bone">
+                <span className="datum text-[0.5625rem] uppercase tracking-[0.12em] text-bone-faint/60">
+                  Question
                 </span>
-                {era.reorganization}
+                {era.question}
               </span>
             </button>
           );
@@ -170,10 +169,19 @@ function ShockProgression({
   return (
     <div className="mb-12">
       <p className="mx-auto mb-8 max-w-3xl text-center text-[1.25rem] italic leading-relaxed text-bone-soft">
-        What assumption gets broken—and what new order forms around its failure?
+        What assumption gets broken—and what reorganizes around its failure?
       </p>
 
-      <div className="mx-auto mb-10 max-w-3xl border-y border-rule py-6 text-center">
+      <div className="-mx-2 overflow-x-auto px-2 pb-3">
+        <div className="min-w-[2380px]">
+          <UranusTimeline selectedEraId={selectedEraId} onSelect={onSelect} />
+        </div>
+      </div>
+      <p className="datum mt-3 text-center text-[0.6875rem] uppercase tracking-[0.16em] text-bone-faint">
+        Select an era to open its full reading
+      </p>
+
+      <div className="mx-auto mt-12 max-w-3xl border-y border-rule py-6 text-center">
         <p className="datum text-[0.6875rem] uppercase tracking-[0.2em] text-patina">
           The Gemini recurrence · Gemini rules House 3 · Information
         </p>
@@ -193,15 +201,6 @@ function ShockProgression({
           </div>
         </div>
       </div>
-
-      <div className="-mx-2 overflow-x-auto px-2 pb-3">
-        <div className="min-w-[2380px]">
-          <UranusTimeline selectedEraId={selectedEraId} onSelect={onSelect} />
-        </div>
-      </div>
-      <p className="datum mt-3 text-center text-[0.6875rem] uppercase tracking-[0.16em] text-bone-faint">
-        Select an era to open its full reading
-      </p>
     </div>
   );
 }
@@ -217,7 +216,7 @@ export default function UranusPage() {
       <PageTitle
         eyebrow="Collective · Uranus"
         title="The Uranus Sequence"
-        lede=""
+        lede="Uranus marks the shock that disrupts an established domain. Each sign identifies where the disruption occurs, what assumption breaks, and the new order that forms around its failure."
       />
 
       <section className="mb-20">

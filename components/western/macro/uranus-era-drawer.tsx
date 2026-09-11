@@ -85,7 +85,7 @@ export default function UranusEraDrawer({
                   className="datum text-[0.6875rem] uppercase tracking-[0.2em]"
                   style={{ color }}
                 >
-                  {era.system}
+                  {era.domain}
                 </span>
                 {statusLabel ? (
                   <>

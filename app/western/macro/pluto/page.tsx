@@ -9,7 +9,7 @@ import SignHouseDomainPanel from "@/components/western/macro/sign-house-domain-p
 import { PLUTO_ERAS } from "@/lib/astrology/macro/pluto-eras-data";
 import type { PlutoEraElement } from "@/lib/astrology/macro/pluto-eras-data";
 
-const ERAS = [...PLUTO_ERAS].reverse();
+const ERAS = PLUTO_ERAS;
 
 const ELEMENT_COLOR: Record<PlutoEraElement, string> = {
   earth: "#8ebf7a",
@@ -24,6 +24,12 @@ const TOTAL_START = ERAS[0].startYear;
 const TOTAL_END = ERAS[ERAS.length - 1].endYear;
 const TOTAL_SPAN = TOTAL_END - TOTAL_START;
 const NOW = 2026.69;
+
+function eraWidthPct(index: number) {
+  const era = ERAS[index];
+  const boundary = ERAS[index + 1]?.startYear ?? era.endYear;
+  return ((boundary - era.startYear) / TOTAL_SPAN) * 100;
+}
 
 function PlutoTimeline({
   selectedSign,
@@ -46,9 +52,9 @@ function PlutoTimeline({
       </div>
 
       <div className="relative flex h-10 w-full overflow-hidden rounded-[2px]">
-        {ERAS.map((era) => {
+        {ERAS.map((era, index) => {
           const color = ELEMENT_COLOR[era.element];
-          const widthPct = ((era.endYear - era.startYear) / TOTAL_SPAN) * 100;
+          const widthPct = eraWidthPct(index);
           return (
             <button
               type="button"
@@ -94,9 +100,9 @@ function PlutoTimeline({
       </div>
 
       <div className="mt-6 flex w-full items-stretch">
-        {ERAS.map((era) => {
+        {ERAS.map((era, index) => {
           const color = ELEMENT_COLOR[era.element];
-          const widthPct = ((era.endYear - era.startYear) / TOTAL_SPAN) * 100;
+          const widthPct = eraWidthPct(index);
           const selected = selectedSign === era.sign;
           return (
             <button
@@ -104,7 +110,7 @@ function PlutoTimeline({
               key={era.sign}
               onClick={() => onSelect(era.sign)}
               aria-pressed={selected}
-              className={`grid cursor-pointer grid-rows-[4.5rem_5rem_5.5rem_7rem_7rem] gap-2 px-2 py-3 text-center transition-colors hover:bg-surface-alt ${selected ? "bg-surface-alt" : ""
+              className={`grid cursor-pointer grid-rows-[4.5rem_3rem_4.5rem_minmax(4.5rem,1fr)] gap-2 px-2 py-3 text-center transition-colors hover:bg-surface-alt ${selected ? "bg-surface-alt" : ""
                 }`}
               style={{
                 width: `${widthPct}%`,
@@ -131,32 +137,25 @@ function PlutoTimeline({
                 </span>
               </div>
 
-              <span className="flex flex-col items-center justify-start gap-1 break-words text-[0.9375rem] leading-snug text-bone-soft">
-                <span className="datum text-[0.625rem] uppercase tracking-[0.16em] text-bone-faint">
-                  Power Shift
-                </span>
-                <span style={{ color }}>{era.powerSystem}</span>
+              <span
+                className="datum flex items-start justify-center break-words text-[0.6875rem] leading-relaxed uppercase tracking-[0.14em]"
+                style={{ color }}
+              >
+                {era.powerSystem}
               </span>
 
-              <span className="flex flex-col items-center justify-start gap-1 break-words text-[0.9375rem] leading-snug text-bone">
-                <span className="datum text-[0.625rem] uppercase tracking-[0.16em] text-bone-faint">
+              <span className="flex flex-col items-center justify-start gap-1 break-words text-[1.0625rem] leading-snug text-bone">
+                <span className="datum text-[0.5625rem] uppercase tracking-[0.12em] text-bone-faint/60">
                   Transformation
                 </span>
                 {era.transformation}
               </span>
 
-              <span className="flex flex-col items-center justify-start gap-1 break-words text-[0.9375rem] leading-snug text-bone-soft">
-                <span className="datum text-[0.625rem] uppercase tracking-[0.16em] text-bone-faint">
-                  What dies
+              <span className="flex flex-col items-center justify-start gap-1 break-words border-t border-rule-faint pt-2.5 text-[1.0625rem] leading-snug text-bone">
+                <span className="datum text-[0.5625rem] uppercase tracking-[0.12em] text-bone-faint/60">
+                  Question
                 </span>
-                {era.whatDies}
-              </span>
-
-              <span className="flex flex-col items-center justify-start gap-1 break-words text-[0.9375rem] leading-snug text-bone-soft">
-                <span className="datum text-[0.625rem] uppercase tracking-[0.16em] text-bone-faint">
-                  What consolidates
-                </span>
-                {era.whatConsolidates}
+                {era.question}
               </span>
             </button>
           );

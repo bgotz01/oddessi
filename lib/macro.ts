@@ -908,7 +908,7 @@ export function currentCycles(now: Date): MacroCycle[] {
       "uranus",
       "Uranus",
       now,
-      { ...uranus, domain: uranus.system, catalyst: uranus.shock },
+      { ...uranus, domain: uranus.domain, catalyst: uranus.shock },
       [
         { label: "Old Order", items: [uranus.oldOrder] },
         { label: "Reorganization", items: [uranus.reorganization] },

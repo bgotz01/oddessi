@@ -26,6 +26,12 @@ const TOTAL_END = ERAS[ERAS.length - 1].endYear;
 const TOTAL_SPAN = TOTAL_END - TOTAL_START;
 const NOW = 2026; // current year for "now" marker
 
+function eraWidthPct(index: number) {
+  const era = ERAS[index];
+  const boundary = ERAS[index + 1]?.startYear ?? era.endYear;
+  return ((boundary - era.startYear) / TOTAL_SPAN) * 100;
+}
+
 function NeptuneTimeline({
   selectedSign,
   onSelect,
@@ -49,9 +55,9 @@ function NeptuneTimeline({
 
       {/* ── Colour bar ────────────────────────────────────────────────── */}
       <div className="relative flex h-10 w-full overflow-hidden rounded-[2px]">
-        {ERAS.map((era) => {
+        {ERAS.map((era, index) => {
           const color = ELEMENT_COLOR[era.element];
-          const widthPct = ((era.endYear - era.startYear) / TOTAL_SPAN) * 100;
+          const widthPct = eraWidthPct(index);
           return (
             <button
               type="button"
@@ -100,9 +106,9 @@ function NeptuneTimeline({
 
       {/* ── Per-segment label blocks ───────────────────────────────────── */}
       <div className="mt-6 flex w-full items-stretch">
-        {ERAS.map((era) => {
+        {ERAS.map((era, index) => {
           const color = ELEMENT_COLOR[era.element];
-          const widthPct = ((era.endYear - era.startYear) / TOTAL_SPAN) * 100;
+          const widthPct = eraWidthPct(index);
           const selected = selectedSign === era.sign;
           return (
             <button
@@ -139,11 +145,17 @@ function NeptuneTimeline({
               >
                 {era.powerSource}
               </span>
-              <span className="flex items-start justify-center break-words text-[0.9375rem] leading-snug text-bone-soft">
-                {era.structure}
+              <span className="flex flex-col items-center justify-start gap-1 break-words text-[1.0625rem] leading-snug text-bone-soft">
+                <span className="datum text-[0.5625rem] uppercase tracking-[0.12em] text-bone-faint/60">
+                  Archetype
+                </span>
+                {era.archetype}
               </span>
-              <span className="flex items-start justify-center break-words border-t border-rule-faint pt-2.5 text-[0.9375rem] leading-snug text-bone">
-                {era.majorEvent.label}
+              <span className="flex flex-col items-center justify-start gap-1 break-words border-t border-rule-faint pt-2.5 text-[1.0625rem] leading-snug text-bone">
+                <span className="datum text-[0.5625rem] uppercase tracking-[0.12em] text-bone-faint/60">
+                  Question
+                </span>
+                {era.question}
               </span>
             </button>
           );

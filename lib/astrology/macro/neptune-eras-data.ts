@@ -10,6 +10,7 @@ export interface NeptuneEra {
   years: string;
   startYear: number;
   endYear: number;
+  domain: string;
   ideal: string;
   representative: string;
   archetype: string;
@@ -26,6 +27,7 @@ export interface NeptuneEra {
   element: NeptuneEraElement;
   status: NeptuneEraStatus;
   expanded: string;
+  question: string;
 }
 
 export const NEPTUNE_ERAS = [
@@ -36,12 +38,14 @@ export const NEPTUNE_ERAS = [
     years: "~1942–1956",
     startYear: 1942,
     endYear: 1956,
+    domain: "Relationships",
     ideal: "Power through shared order",
     representative:
       "The United Nations, Bretton Woods, universal human rights, international diplomacy, postwar alliances, the idealized nuclear family",
     archetype: "The Diplomat",
     archetypeNote: "The broker of a workable peace. Legitimacy comes from creating an order that opposing sides can recognize and enter.",
     powerSource: "Agreement",
+    question: "How do we live together?",
     concept: "Order",
     conceptNote: "Libra idealizes relationship and proportion. After rupture, the collective dream becomes a shared order: a way for opposing sides to live together under mutually recognized rules.",
     structure: "Rules-based cooperation",
@@ -66,6 +70,7 @@ export const NEPTUNE_ERAS = [
     startYear: 1956,
     endYear: 1970,
 
+    domain: "Hidden power",
     ideal: "Power through hidden leverage",
 
     representative:
@@ -77,6 +82,7 @@ export const NEPTUNE_ERAS = [
       "The figure who confronts the forces hidden beneath the official order. Power comes from exposing secrets, finding pressure points, breaking taboos, and forcing irreversible change.",
 
     powerSource: "Leverage",
+    question: "What lies beneath the surface?",
 
     concept: "Power",
 
@@ -115,12 +121,14 @@ export const NEPTUNE_ERAS = [
     years: "~1970–1984",
     startYear: 1970,
     endYear: 1984,
+    domain: "Worldview",
     ideal: "Power through expanded horizons",
     representative:
       "Post-hippie counterculture, communes, New Age spirituality, ecology, global travel, mass higher education, satellite broadcasting, self-help culture, early globalization",
     archetype: "The Seeker",
     archetypeNote: "The person who leaves the inherited map in search of a larger life. Freedom means travel, experiment, self-discovery, and exposure to unfamiliar ways of living.",
     powerSource: "Vision",
+    question: "What else is out there?",
     concept: "Expansion",
     conceptNote: "Sagittarius idealizes horizons, belief, and expansion. After liberation from the old order, the collective desire turns outward: what else is possible, and what else is out there?",
     structure: "Expanded cultural horizons",
@@ -145,12 +153,14 @@ export const NEPTUNE_ERAS = [
     years: "~1984–1998",
     startYear: 1984,
     endYear: 1998,
+    domain: "Institutions",
     ideal: "Power through institutions",
     representative:
       "Wall Street, finance, leveraged buyouts, shareholder value, the rise of the investment bank, professional ambition",
     archetype: "The Financier",
     archetypeNote: "Master of the universe. Success means climbing a hierarchy and accumulating money, status, and institutional authority.",
     powerSource: "Institution",
+    question: "How do I rise to the top?",
     concept: "Authority",
     conceptNote:
       "Capricorn idealizes institutional authority. Success means entering the hierarchy, mastering its rules, and rising high enough to wield its power.",
@@ -177,12 +187,14 @@ export const NEPTUNE_ERAS = [
     years: "~1998–2012",
     startYear: 1998,
     endYear: 2012,
+    domain: "Networks",
     ideal: "Power through networks",
     representative:
       "Internet, Google (1998), PayPal (1998), Napster (1999), Wikipedia (2001), Facebook (2004), YouTube (2005), Twitter (2006), Web 2.0",
     archetype: "The Technologist",
     archetypeNote: "The builder of the infrastructure connecting everyone. Value comes from who you know and what you can access — not who you report to.",
     powerSource: "Network",
+    question: "How do we connect everyone?",
     concept: "Connection",
     conceptNote: "Aquarius idealizes connection. Institutions no longer need to mediate every relationship; technical networks allow individuals, information, and communities to connect directly across traditional boundaries.",
     structure: "Distributed connectivity",
@@ -205,12 +217,14 @@ export const NEPTUNE_ERAS = [
     years: "~2012–2026",
     startYear: 2012,
     endYear: 2026,
+    domain: "Collective imagination",
     ideal: "Power through attention",
     representative:
       "Instagram, influencers, streaming, reality culture, TikTok, OnlyFans, the creator economy, personal brands",
     archetype: "The Influencer",
     archetypeNote: "You don't need to build the network. You become an image inside it. The individual as collective projection.",
     powerSource: "Attention",
+    question: "How do I become the dream?",
     concept: "Image",
     conceptNote: "Once everybody is connected, what flows through the network? Images. Stories. Dreams. Personalities. Entertainment. Identities. The network becomes a gigantic projection machine.",
     structure: "Distributed attention",
@@ -235,12 +249,14 @@ export const NEPTUNE_ERAS = [
     years: "~2026–2039",
     startYear: 2026,
     endYear: 2039,
+    domain: "Individual agency",
     ideal: "Power through agency",
     representative:
       "AI-enabled individuals, founders, protagonists, mission-driven builders — something we don't yet have a complete category for",
     archetype: "The Protagonist",
     archetypeNote: "Followers become downstream of the mission rather than the mission itself. The person is still visible — but the visibility serves the doing.",
     powerSource: "Agency",
+    question: "What can I do?",
     concept: "Mission",
     conceptNote: "Aries idealizes agency: the ability of the individual to act directly on the world. Capability matters because it expands what one person can accomplish, turning visibility from an end in itself into leverage for a mission.",
     structure: "Distributed agency",
