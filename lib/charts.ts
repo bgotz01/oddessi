@@ -298,38 +298,55 @@ function cityFromLocation(location: string | null): string {
   return location.split(",")[0].trim();
 }
 
+/**
+ * One database row as a chart.
+ *
+ * Extracted from `fetchCharts` when a second caller appeared. The progressions
+ * route needs exactly one chart and reading the whole table to find it is the
+ * kind of thing that is invisible until the table is not small.
+ */
+type ChartRow = Awaited<ReturnType<typeof prisma.birthChartData.findMany>>[number];
+
+function toChart(row: ChartRow): Chart {
+  const cusps = readCusps(row.housePositions);
+  return {
+    id: row.id,
+    name: row.name?.trim() || UNTITLED_CHART,
+    isDefault: row.isDefault,
+    gender: row.gender ?? null,
+    birth: {
+      date: row.birthDate.toISOString().slice(0, 10),
+      time: row.birthTime,
+      timezone: row.birthTimezone,
+      latitude: row.birthLatitude,
+      longitude: row.birthLongitude,
+      city: row.birthCity?.trim() || cityFromLocation(row.birthLocation),
+      location: row.birthLocation?.trim() || "Unknown location",
+    },
+    big3: {
+      sun: row.sunSign ?? "",
+      moon: row.moonSign ?? "",
+      rising: row.risingSign ?? "",
+    },
+    placements: buildPlacements(row.planetPositions, row.angles, cusps),
+    houses: buildHouses(cusps),
+    angles: buildAngles(row.angles),
+    aspects: buildAspects(row.aspects),
+  };
+}
+
 export async function fetchCharts(): Promise<Chart[]> {
   const rows = await prisma.birthChartData.findMany({
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
   });
 
-  return rows.map((row) => {
-    const cusps = readCusps(row.housePositions);
-    return {
-      id: row.id,
-      name: row.name?.trim() || UNTITLED_CHART,
-      isDefault: row.isDefault,
-      gender: row.gender ?? null,
-      birth: {
-        date: row.birthDate.toISOString().slice(0, 10),
-        time: row.birthTime,
-        timezone: row.birthTimezone,
-        latitude: row.birthLatitude,
-        longitude: row.birthLongitude,
-        city: row.birthCity?.trim() || cityFromLocation(row.birthLocation),
-        location: row.birthLocation?.trim() || "Unknown location",
-      },
-      big3: {
-        sun: row.sunSign ?? "",
-        moon: row.moonSign ?? "",
-        rising: row.risingSign ?? "",
-      },
-      placements: buildPlacements(row.planetPositions, row.angles, cusps),
-      houses: buildHouses(cusps),
-      angles: buildAngles(row.angles),
-      aspects: buildAspects(row.aspects),
-    };
-  });
+  return rows.map(toChart);
+}
+
+/** One chart by id. Null when nothing carries that id. */
+export async function fetchChart(id: string): Promise<Chart | null> {
+  const row = await prisma.birthChartData.findUnique({ where: { id } });
+  return row ? toChart(row as ChartRow) : null;
 }
 
 export function formatBirth(birth: BirthData): string {

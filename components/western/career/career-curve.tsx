@@ -18,6 +18,11 @@ import {
   CareerReadingPanel,
   CareerReadout,
 } from "@/components/western/career/career-readout";
+import CareerRangeControls, {
+  careerView,
+  CAREER_RANGE_INITIAL,
+  type CareerRangeState,
+} from "@/components/western/career/career-range";
 
 /**
  * What colour each career grade takes on the curve line.
@@ -87,6 +92,48 @@ function CareerSeasonGradient({
   );
 }
 
+/**
+ * The tick spacings the year axis is allowed to use, coarsest last.
+ *
+ * A decade was hard-coded when the curve only ever drew a whole life. Under a
+ * twelve-year custom range that axis carries one label and names nothing, and
+ * under a five-year one it carries none at all.
+ */
+const TICK_STEPS = [1, 2, 5, 10, 20, 25, 50];
+
+/** How many year labels the two-line tick can carry across the plot. */
+const MAX_TICKS = 11;
+
+/**
+ * The curve between two ages, with both edges interpolated onto the line.
+ *
+ * Filtering the samples alone would leave up to a sample-step of line missing
+ * at each end — a quarter of a year, invisible across a whole life and a
+ * visible gap against the axis once the view is a few decades wide.
+ */
+function clipToView(
+  points: CareerPoint[],
+  from: number,
+  to: number,
+): { age: number; value: number }[] {
+  const at = (a: CareerPoint, b: CareerPoint, age: number) => ({
+    age,
+    value: a.value + ((b.value - a.value) * (age - a.age)) / (b.age - a.age),
+  });
+  const out: { age: number; value: number }[] = [];
+  for (let index = 0; index < points.length; index += 1) {
+    const point = points[index];
+    const previous = points[index - 1];
+    if (point.age >= from && point.age <= to) {
+      if (previous && previous.age < from) out.push(at(previous, point, from));
+      out.push({ age: point.age, value: point.value });
+    } else if (previous && previous.age >= from && previous.age <= to && point.age > to) {
+      out.push(at(previous, point, to));
+    }
+  }
+  return out;
+}
+
 const W = 1000;
 const H = 300;
 const PAD = { top: 32, right: 12, bottom: 40, left: 36 };
@@ -102,9 +149,13 @@ export default function CareerCurve({
 }) {
   const [hover, setHover] = useState<CareerPoint | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [range, setRange] = useState<CareerRangeState>(CAREER_RANGE_INITIAL);
   const birthMs = birthMsOf(birth);
-  const viewFrom = 0;
-  const viewTo = model.lifespan;
+  // The curve is computed in ages; the control is stated in calendar years.
+  // This is the one place the two meet.
+  const view = careerView(range, birthMs, model.lifespan);
+  const viewFrom = view.from;
+  const viewTo = view.to;
   const x = (age: number) =>
     PAD.left + ((age - viewFrom) / (viewTo - viewFrom)) * (W - PAD.left - PAD.right);
   const y = (value: number) =>
@@ -116,17 +167,46 @@ export default function CareerCurve({
   };
   const ageOfYear = (year: number) => (Date.UTC(year, 0, 1) - birthMs) / YEAR_MS;
 
+  /**
+   * Where the year labels fall — chosen from the width of the view rather than
+   * fixed at a decade, so a fifty-year default and a six-year custom range
+   * both come out with an axis that names things.
+   */
+  const tickStep =
+    TICK_STEPS.find((step) => (viewTo - viewFrom) / step <= MAX_TICKS) ?? 50;
   const years: number[] = [];
-  for (let year = Math.ceil(yearAt(0) / 10) * 10; year <= yearAt(viewTo); year += 10) {
-    years.push(year);
+  for (
+    let year = Math.ceil(yearAt(viewFrom) / tickStep) * tickStep;
+    year <= yearAt(viewTo);
+    year += tickStep
+  ) {
+    // The first multiple of the step can land before the left edge — the view
+    // starts mid-year. Dropping it is better than drawing a tick outside the
+    // plot.
+    if (ageOfYear(year) >= viewFrom) years.push(year);
   }
 
-  const line = useMemo(
-    () => `M${model.points.map((point) => `${x(point.age).toFixed(1)},${y(point.value).toFixed(1)}`).join("L")}`,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [model.points],
+  /** The samples the view actually contains, for hover and for the plot. */
+  const inView = useMemo(
+    () => model.points.filter((point) => point.age >= viewFrom && point.age <= viewTo),
+    [model.points, viewFrom, viewTo],
   );
-  const area = `${line}L${x(viewTo)},${y(0)}L${x(viewFrom)},${y(0)}Z`;
+  const drawn = useMemo(
+    () => clipToView(model.points, viewFrom, viewTo),
+    [model.points, viewFrom, viewTo],
+  );
+
+  const line = useMemo(
+    () =>
+      drawn.length
+        ? `M${drawn.map((point) => `${x(point.age).toFixed(1)},${y(point.value).toFixed(1)}`).join("L")}`
+        : "",
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [drawn],
+  );
+  const area = line
+    ? `${line}L${x(drawn[drawn.length - 1].age)},${y(0)}L${x(drawn[0].age)},${y(0)}Z`
+    : "";
   const selected = model.windows.find((window) => window.id === selectedId) ?? null;
   const current = model.windows.find((window) => window.status === "active") ?? null;
   const windowAt = (age: number) =>
@@ -145,8 +225,8 @@ export default function CareerCurve({
     const age =
       viewFrom +
       ((local.x - PAD.left) / (W - PAD.left - PAD.right)) * (viewTo - viewFrom);
-    if (age < viewFrom || age > viewTo) return null;
-    return model.points.reduce((best, candidate) =>
+    if (age < viewFrom || age > viewTo || !inView.length) return null;
+    return inView.reduce((best, candidate) =>
       Math.abs(candidate.age - age) < Math.abs(best.age - age) ? candidate : best,
     );
   };
@@ -165,13 +245,35 @@ export default function CareerCurve({
           stronger disclaimer than the disclaimer was. The caveat itself is
           not gone — it is in the scoring modal, the grade tooltip and the
           full reading, where someone asking the question will meet it. */}
-      <div>
-        <p className={`${T.tiny} text-bone-faint`}>
-          Career Activation Index · 0–100
-        </p>
-        <p className={`${T.note} mt-1.5`}>
-          How strongly each period activates career.
-        </p>
+      {/* The same grid template as the plot below, so the range buttons sit
+          flush with the right edge of the CURVE rather than over the transit
+          sidebar — a control floating above a panel it does not govern reads
+          as that panel's control. */}
+      <div className="grid gap-x-8 xl:grid-cols-[minmax(0,1fr)_19rem]">
+        <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+          <div>
+            <p className={`${T.tiny} text-bone-faint`}>
+              Career Activation Index · 0–100
+            </p>
+            <p className={`${T.note} mt-1.5`}>
+              How strongly each period activates career.
+            </p>
+          </div>
+
+          {/* Changing the range clears the pinned window: a sidebar still
+              reading a period that has just left the plot is a panel about
+              something the reader can no longer see or click away from. */}
+          <CareerRangeControls
+            state={range}
+            onChange={(next) => {
+              setRange(next);
+              setSelectedId(null);
+              setHover(null);
+            }}
+            birthMs={birthMs}
+            lifespan={model.lifespan}
+          />
+        </div>
       </div>
 
       <div className="mt-3 grid items-start gap-x-8 gap-y-8 xl:grid-cols-[minmax(0,1fr)_19rem]">
@@ -234,20 +336,22 @@ export default function CareerCurve({
               <g>
                 <rect
                   x={x(viewFrom)}
-                  width={Math.max(x(model.floorAge) - x(viewFrom), 0)}
+                  width={Math.max(x(Math.min(model.floorAge, viewTo)) - x(viewFrom), 0)}
                   y={PAD.top}
                   height={H - PAD.top - PAD.bottom}
                   fill="var(--color-void)"
                   opacity={0.45}
                 />
-                <line
-                  x1={x(model.floorAge)}
-                  x2={x(model.floorAge)}
-                  y1={PAD.top}
-                  y2={H - PAD.bottom}
-                  stroke="var(--color-rule)"
-                  strokeDasharray="2 3"
-                />
+                {model.floorAge <= viewTo ? (
+                  <line
+                    x1={x(model.floorAge)}
+                    x2={x(model.floorAge)}
+                    y1={PAD.top}
+                    y2={H - PAD.bottom}
+                    stroke="var(--color-rule)"
+                    strokeDasharray="2 3"
+                  />
+                ) : null}
                 <text
                   x={x(viewFrom) + 6}
                   y={PAD.top + 11}
@@ -263,24 +367,29 @@ export default function CareerCurve({
             <path d={area} fill="url(#career-area)" />
             <path d={line} fill="none" stroke="url(#career-seasons)" strokeWidth={2} strokeLinejoin="round" />
 
-            {model.peaks.map((peak) => (
+            {model.peaks
+              .filter((peak) => peak.age >= viewFrom && peak.age <= viewTo)
+              .map((peak) => (
               <g key={peak.age}>
                 <circle cx={x(peak.age)} cy={y(peak.value)} r={3} fill="var(--color-ember)" />
                 <text x={x(peak.age)} y={y(peak.value) - 9} textAnchor="middle" fill="var(--color-bone-faint)" className="datum" fontSize={8.5}>{yearAt(peak.age)}</text>
               </g>
             ))}
 
-            {model.age > 0 && model.age < viewTo ? (
+            {model.age > viewFrom && model.age < viewTo ? (
               <g>
                 <line x1={x(model.age)} x2={x(model.age)} y1={PAD.top - 8} y2={H - PAD.bottom} stroke="var(--color-signal)" strokeWidth={2} />
                 <text x={x(model.age)} y={PAD.top - 13} textAnchor="middle" fill="var(--color-signal)" className="datum" fontSize={8.5}>NOW</text>
               </g>
             ) : null}
 
-            {selected ? (
+            {selected && selected.ageEnd > viewFrom && selected.ageStart < viewTo ? (
               <rect
-                x={x(selected.ageStart)}
-                width={Math.max(x(selected.ageEnd) - x(selected.ageStart), 2)}
+                x={x(Math.max(selected.ageStart, viewFrom))}
+                width={Math.max(
+                  x(Math.min(selected.ageEnd, viewTo)) - x(Math.max(selected.ageStart, viewFrom)),
+                  2,
+                )}
                 y={PAD.top}
                 height={H - PAD.top - PAD.bottom}
                 fill="var(--color-bone)"

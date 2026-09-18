@@ -35,6 +35,36 @@ interface NavGroup {
 
 const NAV: NavGroup[] = [
   {
+    label: "Macro",
+    items: [
+      // Collective cycles — no birth chart needed. Western sky and long-cycle
+      // timelines sit here alongside industry-level planetary analyses.
+      {
+        href: "/western/macro",
+        label: "Astrology",
+        children: [
+          { href: "/western/macro/jupiter", label: "Jupiter" },
+          { href: "/western/macro/neptune", label: "Neptune" },
+          { href: "/western/macro/uranus", label: "Uranus" },
+          { href: "/western/macro/pluto", label: "Pluto" },
+        ],
+      },
+      {
+        href: "/industry/music",
+        label: "Music",
+        children: [
+          // First because it is the overview the single-planet pages are
+          // details of: one axis with both clocks on it, which neither of them
+          // can draw.
+          { href: "/industry/music/cycle", label: "Both clocks" },
+          { href: "/industry/music/neptune", label: "Neptune" },
+          { href: "/industry/music/neptune/aries", label: "Aries" },
+          { href: "/industry/music/uranus", label: "Uranus" },
+        ],
+      },
+    ],
+  },
+  {
     label: null,
     items: [
       { href: "/birth-chart", label: "Birth Chart" },
@@ -62,24 +92,16 @@ const NAV: NavGroup[] = [
         ],
       },
       { href: "/western/career", label: "Career" },
+      // Beside Career rather than under Cycles, though half of it is timing.
+      // Career is one argument about activation; Love is two — a natal nature
+      // and a set of seasons — and filing it under Cycles would claim the
+      // timing half is the page.
+      { href: "/western/love", label: "Love" },
+      { href: "/western/romance", label: "Romance" },
       {
         href: "/western/cycles",
         label: "Cycles",
         children: [{ href: "/western/cycles/explorer", label: "Explorer" }],
-      },
-      // Last in Western, and a sibling rather than a child of Cycles, because
-      // it is the only page in the group that never opens the chart: the
-      // collective cycles are the same for every reader. Nesting it under
-      // Cycles would have implied it narrows those, when it is the layer above
-      // them.
-      {
-        href: "/western/macro",
-        label: "Macro",
-        children: [
-          { href: "/western/macro/neptune", label: "Neptune" },
-          { href: "/western/macro/uranus", label: "Uranus" },
-          { href: "/western/macro/pluto", label: "Pluto" },
-        ],
       },
     ],
   },
@@ -215,9 +237,11 @@ export default function Sidebar() {
         {NAV.map((group, i) => (
           <div key={group.label ?? `unlabelled-${i}`} className="pb-2">
             {group.label ? (
-              <p className="eyebrow px-6 pt-5 pb-2 border-t border-rule-faint mt-1">
+              <p className={`eyebrow px-6 pt-5 pb-2 ${i > 0 ? "border-t border-rule-faint mt-1" : ""}`}>
                 {group.label}
               </p>
+            ) : i > 0 ? (
+              <div className="border-t border-rule-faint mt-1 pt-2" />
             ) : null}
 
             {group.items.map((item) => {

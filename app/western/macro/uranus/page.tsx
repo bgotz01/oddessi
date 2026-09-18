@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import UranusEraDrawer from "@/components/western/macro/uranus-era-drawer";
+import MacroPlanetNav from "@/components/western/macro/macro-planet-nav";
 import { URANUS_ERAS } from "@/lib/astrology/macro/uranus-eras-data";
 import type { UranusEraElement } from "@/lib/astrology/macro/uranus-eras-data";
 
@@ -213,11 +214,14 @@ export default function UranusPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-8 pb-24">
-      <PageTitle
-        eyebrow="Collective · Uranus"
-        title="The Uranus Sequence"
-        lede="Uranus marks the shock that disrupts an established domain. Each sign identifies where the disruption occurs, what assumption breaks, and the new order that forms around its failure."
-      />
+      <MacroPlanetNav />
+      <div className="-mt-8">
+        <PageTitle
+          eyebrow="Collective · Uranus"
+          title="The Uranus Sequence"
+          lede="Uranus marks the shock that disrupts an established domain. Each sign identifies where the disruption occurs, what assumption breaks, and the new order that forms around its failure."
+        />
+      </div>
 
       <section className="mb-20">
         <SectionHeading aside="14 eras · ~99 years">

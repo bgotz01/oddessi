@@ -60,7 +60,7 @@ function Career({ chart, rulership }: { chart: Chart; rulership: Rulership }) {
   );
   // Depending on the bands rather than on `state` itself. While loading, the
   // hook returns a fresh `{ status: "loading" }` literal on every render, and
-  // depending on the object rebuilt all 361 samples of the curve each time.
+  // depending on the object rebuilt every sample of the curve each time.
   const bands = state.status === "ready" ? state.data.bands : null;
 
   const model = useMemo(

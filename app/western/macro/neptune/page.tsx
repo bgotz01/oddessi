@@ -5,6 +5,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import NeptuneEraDrawer from "@/components/western/macro/neptune-era-drawer";
+import MacroPlanetNav from "@/components/western/macro/macro-planet-nav";
 import { NEPTUNE_ERAS } from "@/lib/astrology/macro/neptune-eras-data";
 import type { NeptuneEraElement } from "@/lib/astrology/macro/neptune-eras-data";
 
@@ -201,11 +202,14 @@ export default function NeptunePage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-8 pb-24">
-      <PageTitle
-        eyebrow="Collective · Neptune"
-        title="The Neptune Sequence"
-        lede="Neptune marks the changing collective ideal. Each sign identifies what society increasingly dreams about, desires, and mythologizes as a source of power."
-      />
+      <MacroPlanetNav />
+      <div className="-mt-8">
+        <PageTitle
+          eyebrow="Collective · Neptune"
+          title="The Neptune Sequence"
+          lede="Neptune marks the changing collective ideal. Each sign identifies what society increasingly dreams about, desires, and mythologizes as a source of power."
+        />
+      </div>
 
       {/* ── The primary instrument: progression + era index ──────────────── */}
       <section className="mb-20">

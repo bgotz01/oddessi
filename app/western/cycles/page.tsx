@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import CycleRow, { type CycleRowData } from "@/components/western/cycles/cycle-row";
 import CycleDrawer from "@/components/western/cycles/cycle-drawer";
+import JupiterLongCycle from "@/components/western/cycles/jupiter-long-cycle";
+import SaturnLongCycle from "@/components/western/cycles/saturn-long-cycle";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import { useJson } from "@/lib/use-json";
@@ -98,7 +100,10 @@ export default function CyclesPage() {
         </section>
       )}
 
-      <p className="mb-10">
+      <JupiterLongCycle />
+      <SaturnLongCycle />
+
+      <p className="mt-12 mb-10">
         <Link
           href="/western/cycles/explorer"
           className="datum text-[0.6875rem] tracking-[0.18em] text-bone-soft uppercase transition-colors hover:text-patina"

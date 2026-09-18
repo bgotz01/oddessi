@@ -6,6 +6,7 @@ import Link from "next/link";
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import PlutoEraDrawer from "@/components/western/macro/pluto-era-drawer";
 import SignHouseDomainPanel from "@/components/western/macro/sign-house-domain-panel";
+import MacroPlanetNav from "@/components/western/macro/macro-planet-nav";
 import { PLUTO_ERAS } from "@/lib/astrology/macro/pluto-eras-data";
 import type { PlutoEraElement } from "@/lib/astrology/macro/pluto-eras-data";
 
@@ -198,11 +199,14 @@ export default function PlutoPage() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-8 pb-24">
-      <PageTitle
-        eyebrow="Collective · Pluto"
-        title="The Pluto Sequence"
-        lede="Pluto marks the deeper struggle for control. Each sign identifies the power system being contested, what must die, and what consolidates as power is destroyed, concentrated, and rebuilt."
-      />
+      <MacroPlanetNav />
+      <div className="-mt-8">
+        <PageTitle
+          eyebrow="Collective · Pluto"
+          title="The Pluto Sequence"
+          lede="Pluto marks the deeper struggle for control. Each sign identifies the power system being contested, what must die, and what consolidates as power is destroyed, concentrated, and rebuilt."
+        />
+      </div>
 
       <section className="mb-20">
         <SectionHeading aside="7 eras · ~105 years">

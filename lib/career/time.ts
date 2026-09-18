@@ -1,31 +1,13 @@
 /**
- * The one definition of a year, and the two conversions built on it.
+ * Career's date helpers, which stopped being Career's.
  *
- * Four files were carrying their own `YEAR_MS` and their own
- * `Date.parse(`${birth.slice(0, 10)}T12:00:00Z`)`. Both are easy to write
- * correctly and easy to write *differently* — a curve that samples on a
- * 365.25-day year and a strip that places bars on a 365.2425-day one drift
- * apart by a fortnight over a life, which is invisible in review and wrong on
- * screen.
+ * These were written here when Career was the only page measuring a life in
+ * ages. Love measures one too, and a second copy of `YEAR_MS` is precisely the
+ * drift this file was created to prevent — so the definitions moved up to
+ * `@/lib/chart-time` and this re-exports them.
  *
- * Noon UTC rather than midnight, because a birth date is a calendar day and
- * midnight is the boundary between two of them: parsing at midnight puts a
- * chart born on the 1st into the 31st for every reader west of Greenwich.
+ * Kept as a file rather than deleted so the dozen imports of `./time` across
+ * `lib/career` do not all have to change to prove a point about where a
+ * constant lives.
  */
-
-export const YEAR_MS = 365.2425 * 24 * 60 * 60 * 1000;
-
-/** The birth instant every age on the page is measured from. */
-export function birthMsOf(birthISO: string): number {
-  return Date.parse(`${birthISO.slice(0, 10)}T12:00:00Z`);
-}
-
-/** The calendar day an age falls on, in the format the band feed uses. */
-export function isoAtAge(birthMs: number, age: number): string {
-  return new Date(birthMs + age * YEAR_MS).toISOString().slice(0, 10);
-}
-
-/** How old this chart is on a given day. */
-export function ageAtISO(birthMs: number, iso: string): number {
-  return (Date.parse(iso) - birthMs) / YEAR_MS;
-}
+export { YEAR_MS, ageAtISO, birthMsOf, isoAtAge } from "@/lib/chart-time";

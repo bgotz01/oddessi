@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Timeline from "@/components/timeline";
 import { PageTitle, SectionHeading } from "@/components/primitives";
+import PlanetArchetypes from "@/components/western/macro/planet-archetypes";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import { useJson } from "@/lib/use-json";
@@ -41,11 +42,11 @@ function Legend({ retro }: { retro: boolean }) {
     { mark: <span className="h-4 w-px bg-ember" />, label: "Exact" },
     ...(retro
       ? [
-          {
-            mark: <span className="datum text-[0.6875rem] text-ember">℞</span>,
-            label: "Stations retrograde",
-          },
-        ]
+        {
+          mark: <span className="datum text-[0.6875rem] text-ember">℞</span>,
+          label: "Stations retrograde",
+        },
+      ]
       : []),
   ];
 
@@ -167,6 +168,11 @@ export default function OverviewPage() {
               vocabularies describing the same stretch of time, and this is the
               only page where they can be seen against each other."
       />
+
+      <section className="mb-16">
+        <SectionHeading>Planet Archetypes</SectionHeading>
+        <PlanetArchetypes />
+      </section>
 
       {!chart ? (
         <p className="text-bone-soft">No chart selected.</p>

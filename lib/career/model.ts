@@ -42,7 +42,16 @@ import { careerWindows, type CareerWindow } from "./windows";
 
 export const CAREER_MODEL = {
   version: 2,
-  lifespanYears: 90,
+  /**
+   * How far past birth the curve is computed.
+   *
+   * A round century rather than an actuarial estimate. The curve's ALL range
+   * is this span, and the number is a drawing decision, not a claim about how
+   * long anyone lives — the late years are cheap to sample and a reader
+   * looking at a whole life should not find it cut off at a number that
+   * implies one.
+   */
+  lifespanYears: 100,
   sampleStepYears: 0.25,
   smoothingRadiusSamples: 2,
   /**

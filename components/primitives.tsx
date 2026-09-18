@@ -15,14 +15,16 @@ export function SectionHeading({
   aside,
   open,
   onToggle,
+  compact = false,
 }: {
   children: ReactNode;
   aside?: ReactNode;
   open?: boolean;
   onToggle?: () => void;
+  compact?: boolean;
 }) {
   const row = (
-    <div className="flex items-baseline justify-between gap-6 pb-3.5">
+    <div className={`flex items-baseline justify-between gap-6 ${compact ? "pb-2.5" : "pb-3.5"}`}>
       <h2 className="inscription flex items-baseline gap-3 text-[1.0625rem] tracking-[0.14em] text-bone">
         {onToggle ? (
           <span
@@ -42,7 +44,7 @@ export function SectionHeading({
   );
 
   return (
-    <div className="mb-8">
+    <div className={compact ? "mb-5" : "mb-8"}>
       {onToggle ? (
         <button
           type="button"
@@ -71,24 +73,26 @@ export function PageTitle({
   title,
   lede,
   aside,
+  compact = false,
 }: {
   eyebrow: string;
   title: string;
   lede?: string;
   aside?: ReactNode;
+  compact?: boolean;
 }) {
   return (
-    <div className="pt-16 pb-12">
-      <div className="mb-4 flex items-baseline justify-between gap-6">
+    <div className={compact ? "pt-10 pb-8" : "pt-16 pb-12"}>
+      <div className={`${compact ? "mb-3" : "mb-4"} flex items-baseline justify-between gap-6`}>
         <p className="eyebrow">{eyebrow}</p>
         {aside}
       </div>
       <h1 className="inscription text-[2rem] leading-tight text-bone">
         {title}
       </h1>
-      <div className="mt-6 h-px w-full bg-patina-dim" />
+      <div className={`${compact ? "mt-4" : "mt-6"} h-px w-full bg-patina-dim`} />
       {lede ? (
-        <p className="mt-6 max-w-3xl text-[1.1875rem] text-bone-soft">
+        <p className={`${compact ? "mt-4" : "mt-6"} max-w-3xl text-[1.1875rem] text-bone-soft`}>
           {lede}
         </p>
       ) : null}

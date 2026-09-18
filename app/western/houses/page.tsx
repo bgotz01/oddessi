@@ -202,10 +202,7 @@ function Houses({ chart }: { chart: Chart }) {
       <PageTitle
         eyebrow={chart.name}
         title="Houses"
-        lede="The twelve territories, cut by the moment and the place of birth.
-              Every house has a sign on its cusp whether or not anything is
-              standing in it — and a weight, which is how much of this particular
-              life the house is actually carrying."
+        lede=""
       />
 
       <section className="mb-16">

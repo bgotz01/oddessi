@@ -7,9 +7,22 @@ import MacroSky from "@/components/western/macro/macro-sky";
 import CycleTimeline from "@/components/western/macro/cycle-timeline";
 import MacroDrawer from "@/components/western/macro/macro-drawer";
 import MacroSkyDrawer from "@/components/western/macro/macro-sky-drawer";
+import MacroJupiterCycle, {
+  jupiterElementColor,
+} from "@/components/western/macro/macro-jupiter-cycle";
+import JupiterEraDrawer from "@/components/western/macro/jupiter-era-drawer";
 import { useChat } from "@/components/chat-provider";
 import { useJson } from "@/lib/use-json";
 import type { MacroReading } from "@/lib/macro";
+import {
+  JUPITER_ERAS,
+  activeJupiterEraIndex,
+  jupiterCycleYears,
+  jupiterEraStatus,
+  type JupiterEra,
+} from "@/lib/astrology/macro/jupiter-eras-data";
+
+const JUPITER: readonly JupiterEra[] = JUPITER_ERAS;
 
 /**
  * The macro layer — the one Western page with no chart behind it.
@@ -28,7 +41,7 @@ export default function MacroPage() {
   const { setPageContext } = useChat();
   const state = useJson<MacroReading>("/api/macro");
   const [selection, setSelection] = useState<
-    { kind: "sky" | "cycle"; id: string } | null
+    { kind: "sky" | "cycle" | "jupiter"; id: string } | null
   >(null);
 
   const selectedCycle =
@@ -39,6 +52,11 @@ export default function MacroPage() {
     state.status === "ready" && selection?.kind === "sky"
       ? (state.data.sky.find((body) => body.planet === selection.id) ?? null)
       : null;
+  const jupiterIndex =
+    selection?.kind === "jupiter"
+      ? JUPITER.findIndex((era) => era.sign === selection.id)
+      : -1;
+  const asOfTime = state.status === "ready" ? Date.parse(state.data.asOf) : 0;
 
   // What is on screen, handed to the conversation. The sections are stripped
   // out — they are long, and the model has the same archetypal material.
@@ -74,6 +92,20 @@ export default function MacroPage() {
         totalYears: c.totalYears,
         phase: c.phase,
       })),
+      jupiterCycle: (() => {
+        const now = Date.parse(state.data.asOf);
+        const era = JUPITER[activeJupiterEraIndex(now)];
+        const { yearsIn, totalYears } = jupiterCycleYears(now);
+        return {
+          loop: `${JUPITER[0].years.split(" – ")[0]} – ${JUPITER[JUPITER.length - 1].years.split(" – ")[1]}`,
+          yearsIn: Number(yearsIn.toFixed(1)),
+          totalYears: Number(totalYears.toFixed(1)),
+          currentSign: era?.sign ?? null,
+          signSpan: era?.years ?? null,
+          growth: era?.growth ?? null,
+          question: era?.question ?? null,
+        };
+      })(),
     });
 
     return () => setPageContext(null);
@@ -85,7 +117,7 @@ export default function MacroPage() {
       <PageTitle
         eyebrow="Collective"
         title="Macro"
-        lede="The architecture above the chart. These cycles run whether or not anyone is born into them — and everyone alive is inside the same ones at the same time."
+        lede=""
       />
 
       {state.status === "loading" ? (
@@ -118,6 +150,33 @@ export default function MacroPage() {
             />
           </section>
 
+          <section className="mb-16">
+            <SectionHeading
+              aside={
+                <Link
+                  href="/western/macro/jupiter"
+                  className="transition-colors hover:text-patina"
+                >
+                  Full sequence →
+                </Link>
+              }
+            >
+              Jupiter Long Cycle
+            </SectionHeading>
+            <p className="mb-1 max-w-3xl text-[0.9375rem] leading-relaxed text-bone-faint">
+              Where collective growth is flowing. The bar is Jupiter&apos;s
+              whole twelve-year loop through the signs; select a sign for its
+              reading.
+            </p>
+            <MacroJupiterCycle
+              asOf={state.data.asOf}
+              onSelect={(sign) => setSelection({ kind: "jupiter", id: sign })}
+              selectedSign={
+                selection?.kind === "jupiter" ? selection.id : null
+              }
+            />
+          </section>
+
           <section>
             <SectionHeading aside={`${state.data.cycles.length} in force`}>
               Current Cycle Timeline
@@ -142,6 +201,17 @@ export default function MacroPage() {
           onClose={() => setSelection(null)}
         />
       )}
+      {jupiterIndex >= 0 && (
+        <JupiterEraDrawer
+          era={JUPITER[jupiterIndex]}
+          status={jupiterEraStatus(jupiterIndex, asOfTime)}
+          color={jupiterElementColor(JUPITER[jupiterIndex].element)}
+          previous={jupiterIndex > 0 ? JUPITER[jupiterIndex - 1] : null}
+          next={jupiterIndex < JUPITER.length - 1 ? JUPITER[jupiterIndex + 1] : null}
+          onNavigate={(sign) => setSelection({ kind: "jupiter", id: sign })}
+          onClose={() => setSelection(null)}
+        />
+      )}
       {selectedCycle && (
         <MacroDrawer
           cycle={selectedCycle}
@@ -150,7 +220,13 @@ export default function MacroPage() {
       )}
 
       {/* ── Footer ─────────────────────────────────────────────────────── */}
-      <div className="mt-16 grid gap-3 border-t border-rule pt-12 md:grid-cols-3">
+      <div className="mt-16 grid gap-3 border-t border-rule pt-12 md:grid-cols-2">
+        <Link
+          href="/western/macro/jupiter"
+          className="inscription block border border-patina-dim px-8 py-7 text-center text-[1rem] leading-none text-patina transition-colors hover:border-patina hover:bg-patina-deep"
+        >
+          Jupiter — The Growth Sequence →
+        </Link>
         <Link
           href="/western/macro/neptune"
           className="inscription block border border-patina-dim px-8 py-7 text-center text-[1rem] leading-none text-patina transition-colors hover:border-patina hover:bg-patina-deep"
