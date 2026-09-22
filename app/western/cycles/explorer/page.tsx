@@ -17,7 +17,7 @@ import {
   type Band,
   type BandStatus,
 } from "@/lib/band";
-import { PLANETS } from "@/lib/planets";
+import { PLANETS } from "@/lib/bodies";
 import { Toggle, FilterRow } from "@/components/western/cycles/filter-controls";
 
 interface AllResponse {

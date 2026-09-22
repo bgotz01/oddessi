@@ -2,7 +2,8 @@
 
 import { ELEMENT_COLOR, signGlyph, signMeta } from "@/lib/symbols";
 import { MUSIC_ERAS } from "@/lib/industry/music-eras-data";
-import { URANUS_MUSIC_ERAS, uranusEraYears } from "@/lib/industry/uranus-music-eras-data";
+import { URANUS_MUSIC_ERAS } from "@/lib/industry/uranus-music-eras-data";
+import { eraYears } from "@/lib/industry/era-years";
 
 /**
  * The two music clocks reduced to one shape, so they can share an axis.
@@ -10,7 +11,7 @@ import { URANUS_MUSIC_ERAS, uranusEraYears } from "@/lib/industry/uranus-music-e
  * Neptune and Uranus are written up separately and in different vocabularies —
  * one names an archetype and an expression, the other a disruption and the
  * innovation it produced. Nothing about either table says how the two run
- * against each other, because a table has no axis: five equal columns and
+ * against each other, because a table has no axis: six equal columns and
  * eleven equal columns cannot be laid over one another at all.
  *
  * What this file adds is the only thing the separate readings cannot carry:
@@ -80,7 +81,7 @@ const NEPTUNE_SEGMENTS: MusicCycleSegment[] = MUSIC_ERAS.map((era) => ({
 }));
 
 const URANUS_SEGMENTS: MusicCycleSegment[] = URANUS_MUSIC_ERAS.map((era) => {
-  const { startYear, endYear } = uranusEraYears(era.dates);
+  const { startYear, endYear } = eraYears(era.dates);
   return {
     id: `uranus-${era.sign}`,
     planet: "Uranus" as const,
@@ -124,10 +125,11 @@ const ALL_SEGMENTS = MUSIC_CYCLE_LANES.flatMap((lane) => lane.segments);
 /**
  * The window the axis covers: the union of both lanes, not the overlap.
  *
- * It starts in 1956 and Neptune's reading does not, which leaves the top lane
- * empty for its first fourteen years. That gap is a fact about the readings —
- * the disruption clock is read further back than the ideal one — and cropping
- * the axis to where they both have something to say would hide it.
+ * Both lanes open in 1956 and neither closes there: Uranus is read to 2033 and
+ * Neptune to 2040, so the last seven years carry one bar rather than two. That
+ * tail is a fact about the readings — the ideal is guessed further ahead than
+ * the disruption — and cropping the axis to where both lanes have something to
+ * say would hide it.
  */
 export const MUSIC_CYCLE_START = Math.min(...ALL_SEGMENTS.map((s) => s.startYear));
 export const MUSIC_CYCLE_END = Math.max(...ALL_SEGMENTS.map((s) => s.endYear));

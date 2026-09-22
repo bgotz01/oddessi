@@ -146,7 +146,13 @@ function fromLongitude(longitude: number): { sign: string; degree: string } {
   return { sign, degree: formatDegree(degree, minute) };
 }
 
-/** Which house a longitude falls in (1–12), given the 12 cusps. */
+/**
+ * Which house a longitude falls in (1–12), given the 12 cusps.
+ *
+ * Exported as `houseOfLongitude` below, because synastry needs to put one
+ * chart's planets into the *other* chart's houses and there is no other way to
+ * ask that question — `Placement.houseNumber` is always the body's own chart.
+ */
 function houseOf(longitude: number, cusps: number[] | null): number | null {
   if (!cusps || cusps.length !== 12) return null;
   const lon = ((longitude % 360) + 360) % 360;
@@ -158,6 +164,20 @@ function houseOf(longitude: number, cusps: number[] | null): number | null {
     if (inHouse) return i + 1;
   }
   return null;
+}
+
+/**
+ * The house a longitude falls in, against a given set of cusps.
+ *
+ * The public form of `houseOf`. Pass `chart.houses.map(h => h.longitude)` for
+ * the chart whose houses are being asked about — which, in synastry, is not the
+ * chart the longitude came from.
+ */
+export function houseOfLongitude(
+  longitude: number,
+  cusps: number[],
+): number | null {
+  return houseOf(longitude, cusps);
 }
 
 function roman(house: number | null): string {
@@ -347,6 +367,19 @@ export async function fetchCharts(): Promise<Chart[]> {
 export async function fetchChart(id: string): Promise<Chart | null> {
   const row = await prisma.birthChartData.findUnique({ where: { id } });
   return row ? toChart(row as ChartRow) : null;
+}
+
+/**
+ * The name a person is called by, out of whatever is stored.
+ *
+ * Charts carry anything from "lea" to "Boris Valeriev Gotzev", and a sentence
+ * that has to name both people twice — which is what a synastry reading is —
+ * becomes unreadable at full length. First token, and nothing clever: a stored
+ * name is what somebody typed, and guessing at which part of it is the given
+ * name would be wrong more often than the simple rule.
+ */
+export function firstName(name: string): string {
+  return name.trim().split(/\s+/)[0] || name;
 }
 
 export function formatBirth(birth: BirthData): string {

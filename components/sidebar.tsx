@@ -43,10 +43,10 @@ const NAV: NavGroup[] = [
         href: "/western/macro",
         label: "Astrology",
         children: [
-          { href: "/western/macro/jupiter", label: "Jupiter" },
           { href: "/western/macro/neptune", label: "Neptune" },
           { href: "/western/macro/uranus", label: "Uranus" },
           { href: "/western/macro/pluto", label: "Pluto" },
+          { href: "/western/macro/framework", label: "Framework" },
         ],
       },
       {
@@ -56,10 +56,12 @@ const NAV: NavGroup[] = [
           // First because it is the overview the single-planet pages are
           // details of: one axis with both clocks on it, which neither of them
           // can draw.
+          { href: "/industry/music/timeline", label: "Pop timeline" },
           { href: "/industry/music/cycle", label: "Both clocks" },
           { href: "/industry/music/neptune", label: "Neptune" },
           { href: "/industry/music/neptune/aries", label: "Aries" },
           { href: "/industry/music/uranus", label: "Uranus" },
+          { href: "/industry/music/pluto", label: "Pluto" },
         ],
       },
     ],
@@ -98,6 +100,12 @@ const NAV: NavGroup[] = [
       // timing half is the page.
       { href: "/western/love", label: "Love" },
       { href: "/western/romance", label: "Romance" },
+      // The one page in the app that reads two charts, which is why it carries
+      // a second selector of its own in the page body. The rail's selector
+      // still means what it means everywhere else — the person under study —
+      // and Compatibility treats it as the first of the pair rather than
+      // quietly turning it into something else.
+      { href: "/western/compatibility", label: "Compatibility" },
       {
         href: "/western/cycles",
         label: "Cycles",

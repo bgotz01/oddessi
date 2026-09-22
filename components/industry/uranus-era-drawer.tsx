@@ -7,20 +7,12 @@ import {
   URANUS_MUSIC_ERAS,
   forwardLine,
   getEraReading,
-  uranusEraStatus,
   type UranusEraOverview,
-  type UranusEraStatus,
 } from "@/lib/industry/uranus-music-eras-data";
+import { ERA_STATUS_LABEL, eraStatus } from "@/lib/industry/era-years";
 import { useReadingYear } from "@/lib/industry/use-reading-year";
 import MusicConcurrent from "@/components/industry/music-concurrent";
 import type { MusicCycleConcurrency } from "@/lib/industry/music-cycles";
-
-/** The vocabulary the macro era drawers already use for the same question. */
-const STATUS_LABEL: Record<UranusEraStatus, string> = {
-  completed: "Closed",
-  active: "Active",
-  upcoming: "Ahead",
-};
 
 /**
  * One Uranus era, at reading length.
@@ -69,7 +61,7 @@ export default function UranusEraDrawer({
   // written up is editorial. Gemini is both the era running now AND the unread
   // one, and a single badge could only say one of those.
   const year = useReadingYear();
-  const status = year === null ? null : uranusEraStatus(era, year);
+  const status = year === null ? null : eraStatus(era.dates, year);
   const unobserved = detail === null;
 
   // The reading's own line, which is a claim about the era. `manifestation` is
@@ -101,7 +93,7 @@ export default function UranusEraDrawer({
                   <>
                     <span className="h-3 w-px bg-rule" />
                     <span className="datum text-[0.6875rem] tracking-[0.18em] text-bone-faint uppercase">
-                      {STATUS_LABEL[status]}
+                      {ERA_STATUS_LABEL[status]}
                     </span>
                   </>
                 )}

@@ -1,5 +1,6 @@
 // lib/industry/uranus-music-eras-data.ts
 
+
 // ── Overview schema (table) ───────────────────────────────────────────────────
 
 /**
@@ -556,45 +557,6 @@ export const URANUS_ERA_READINGS: UranusEraReading[] = [
 
   },
 ];
-
-/**
- * "1956–62" → 1962, "1996–2003" → 2003.
- *
- * The table is written the way a historian writes a date range, with the
- * century dropped when it is obvious. Obvious to a reader; not to an axis, and
- * not to the rule that decides which era is the one running now. A two-digit
- * end takes its start's century and rolls forward one when that would put the
- * end before the beginning.
- */
-function expandEndYear(startYear: number, token: string): number {
-  const value = Number(token);
-  if (token.length === 4) return value;
-  const century = Math.floor(startYear / 100) * 100;
-  const candidate = century + value;
-  return candidate >= startYear ? candidate : candidate + 100;
-}
-
-/** Boundaries are half-open: an era owns [startYear, endYear). */
-export function uranusEraYears(dates: string): { startYear: number; endYear: number } {
-  const [from, to] = dates.split(/[–—-]/).map((part) => part.trim());
-  const startYear = Number(from);
-  return { startYear, endYear: expandEndYear(startYear, to) };
-}
-
-export type UranusEraStatus = "completed" | "active" | "upcoming";
-
-/**
- * Where an era sits relative to the reader, which is not the same question as
- * whether it has been written up. Uranus in Gemini is running now and has no
- * reading; that pairing is normal for the era you are standing in, and the two
- * facts are reported separately rather than collapsed into one dashed edge.
- */
-export function uranusEraStatus(era: UranusEraOverview, year: number): UranusEraStatus {
-  const { startYear, endYear } = uranusEraYears(era.dates);
-  if (year >= endYear) return "completed";
-  if (year >= startYear) return "active";
-  return "upcoming";
-}
 
 /**
  * What the readings on either side say this era is for.

@@ -151,16 +151,7 @@ export default function MacroPage() {
           </section>
 
           <section className="mb-16">
-            <SectionHeading
-              aside={
-                <Link
-                  href="/western/macro/jupiter"
-                  className="transition-colors hover:text-patina"
-                >
-                  Full sequence →
-                </Link>
-              }
-            >
+            <SectionHeading>
               Jupiter Long Cycle
             </SectionHeading>
             <p className="mb-1 max-w-3xl text-[0.9375rem] leading-relaxed text-bone-faint">
@@ -221,12 +212,6 @@ export default function MacroPage() {
 
       {/* ── Footer ─────────────────────────────────────────────────────── */}
       <div className="mt-16 grid gap-3 border-t border-rule pt-12 md:grid-cols-2">
-        <Link
-          href="/western/macro/jupiter"
-          className="inscription block border border-patina-dim px-8 py-7 text-center text-[1rem] leading-none text-patina transition-colors hover:border-patina hover:bg-patina-deep"
-        >
-          Jupiter — The Growth Sequence →
-        </Link>
         <Link
           href="/western/macro/neptune"
           className="inscription block border border-patina-dim px-8 py-7 text-center text-[1rem] leading-none text-patina transition-colors hover:border-patina hover:bg-patina-deep"

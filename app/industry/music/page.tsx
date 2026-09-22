@@ -4,11 +4,19 @@ import { PageTitle } from "@/components/primitives";
 
 const SECTIONS = [
   {
+    href: "/industry/music/timeline",
+    planet: "♫",
+    label: "Pop timeline",
+    sublabel: "1960s–2020s · Artists & eras",
+    description: "Seven decades of milestone artists. Compare their peak years and explore the sounds and industry shifts that shaped global pop.",
+    comingSoon: false,
+  },
+  {
     href: "/industry/music/neptune",
     planet: "♆",
     label: "Neptune",
     sublabel: "Cultural ideal",
-    description: "What does music culture idealize? Five eras from 1970 to 2040, each named by the sign Neptune occupied.",
+    description: "What does music culture idealize? Six eras from 1956 to 2040, each named by the sign Neptune occupied.",
     comingSoon: false,
   },
   {
@@ -17,6 +25,14 @@ const SECTIONS = [
     label: "Uranus",
     sublabel: "Disruption & innovation",
     description: "What breaks the existing musical model? Eleven eras of structural disruption from 1956 to 2033.",
+    comingSoon: false,
+  },
+  {
+    href: "/industry/music/pluto",
+    planet: "♇",
+    label: "Pluto",
+    sublabel: "Power & industry structure",
+    description: "Where is power concentrated? Six eras from 1957 to 2044, read on the same seven dimensions.",
     comingSoon: false,
   },
 ] as const;
@@ -40,7 +56,7 @@ export default function MusicIndustryPage() {
                 <span className="datum text-[0.625rem] uppercase tracking-[0.16em] text-bone-faint">Planet</span>
               </th>
               <th className="pb-3 pr-6">
-                <span className="datum text-[0.625rem] uppercase tracking-[0.16em] text-bone-faint">What we're studying</span>
+                <span className="datum text-[0.625rem] uppercase tracking-[0.16em] text-bone-faint">What we’re studying</span>
               </th>
               <th className="pb-3">
                 <span className="datum text-[0.625rem] uppercase tracking-[0.16em] text-bone-faint">Music question</span>

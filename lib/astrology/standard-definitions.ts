@@ -25,27 +25,27 @@ export const HOUSE_CHARACTERS: Record<number, string> = {
     5: 'The house of creativity — self-expression, romance, and joy.',
     6: 'It\'s not glamorous — it\'s infrastructure.',
     7: 'The house of partnership — how you relate one-on-one.',
-    8: 'The house of transformation — shared resources and deep change.',
-    9: 'The house of wisdom — higher learning and spiritual expansion.',
+    8: 'The house of entanglement — shared resources, intimacy, dependency, and what binds you deeply to others.',
+    9: 'The house of meaning — belief, higher learning, distant horizons, and the search for a larger worldview.',
     10: 'The house of achievement — your career and public reputation.',
     11: 'The house of community — friendships and collective dreams.',
-    12: 'The house of transcendence — spirituality and the unconscious.'
+    12: 'The house of the unseen — the unconscious, solitude, surrender, spirituality, and what lies beyond ordinary awareness.',
 };
 
 // Short house names for titles
 export const HOUSE_NAMES: Record<number, string> = {
     1: 'Identity & Self',
     2: 'Resources & Values',
-    3: 'Communication & Learning',
+    3: 'Communication & information',
     4: 'Home & Family',
     5: 'Creativity & Romance',
     6: 'Work & Health',
     7: 'Partnerships & Relationships',
-    8: 'Transformation & Shared Resources',
-    9: 'Wisdom & Higher Learning',
+    8: 'Shared Resources & Intimacy',
+    9: 'Beliefs & Higher Learning',
     10: 'Career & Public Life',
     11: 'Networks & Collective',
-    12: 'Spirituality & Service'
+    12: 'Inner World & Transcendence',
 };
 
 // Standard planet definitions with specific explanatory text
@@ -79,17 +79,38 @@ export const PLANET_DEFINITIONS: Record<string, { areas: string[]; character: st
         character: 'Saturn structures and tests — it builds lasting foundations through discipline and perseverance.'
     },
     'Uranus': {
-        areas: ['Revolution and innovation', 'Freedom and independence', 'Sudden changes and breakthroughs', 'Originality and uniqueness', 'Breaking free from limitations'],
-        character: 'Uranus liberates and revolutionizes — it breaks through limitations with sudden, innovative change.'
+        areas: [
+            'Disruption and sudden change',
+            'Innovation and breakthroughs',
+            'Freedom and independence',
+            'Originality and experimentation',
+            'Breaking established patterns'
+        ],
+        character:
+            'Uranus disrupts and awakens — it breaks established patterns through sudden change, opening space for innovation, freedom, and new forms.'
     },
     'Neptune': {
-        areas: ['Spirituality and transcendence', 'Illusion and inspiration', 'Compassion and universal love', 'Dissolution of boundaries', 'Dreams and imagination'],
-        character: 'Neptune dissolves and inspires — it transcends boundaries through spirituality and imagination, working through dreams, intuition, and compassion.'
+        areas: [
+            'Idealization and longing',
+            'Dissolution of boundaries',
+            'Dreams and imagination',
+            'Spirituality and transcendence',
+            'Inspiration, projection, and illusion'
+        ],
+        character:
+            'Neptune idealizes and dissolves — it draws us toward an imagined ideal while softening the boundaries between what is, what is desired, and what is possible.'
     },
     'Pluto': {
-        areas: ['Total transformation', 'Power dynamics', 'Control and compulsion', 'Crisis → regeneration', 'Irreversible change'],
-        character: 'Pluto transforms and regenerates — it destroys what no longer serves to create something entirely new through intense, irreversible change.'
-    }
+        areas: [
+            'Transformation and regeneration',
+            'Power and control',
+            'Compulsion and intensity',
+            'Crisis and confrontation',
+            'Irreversible change'
+        ],
+        character:
+            'Pluto transforms and intensifies — it exposes underlying power dynamics and drives deep, often irreversible change through breakdown and regeneration.'
+    },
 };
 
 // Helper functions to get standard definitions

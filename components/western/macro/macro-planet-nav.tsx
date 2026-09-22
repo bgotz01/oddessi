@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 
 const PLANETS = [
   { label: "Macro", glyph: "⊕", href: "/western/macro" },
-  { label: "Jupiter", glyph: "♃", href: "/western/macro/jupiter" },
   { label: "Neptune", glyph: "♆", href: "/western/macro/neptune" },
   { label: "Uranus", glyph: "♅", href: "/western/macro/uranus" },
   { label: "Pluto", glyph: "♇", href: "/western/macro/pluto" },

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import type { Band, Segment } from "@/lib/band";
-import { PLANET_NAMES, planetColor, planetGlyph } from "@/lib/planets";
+import { PLANET_NAMES, planetColor, planetGlyph } from "@/lib/bodies";
 
 /**
  * Real planetary cycles, read from the `life_cycle_cache` table that arc
@@ -470,17 +470,17 @@ export async function fetchCyclesForPrompt(
         a.startDate.getTime() - b.startDate.getTime(),
     )
     .map((row) => {
-    const segments = buildSegments(row.startDate, row.endDate, row.interpretation);
-    return {
-      planet: row.planet,
-      kind: row.type as CycleType,
-      what: promptLabel(row),
-      start: iso(row.startDate),
-      end: iso(row.endDate),
-      peak: row.peakDate ? iso(row.peakDate) : undefined,
-      reentries: segments.slice(1),
-      significance: row.significance,
-      status: statusAt(row.startDate, row.endDate, now),
-    };
-  });
+      const segments = buildSegments(row.startDate, row.endDate, row.interpretation);
+      return {
+        planet: row.planet,
+        kind: row.type as CycleType,
+        what: promptLabel(row),
+        start: iso(row.startDate),
+        end: iso(row.endDate),
+        peak: row.peakDate ? iso(row.peakDate) : undefined,
+        reentries: segments.slice(1),
+        significance: row.significance,
+        status: statusAt(row.startDate, row.endDate, now),
+      };
+    });
 }

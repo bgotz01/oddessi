@@ -5,7 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { SectionHeading } from "@/components/primitives";
 import { useChart } from "@/components/chart-context";
 import { useJson } from "@/lib/use-json";
-import { planetMeta } from "@/lib/planets";
+import { planetMeta } from "@/lib/bodies";
 import type { Band } from "@/lib/band";
 import { buildHouseCycle, type CycleStep } from "@/lib/cycles/house-cycle";
 import type { LongCycleSpec } from "@/lib/cycles/long-cycles";

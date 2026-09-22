@@ -24,7 +24,7 @@ export default function NeptuneEraTable({ selectedSign, onSelect }: {
   return (
     <div>
       <p id="music-scroll-hint" className="datum mb-3 text-[0.625rem] text-bone-faint xl:hidden">
-        Scroll sideways to compare all five eras →
+        Scroll sideways to compare all {MUSIC_ERAS.length} eras →
       </p>
       <div
         role="region"
@@ -34,8 +34,8 @@ export default function NeptuneEraTable({ selectedSign, onSelect }: {
         className="overflow-x-auto border-y border-rule pb-1"
         onMouseLeave={() => setHoveredSign(null)}
       >
-        <table className="w-full min-w-[960px] table-fixed border-separate border-spacing-0 text-center">
-          <caption className="sr-only">Five Neptune eras compared by archetype, musical expression and examples. Aries is a hypothesis.</caption>
+        <table className="w-full min-w-[1120px] table-fixed border-separate border-spacing-0 text-center">
+          <caption className="sr-only">{MUSIC_ERAS.length} Neptune eras compared by archetype, musical expression and examples. Aries is a hypothesis.</caption>
           <thead>
             <tr>
               <th scope="col" className={`${rowLabel} w-[120px] sm:w-[150px]`}>

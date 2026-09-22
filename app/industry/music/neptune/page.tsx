@@ -24,7 +24,7 @@ export default function MusicNeptunePage() {
       </div>
 
       <section className="mb-20">
-        <SectionHeading aside="5 eras · ~14 years each">
+        <SectionHeading aside={`${MUSIC_ERAS.length} eras · ~14 years each`}>
           <span className="inline-flex items-center text-[1.1875rem] tracking-[0.16em]">
             <span aria-hidden="true" className="glyph mr-3 text-[1.5rem] leading-none text-patina">
               ♆

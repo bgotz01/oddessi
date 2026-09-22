@@ -1,6 +1,6 @@
 import type { Band } from "@/lib/band";
 import { hasRetrograde } from "@/lib/band";
-import { planetMeta } from "@/lib/planets";
+import { planetMeta } from "@/lib/bodies";
 import { HOUSE_NAMES } from "@/lib/astrology/standard-definitions";
 
 /**
@@ -85,12 +85,8 @@ export default function CycleRow({
   const meta = planetMeta(cycle.planet);
   const color = meta?.color ?? "var(--color-patina)";
 
-  // e.g. "Growth in Spirituality & Service"
-  const planetWord = meta?.description?.split(" & ")[0] ?? meta?.description ?? cycle.planet;
+  const planetRole = meta?.description ?? null;
   const houseName = cycle.houseNumber ? HOUSE_NAMES[cycle.houseNumber] : null;
-  const subtitle = houseName
-    ? `${planetWord} in ${houseName}`
-    : meta?.description ?? null;
 
   /**
    * The house after this one, named on the row.
@@ -144,9 +140,17 @@ export default function CycleRow({
                 {cycle.house}
               </span>
             </div>
-            {subtitle && (
-              <p className="mt-0 inscription text-[0.6875rem] text-bone-soft leading-tight">
-                {subtitle}
+            {(planetRole || houseName) && (
+              <p className="mt-0 inscription text-[0.6875rem] leading-tight">
+                {planetRole && (
+                  <span style={{ color }} className="opacity-70">{planetRole}</span>
+                )}
+                {planetRole && houseName && (
+                  <span className="text-bone-faint mx-1">·</span>
+                )}
+                {houseName && (
+                  <span className="text-bone-soft">{houseName}</span>
+                )}
               </p>
             )}
           </div>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import NeptuneEraDrawer from "@/components/western/macro/neptune-era-drawer";
 import MacroPlanetNav from "@/components/western/macro/macro-planet-nav";
+import NeptunePiscesAries from "@/components/western/macro/neptune-pisces-aries";
 import { NEPTUNE_ERAS } from "@/lib/astrology/macro/neptune-eras-data";
 import type { NeptuneEraElement } from "@/lib/astrology/macro/neptune-eras-data";
 
@@ -14,7 +15,7 @@ type Era = (typeof ERAS)[number];
 
 const ELEMENT_COLOR: Record<NeptuneEraElement, string> = {
   earth: "#8ebf7a",
-  air: "#7dc0d8",
+  air: "#a8b4c0",
   water: "#7899d4",
   fire: "#e07a50",
 };
@@ -144,19 +145,19 @@ function NeptuneTimeline({
                 className="datum flex items-start justify-center break-words text-[0.6875rem] leading-relaxed uppercase tracking-[0.14em]"
                 style={{ color }}
               >
-                {era.powerSource}
+                {era.domain}
               </span>
-              <span className="flex flex-col items-center justify-start gap-1 break-words text-[1.0625rem] leading-snug text-bone-soft">
+              <span className="flex flex-col items-center justify-start gap-1 break-words text-[1.0625rem] leading-snug text-bone">
+                <span className="datum text-[0.5625rem] uppercase tracking-[0.12em] text-bone-faint/60">
+                  Collective ideal
+                </span>
+                {era.ideal}
+              </span>
+              <span className="flex flex-col items-center justify-start gap-1 break-words border-t border-rule-faint pt-2.5 text-[0.9375rem] leading-snug text-bone-soft">
                 <span className="datum text-[0.5625rem] uppercase tracking-[0.12em] text-bone-faint/60">
                   Archetype
                 </span>
                 {era.archetype}
-              </span>
-              <span className="flex flex-col items-center justify-start gap-1 break-words border-t border-rule-faint pt-2.5 text-[1.0625rem] leading-snug text-bone">
-                <span className="datum text-[0.5625rem] uppercase tracking-[0.12em] text-bone-faint/60">
-                  Question
-                </span>
-                {era.question}
               </span>
             </button>
           );
@@ -166,7 +167,7 @@ function NeptuneTimeline({
   );
 }
 
-function PowerProgression({
+function IdealProgression({
   selectedSign,
   onSelect,
 }: {
@@ -207,7 +208,7 @@ export default function NeptunePage() {
         <PageTitle
           eyebrow="Collective · Neptune"
           title="The Neptune Sequence"
-          lede="Neptune marks the changing collective ideal. Each sign identifies what society increasingly dreams about, desires, and mythologizes as a source of power."
+          lede="Neptune represents idealization. Each sign names a canonical domain; each era shows how society dreams about, desires, and mythologizes that domain as a collective ideal."
         />
       </div>
 
@@ -226,13 +227,38 @@ export default function NeptunePage() {
               aria-hidden="true"
               className="mx-3 h-px w-8 bg-patina-dim"
             />
-            <span className="text-patina">Ideal</span>
+            <span className="text-patina">Idealization</span>
           </span>
         </SectionHeading>
-        <PowerProgression
+        <IdealProgression
           selectedSign={selectedSign}
           onSelect={setSelectedSign}
         />
+      </section>
+
+      {/* ── Pisces → Aries Transition ────────────────────────────────────── */}
+      <section className="mb-20">
+        <SectionHeading aside="2026 transition">
+          <span className="inline-flex items-center text-[1.1875rem] tracking-[0.16em]">
+            <span
+              aria-hidden="true"
+              className="glyph mr-2 text-[1.25rem] leading-none"
+              style={{ color: "#7899d4" }}
+            >
+              ♓
+            </span>
+            <span>Pisces</span>
+            <span aria-hidden="true" className="mx-3 h-px w-8 bg-patina-dim" />
+            <span
+              className="glyph mr-2 text-[1.25rem] leading-none"
+              style={{ color: "#e07a50" }}
+            >
+              ♈
+            </span>
+            <span className="text-patina">Aries</span>
+          </span>
+        </SectionHeading>
+        <NeptunePiscesAries />
       </section>
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}

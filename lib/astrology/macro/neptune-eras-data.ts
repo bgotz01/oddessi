@@ -1,7 +1,15 @@
 // lib/astrology/macro/neptune-eras-data.ts
 
+import { SIGNS } from "./zodiac-framework-data";
+
 export type NeptuneEraElement = "earth" | "air" | "water" | "fire";
 export type NeptuneEraStatus = "completed" | "active" | "upcoming";
+
+export interface NeptuneEraTrigger {
+  date: string;
+  label: string;
+  unlocks: string;
+}
 
 export interface NeptuneEra {
   sign: string;
@@ -15,14 +23,12 @@ export interface NeptuneEra {
   representative: string;
   archetype: string;
   archetypeNote: string;
-  powerSource: string;
-  concept: string;
-  conceptNote: string;
-  structure: string;
+  idealNote: string;
   majorEvent: {
     date: string;
     label: string;
   };
+  trigger: NeptuneEraTrigger;
   mantra: string;
   element: NeptuneEraElement;
   status: NeptuneEraStatus;
@@ -38,18 +44,20 @@ export const NEPTUNE_ERAS = [
     years: "~1942–1956",
     startYear: 1942,
     endYear: 1956,
-    domain: "Relationships",
-    ideal: "Power through shared order",
+    domain: SIGNS.libra.domain,
+    ideal: "Shared order",
     representative:
       "The United Nations, Bretton Woods, universal human rights, international diplomacy, postwar alliances, the idealized nuclear family",
     archetype: "The Diplomat",
     archetypeNote: "The broker of a workable peace. Legitimacy comes from creating an order that opposing sides can recognize and enter.",
-    powerSource: "Agreement",
     question: "How do we live together?",
-    concept: "Order",
-    conceptNote: "Libra idealizes relationship and proportion. After rupture, the collective dream becomes a shared order: a way for opposing sides to live together under mutually recognized rules.",
-    structure: "Rules-based cooperation",
+    idealNote: "Neptune idealizes relationships in Libra. After rupture, the collective dream becomes a shared order: a way for opposing sides to live together under mutually recognized rules.",
     majorEvent: { date: "1945 onward", label: "Post-WWII order" },
+    trigger: {
+      date: "1944–45",
+      label: "Bretton Woods / UN",
+      unlocks: "Negotiated international order",
+    },
     mantra: "I want to build a shared order.",
     element: "air",
     status: "completed" as const,
@@ -70,8 +78,8 @@ export const NEPTUNE_ERAS = [
     startYear: 1956,
     endYear: 1970,
 
-    domain: "Hidden power",
-    ideal: "Power through hidden leverage",
+    domain: SIGNS.scorpio.domain,
+    ideal: "Hidden leverage",
 
     representative:
       "Cold War intelligence, nuclear deterrence, spy culture, psychoanalysis, decolonization, civil-rights confrontation, the sexual revolution",
@@ -81,18 +89,21 @@ export const NEPTUNE_ERAS = [
     archetypeNote:
       "The figure who confronts the forces hidden beneath the official order. Power comes from exposing secrets, finding pressure points, breaking taboos, and forcing irreversible change.",
 
-    powerSource: "Leverage",
     question: "What lies beneath the surface?",
 
-    concept: "Power",
 
-    conceptNote:
-      "Scorpio idealizes hidden power, depth, and leverage. Beneath the negotiated order lies another layer of reality: secrets, pressure points, suppressed conflict, and the forces that actually determine who has power.",
-    structure: "Hidden power structures",
+    idealNote:
+      "Neptune idealizes power in Scorpio, expressed here as hidden leverage. Beneath the negotiated order lies another layer of reality: secrets, pressure points, suppressed conflict, and the forces that actually determine who has power.",
 
     majorEvent: {
       date: "1962",
       label: "Cuban Missile Crisis",
+    },
+
+    trigger: {
+      date: "1957",
+      label: "Sputnik / Cold War escalation",
+      unlocks: "Hidden technological + strategic power",
     },
 
     mantra: "I want to uncover what really holds power.",
@@ -121,18 +132,20 @@ export const NEPTUNE_ERAS = [
     years: "~1970–1984",
     startYear: 1970,
     endYear: 1984,
-    domain: "Worldview",
-    ideal: "Power through expanded horizons",
+    domain: SIGNS.sagittarius.domain,
+    ideal: "Expanded horizons",
     representative:
       "Post-hippie counterculture, communes, New Age spirituality, ecology, global travel, mass higher education, satellite broadcasting, self-help culture, early globalization",
     archetype: "The Seeker",
     archetypeNote: "The person who leaves the inherited map in search of a larger life. Freedom means travel, experiment, self-discovery, and exposure to unfamiliar ways of living.",
-    powerSource: "Vision",
     question: "What else is out there?",
-    concept: "Expansion",
-    conceptNote: "Sagittarius idealizes horizons, belief, and expansion. After liberation from the old order, the collective desire turns outward: what else is possible, and what else is out there?",
-    structure: "Expanded cultural horizons",
+    idealNote: "Neptune idealizes expansion in Sagittarius. After liberation from the old order, the collective desire turns outward: what else is possible, and what else is out there?",
     majorEvent: { date: "1970s", label: "Counterculture" },
+    trigger: {
+      date: "1970–73",
+      label: "Post-counterculture diffusion / cheap air travel era",
+      unlocks: "Exploration beyond inherited institutions",
+    },
     mantra: "I want to discover what else is out there.",
     element: "fire",
     status: "completed" as const,
@@ -153,21 +166,23 @@ export const NEPTUNE_ERAS = [
     years: "~1984–1998",
     startYear: 1984,
     endYear: 1998,
-    domain: "Institutions",
-    ideal: "Power through institutions",
+    domain: SIGNS.capricorn.domain,
+    ideal: "Institutional success",
     representative:
       "Wall Street, finance, leveraged buyouts, shareholder value, the rise of the investment bank, professional ambition",
     archetype: "The Financier",
     archetypeNote: "Master of the universe. Success means climbing a hierarchy and accumulating money, status, and institutional authority.",
-    powerSource: "Institution",
     question: "How do I rise to the top?",
-    concept: "Authority",
-    conceptNote:
-      "Capricorn idealizes institutional authority. Success means entering the hierarchy, mastering its rules, and rising high enough to wield its power.",
-    structure: "Centralized institutional power",
+    idealNote:
+      "Neptune idealizes structure in Capricorn, expressed here as institutional success. Success means entering the hierarchy, mastering its rules, and rising high enough to wield its power.",
     majorEvent: {
       date: "1980s onward",
       label: "Financialization / deregulation",
+    },
+    trigger: {
+      date: "1980s",
+      label: "Financial deregulation",
+      unlocks: "Finance becomes a path to institutional power",
     },
     mantra: "I want to be powerful.",
     element: "earth",
@@ -187,18 +202,20 @@ export const NEPTUNE_ERAS = [
     years: "~1998–2012",
     startYear: 1998,
     endYear: 2012,
-    domain: "Networks",
-    ideal: "Power through networks",
+    domain: SIGNS.aquarius.domain,
+    ideal: "Connection",
     representative:
       "Internet, Google (1998), PayPal (1998), Napster (1999), Wikipedia (2001), Facebook (2004), YouTube (2005), Twitter (2006), Web 2.0",
     archetype: "The Technologist",
     archetypeNote: "The builder of the infrastructure connecting everyone. Value comes from who you know and what you can access — not who you report to.",
-    powerSource: "Network",
     question: "How do we connect everyone?",
-    concept: "Connection",
-    conceptNote: "Aquarius idealizes connection. Institutions no longer need to mediate every relationship; technical networks allow individuals, information, and communities to connect directly across traditional boundaries.",
-    structure: "Distributed connectivity",
+    idealNote: "Neptune idealizes networks in Aquarius, expressed here as connection. Institutions no longer need to mediate every relationship; technical networks allow individuals, information, and communities to connect directly across traditional boundaries.",
     majorEvent: { date: "late 1990s onward", label: "Internet" },
+    trigger: {
+      date: "1998–99",
+      label: "Google + PayPal + Napster",
+      unlocks: "The internet becomes a network for people, information and exchange",
+    },
     mantra: "I want to be connected.",
     element: "air",
     status: "completed" as const,
@@ -217,18 +234,20 @@ export const NEPTUNE_ERAS = [
     years: "~2012–2026",
     startYear: 2012,
     endYear: 2026,
-    domain: "Collective imagination",
-    ideal: "Power through attention",
+    domain: SIGNS.pisces.domain,
+    ideal: "Collective attention",
     representative:
       "Instagram, influencers, streaming, reality culture, TikTok, OnlyFans, the creator economy, personal brands",
     archetype: "The Influencer",
     archetypeNote: "You don't need to build the network. You become an image inside it. The individual as collective projection.",
-    powerSource: "Attention",
     question: "How do I become the dream?",
-    concept: "Image",
-    conceptNote: "Once everybody is connected, what flows through the network? Images. Stories. Dreams. Personalities. Entertainment. Identities. The network becomes a gigantic projection machine.",
-    structure: "Distributed attention",
+    idealNote: "Neptune idealizes unity in Pisces: the dream of participating in a shared collective reality. In this era, that dream takes the form of collective attention and shared digital experience. Once everybody is connected, what flows through the network? Images. Stories. Dreams. Personalities. Entertainment. Identities. The network becomes a gigantic projection machine.",
     majorEvent: { date: "2010s onward", label: "Social media" },
+    trigger: {
+      date: "2012",
+      label: "YouTube creator monetization",
+      unlocks: "Attention itself becomes a career",
+    },
     mantra: "I want to become the dream.",
     element: "water",
     status: "completed" as const,
@@ -249,18 +268,20 @@ export const NEPTUNE_ERAS = [
     years: "~2026–2039",
     startYear: 2026,
     endYear: 2039,
-    domain: "Individual agency",
-    ideal: "Power through agency",
+    domain: SIGNS.aries.domain,
+    ideal: "Individual agency",
     representative:
       "AI-enabled individuals, founders, protagonists, mission-driven builders — something we don't yet have a complete category for",
     archetype: "The Protagonist",
     archetypeNote: "Followers become downstream of the mission rather than the mission itself. The person is still visible — but the visibility serves the doing.",
-    powerSource: "Agency",
     question: "What can I do?",
-    concept: "Mission",
-    conceptNote: "Aries idealizes agency: the ability of the individual to act directly on the world. Capability matters because it expands what one person can accomplish, turning visibility from an end in itself into leverage for a mission.",
-    structure: "Distributed agency",
+    idealNote: "Neptune idealizes initiation in Aries, expressed here as individual agency: the ability to act directly on the world. Capability matters because it expands what one person can accomplish, turning visibility from an end in itself into leverage for a mission.",
     majorEvent: { date: "mid-2020s onward", label: "AI" },
+    trigger: {
+      date: "2025–26",
+      label: "AI agents",
+      unlocks: "Individuals acquire organizational-scale capability",
+    },
     mantra: "I want to act.",
     element: "fire",
     status: "active" as const,

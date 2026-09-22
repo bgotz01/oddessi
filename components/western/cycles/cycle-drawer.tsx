@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { planetMeta } from "@/lib/planets";
+import { planetMeta } from "@/lib/bodies";
 import { HOUSE_NAMES } from "@/lib/astrology/standard-definitions";
 import { getCycleInterpretation } from "@/lib/cycle-interpretations";
 import type { CycleRowData } from "@/components/western/cycles/cycle-row";

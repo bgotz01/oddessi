@@ -57,6 +57,58 @@ export type MusicEra = {
 
 export const MUSIC_ERAS: MusicEra[] = [
   {
+    sign: "Scorpio",
+    earlySignal: { artist: "Elvis Presley", breakthrough: "Heartbreak Hotel", year: 1956 },
+    pivotalMoment: { shift: "Dylan goes electric / Newport", effect: "Rock & roll stops being teenage novelty and becomes rock — a form that takes itself seriously" },
+    comparison: {
+      expression: "Rebellion & intensity",
+      examples: ["Elvis Presley", "Bob Dylan", "Jimi Hendrix"],
+    },
+    genres: ["Rock & roll", "Rock", "Soul", "Motown", "Psychedelia", "Folk revival"],
+    distribution: "45s, transistor radio & the album",
+    symbol: "♏",
+    dates: "1956–1970",
+    startYear: 1956,
+    endYear: 1970,
+    color: "#7899d4",
+    status: "completed",
+    archetype: "The Transgressors",
+    element: "Water",
+    culturalUnit: "Band",
+    expression: "Intensity / Desire",
+    audience: "Rebel",
+    structure: "Transformation",
+    examples: "Elvis · Dylan · Hendrix",
+    archetypeNote:
+      "Scorpio idealizes what is forbidden. Music becomes the place a culture puts its sexuality, its anger, and its refusal — the things the surface of the decade will not say out loud. The artist is not a guide but a provocation, and the audience is not entertained so much as implicated.",
+    musicCulture:
+      "Rock & roll arrives as a teenage scandal and leaves as rock, a serious form. Soul, Motown, psychedelia and the folk revival run alongside it. Intensity is the measure: the music is judged by how much it makes you feel and how much it refuses.",
+    evidence: {
+      label: "Scorpio / Water — Expression · Intensity / Taboo",
+      items: [
+        { name: "Elvis Presley", examples: "The body on television" },
+        { name: "The Rolling Stones", examples: "Sex and menace as a public stance" },
+        { name: "Bob Dylan", examples: "Refusal — of folk purity, of the expected role" },
+        { name: "Jimi Hendrix", examples: "The instrument pushed past what it was for" },
+        { name: "The Doors", examples: "Eros and death in the mainstream" },
+        { name: "The Velvet Underground", examples: "Addiction and the underground made explicit" },
+        { name: "James Brown", examples: "Rhythm as physical insistence" },
+        { name: "Aretha Franklin", examples: "Demand — respect, named" },
+      ],
+    },
+    expanded: `
+      Scorpio's Neptune idealizes the forbidden. In music, this produces the era in which a culture hands its sexuality, its rage and its refusal to teenagers with guitars — and then spends fourteen years arguing about what it has done.
+
+      The era opens with rock & roll as a scandal: Elvis on television in 1956, filmed from the waist up. It closes with rock, a form that expects to be taken seriously, that makes albums about death and war and its own disintegration. The transformation is the point. Scorpio does not expand a thing; it takes it through something and out the other side.
+
+      Soul and Motown run in parallel and are not a side-story: they carry the same charge, moving gospel's intensity into secular desire, and Aretha Franklin's "Respect" is a demand, not a request.
+
+      The counterculture is Neptune's ideal made literal. The music is where the taboo lives — drugs, sex, political refusal — and belonging to it means being on the wrong side of something.
+
+      The era ends in 1970 as the intensity turns outward. Sagittarius arrives, and the question stops being "what are we not allowed to feel?" and becomes "how far out can we get?"
+    `,
+  },
+  {
     sign: "Sagittarius",
     earlySignal: { artist: "The Beatles", breakthrough: "Sgt. Pepper’s Lonely Hearts Club Band", year: 1967 },
     pivotalMoment: { shift: "Woodstock / festival culture", effect: "Music becomes a mass shared experience of exploration" },
@@ -166,7 +218,7 @@ export const MUSIC_ERAS: MusicEra[] = [
     dates: "1998–2012",
     startYear: 1998,
     endYear: 2012,
-    color: "#7dc0d8",
+    color: "#a8b4c0",
     status: "completed",
     archetype: "The Tribes",
     element: "Air",
@@ -200,7 +252,7 @@ export const MUSIC_ERAS: MusicEra[] = [
   },
   {
     sign: "Pisces",
-    earlySignal: { artist: "Daft Punk", breakthrough: "Discovery", year: 2001 },
+    earlySignal: { artist: "David Guetta", breakthrough: "One Love", year: 2009 },
     pivotalMoment: { shift: "Streaming + Bedroom production / DAW", effect: "Breaks the studio boundary; anyone can participate in a shared sonic language" },
     comparison: {
       expression: "Rhythm & atmosphere",
@@ -333,6 +385,19 @@ export type Inversion = {
 };
 
 export const INVERSIONS: Inversion[] = [
+  {
+    fromSign: "Scorpio",
+    toSign: "Sagittarius",
+    tagline: '"What are we not allowed to feel?" → "How far out can we get?"',
+    rows: [
+      { axis: "Cultural unit", from: "Band", to: "Experience" },
+      { axis: "Expression", from: "Intensity / Desire", to: "Energy / Experimentation" },
+      { axis: "Audience", from: "Be implicated", to: "Discover something new" },
+      { axis: "Structure", from: "Transformation", to: "Expansion" },
+      { axis: "Charge", from: "Taboo", to: "Freedom" },
+      { axis: "Direction", from: "Go deeper in", to: "Go further out" },
+    ],
+  },
   {
     fromSign: "Sagittarius",
     toSign: "Capricorn",

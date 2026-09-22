@@ -1,37 +1,33 @@
 /**
- * Identity colour for every body in a chart.
+ * Identity data for every celestial body used in the app.
  *
- * `lib/planets.ts` already did this for the five slow planets, because that is
- * all the Cycles pages track. The Planets page lists everything, so the set is
- * completed here and `lib/planets.ts` now reads its five out of this table —
- * one source, so a planet is the same colour wherever it appears in the app.
- *
- * Colours follow traditional symbolic associations rather than being picked for
- * contrast. They sit alongside the app palette rather than inside it: patina
- * still means "in effect" and ember still means "exactitude", and neither is
- * used here. Nothing in this table is warm enough to be mistaken for ember
- * except Mars and the Sun, which have owned red and gold for three thousand
- * years and are not negotiable.
+ * This is the single source of truth for color, role, and glyph. All pages —
+ * the Planets page (all bodies), the Cycles pages (slow planets only), and
+ * everything in between — read from here.
  */
+
+// ─── All bodies ──────────────────────────────────────────────────────────────
 
 export interface BodyMeta {
   /** Hex, applied inline — Tailwind can't see dynamically built class names. */
   color: string;
   /** What the body governs, in two or three words. */
   role: string;
+  /** Unicode glyph. Only defined for the bodies that have one. */
+  glyph?: string;
 }
 
 export const BODY: Record<string, BodyMeta> = {
-  Sun: { color: "#e8b832", role: "Identity & Will" },
-  Moon: { color: "#bdd4e8", role: "Feeling & Instinct" },
-  Mercury: { color: "#8fd494", role: "Mind & Exchange" },
-  Venus: { color: "#e09cc8", role: "Love & Value" },
-  Mars: { color: "#e05040", role: "Drive & Assertion" },
-  Jupiter: { color: "#9b7fd4", role: "Growth & Expansion" },
-  Saturn: { color: "#9daab8", role: "Structure & Maturation" },
-  Uranus: { color: "#55b8f5", role: "Disruption & Awakening" },
-  Neptune: { color: "#7b8fe0", role: "Dissolution & Vision" },
-  Pluto: { color: "#c44060", role: "Transformation & Power" },
+  Sun: { color: "#e8b832", role: "Identity & Will", glyph: "☉" },
+  Moon: { color: "#bdd4e8", role: "Feeling & Instinct", glyph: "☽" },
+  Mercury: { color: "#8fd494", role: "Mind & Exchange", glyph: "☿" },
+  Venus: { color: "#e09cc8", role: "Love & Value", glyph: "♀︎" },
+  Mars: { color: "#e05040", role: "Drive & Assertion", glyph: "♂︎" },
+  Jupiter: { color: "#9b7fd4", role: "Growth & Expansion", glyph: "♃︎" },
+  Saturn: { color: "#9daab8", role: "Structure & Maturation", glyph: "♄︎" },
+  Uranus: { color: "#55b8f5", role: "Disruption & Awakening", glyph: "♅︎" },
+  Neptune: { color: "#7b8fe0", role: "Idealization & Dissolution", glyph: "♆︎" },
+  Pluto: { color: "#c44060", role: "Transformation & Power", glyph: "♇︎" },
   "North Node": { color: "#d4bc6a", role: "The Path Forward" },
   "South Node": { color: "#8c96a8", role: "The Path Behind" },
   Chiron: { color: "#c4945e", role: "Wound & Teaching" },
@@ -45,4 +41,44 @@ export function bodyColor(name: string): string {
 
 export function bodyRole(name: string): string | undefined {
   return BODY[name]?.role;
+}
+
+export function bodyGlyphFromBodies(name: string): string | undefined {
+  return BODY[name]?.glyph;
+}
+
+// ─── Slow planets (Cycles pages) ─────────────────────────────────────────────
+
+export interface PlanetMeta {
+  name: string;
+  glyph: string;
+  /** Hex, applied inline. */
+  color: string;
+  description: string;
+}
+
+const SLOW = ["Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"] as const;
+export type SlowPlanet = (typeof SLOW)[number];
+
+export const PLANETS: PlanetMeta[] = SLOW.map((name) => ({
+  name,
+  glyph: BODY[name].glyph ?? "·",
+  color: BODY[name].color,
+  description: BODY[name].role,
+}));
+
+export const PLANET_NAMES = PLANETS.map((p) => p.name);
+
+const BY_NAME = new Map(PLANETS.map((p) => [p.name, p]));
+
+export function planetMeta(name: string): PlanetMeta | undefined {
+  return BY_NAME.get(name);
+}
+
+export function planetColor(name: string): string {
+  return BY_NAME.get(name)?.color ?? "#6baf9a";
+}
+
+export function planetGlyph(name: string): string {
+  return BY_NAME.get(name)?.glyph ?? "·";
 }

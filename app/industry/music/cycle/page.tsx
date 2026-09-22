@@ -16,7 +16,7 @@ import { concurrentWith, musicCycleSegment } from "@/lib/industry/music-cycles";
  * The two music clocks read against each other.
  *
  * The Neptune and Uranus pages each hold one clock and are the place to read
- * it: five and eleven eras, in full, with the evidence under each. What
+ * it: six and eleven eras, in full, with the evidence under each. What
  * neither can say is how they run together, because a page with one clock on
  * it has no second hand to compare against.
  *
@@ -73,7 +73,7 @@ export default function MusicCyclesPage() {
         the tables say what, at a length no bar can hold.
       */}
       <section className="mb-20">
-        <SectionHeading aside="5 eras · ~14 years each">
+        <SectionHeading aside={`${MUSIC_ERAS.length} eras · ~14 years each`}>
           <span className="inline-flex items-center text-[1.1875rem] tracking-[0.16em]">
             <span aria-hidden="true" className="glyph mr-3 text-[1.5rem] leading-none text-patina">
               ♆

@@ -136,6 +136,29 @@ export const PAGE_REFS: PageRef[] = [
         content: readLibSource('comparison.ts'),
     },
     {
+        // The conventions the compatibility page is computed under, and the two
+        // that most need defending: why slow-to-slow contacts are thrown away,
+        // and why both axes are percentiles against a permutation null rather
+        // than scores. Asked "what does chemistry 78 mean", the council should
+        // be able to answer exactly, because the answer is checkable.
+        id: 'method/synastry-contacts',
+        label: 'Synastry · Contacts',
+        group: 'Method',
+        content: readLibSource('synastry/contacts.ts'),
+    },
+    {
+        id: 'method/synastry-baseline',
+        label: 'Synastry · Baseline',
+        group: 'Method',
+        content: readLibSource('synastry/baseline.ts'),
+    },
+    {
+        id: 'method/synastry-dimensions',
+        label: 'Synastry · Areas',
+        group: 'Method',
+        content: readLibSource('synastry/dimensions.ts'),
+    },
+    {
         id: 'method/symbols',
         label: 'Symbols',
         group: 'Method',
@@ -275,6 +298,13 @@ export const PAGE_REFS: PageRef[] = [
         group: 'Pages',
         path: '/compare',
         content: readAppSource('compare/page.tsx'),
+    },
+    {
+        id: 'pages/western-compatibility',
+        label: 'Western · Compatibility',
+        group: 'Pages',
+        path: '/western/compatibility',
+        content: readAppSource('western/compatibility/page.tsx'),
     },
     {
         // Deliberately no `path`. It would auto-attach on /council itself, which

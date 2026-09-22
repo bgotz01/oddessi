@@ -14,7 +14,7 @@ const ERAS = PLUTO_ERAS;
 
 const ELEMENT_COLOR: Record<PlutoEraElement, string> = {
   earth: "#8ebf7a",
-  air: "#7dc0d8",
+  air: "#a8b4c0",
   water: "#7899d4",
   fire: "#e07a50",
 };

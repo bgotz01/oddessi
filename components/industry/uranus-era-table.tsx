@@ -6,10 +6,10 @@ import { SectionHeading } from "@/components/primitives";
 import { ELEMENT_COLOR, signMeta } from "@/lib/symbols";
 import {
   URANUS_MUSIC_ERAS,
-  uranusEraStatus,
   type UranusAxis,
   type UranusEraOverview,
 } from "@/lib/industry/uranus-music-eras-data";
+import { eraStatus, type EraStatus } from "@/lib/industry/era-years";
 import { useReadingYear } from "@/lib/industry/use-reading-year";
 import UranusEraDrawer from "@/components/industry/uranus-era-drawer";
 
@@ -27,8 +27,8 @@ import UranusEraDrawer from "@/components/industry/uranus-era-drawer";
  * and made reading the cycle an act of horizontal scrolling. The table earned
  * that width when the reader wanted to compare one row across every era; what
  * this page is actually for is following the eras in order, and three values
- * per era fit in a card. The Neptune table keeps its table shape because five
- * columns fit in a screen — the difference in form follows a real difference
+ * per era fit in a card. The Neptune table keeps its table shape because six
+ * columns still fit in a screen — the difference in form follows a real difference
  * in the data, not an inconsistency.
  */
 export default function UranusEraTable({
@@ -60,7 +60,7 @@ export default function UranusEraTable({
           <EraCard
             key={era.sign}
             era={era}
-            status={year === null ? null : uranusEraStatus(era, year)}
+            status={year === null ? null : eraStatus(era.dates, year)}
             selected={selectedSign === era.sign}
             onSelect={() => select(era.sign)}
           />
@@ -116,7 +116,7 @@ function EraCard({
   onSelect,
 }: {
   era: UranusEraOverview;
-  status: "completed" | "active" | "upcoming" | null;
+  status: EraStatus | null;
   selected: boolean;
   onSelect: () => void;
 }) {

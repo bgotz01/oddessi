@@ -89,6 +89,6 @@ export function signMeta(sign: string): SignMeta | null {
 export const ELEMENT_COLOR: Record<SignElement, string> = {
   Fire: "#e07a50", // warm orange
   Earth: "#8ebf7a", // fresh sage
-  Air: "#7dc0d8", // sky
+  Air: "#a8b4c0", // silver
   Water: "#7899d4", // periwinkle
 };

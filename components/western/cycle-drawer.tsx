@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { Block, ListColumn, Pair } from "@/components/study-panel";
-import { PLANETS } from "@/lib/planets";
+import { PLANETS } from "@/lib/bodies";
 import {
   getCycleInterpretation,
   type TransitInterpretation,
@@ -177,11 +177,10 @@ export default function WesternCycleDrawer({
                     type="button"
                     onClick={() => onNavigate({ planet: p.name, house: target.house })}
                     aria-pressed={on}
-                    className={`flex items-center gap-1.5 border px-2.5 py-1.5 text-[0.625rem] tracking-[0.16em] uppercase transition-colors ${
-                      on
+                    className={`flex items-center gap-1.5 border px-2.5 py-1.5 text-[0.625rem] tracking-[0.16em] uppercase transition-colors ${on
                         ? "border-[var(--tint)] bg-[color-mix(in_srgb,var(--tint)_18%,transparent)] text-bone"
                         : "border-rule-faint text-bone-faint hover:border-rule hover:text-bone-soft"
-                    }`}
+                      }`}
                     style={{ "--tint": p.color } as React.CSSProperties}
                   >
                     <span className="glyph text-[0.9rem]" style={{ color: on ? p.color : undefined }}>
@@ -206,11 +205,10 @@ export default function WesternCycleDrawer({
                     type="button"
                     onClick={() => onNavigate({ planet: target.planet, house: h })}
                     aria-pressed={on}
-                    className={`datum w-8 border py-1.5 text-center text-[0.625rem] tracking-[0.12em] transition-colors ${
-                      on
+                    className={`datum w-8 border py-1.5 text-center text-[0.625rem] tracking-[0.12em] transition-colors ${on
                         ? "border-patina bg-[color-mix(in_srgb,var(--color-patina)_18%,transparent)] text-bone"
                         : "border-rule-faint text-bone-faint hover:border-rule hover:text-bone-soft"
-                    }`}
+                      }`}
                   >
                     {ROMAN[h - 1]}
                   </button>

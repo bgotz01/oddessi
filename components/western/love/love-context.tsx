@@ -32,9 +32,19 @@ import {
  *
  * The second-order risk is subtler and is also addressed: a reader who is
  * currently unhappy will ask whether their partner is the right one, and the
- * chart cannot answer that. It has no data about the other person at all —
- * there is no second chart here, no synastry, nothing. Saying so plainly is
- * more useful than any reading that could be improvised instead.
+ * chart cannot answer that. It has no data about the other person at all.
+ * Saying so plainly is more useful than any reading that could be improvised
+ * instead.
+ *
+ * That refusal used to rest on a stronger fact — that Oddessi had no second
+ * chart anywhere, and no synastry. `app/western/compatibility` ends that, so
+ * the note below was rewritten to stop leaning on it. What is left is narrower
+ * and still holds: THIS page is one chart. The compatibility page may be
+ * offered when the person being asked about already has stored birth data, and
+ * it is not an answer to the same question — it measures contact between two
+ * charts, and has its own guard in
+ * `components/western/compatibility/compatibility-context.tsx`, written against
+ * the failure modes a second chart makes possible.
  */
 export function useLoveContext(
   chart: Chart,
@@ -112,13 +122,19 @@ export function useLoveContext(
         "agreeing — not magnitude of consequence. A Major window is a " +
         "statement about how much the model can see, not about how much " +
         "happens. " +
-        "THIS CHART KNOWS NOTHING ABOUT ANYBODY ELSE. There is no second " +
-        "chart here and no synastry. If asked whether a particular person is " +
-        "right, compatible, faithful, or the one, say plainly that the page " +
-        "has no data about them — do not improvise a reading from this chart " +
-        "about a different human being, and do not use the profile to " +
-        "describe 'the kind of person you will meet'. It describes the " +
-        "reader, not a partner. " +
+        "THIS PAGE KNOWS NOTHING ABOUT ANYBODY ELSE. It is one chart, and it " +
+        "carries no data about any other person. If asked whether a particular " +
+        "person is right, compatible, faithful, or the one, say plainly that " +
+        "this page has no data about them — do not improvise a reading from " +
+        "this chart about a different human being, and do not use the profile " +
+        "to describe 'the kind of person you will meet'. It describes the " +
+        "reader, not a partner. Western · Compatibility does read two charts " +
+        "against each other, and may be offered as the page for a question " +
+        "about a specific person WHOSE BIRTH DATA IS ALREADY STORED. That is " +
+        "the only thing it changes here. It measures contact between two " +
+        "charts and it still cannot say whether two people are right for each " +
+        "other, so pointing at it is not a way to answer that question by " +
+        "another route. " +
         "Do not assume gender, orientation, monogamy, marriage or children " +
         "anywhere. The chart carries none of that. The 5th house here is " +
         "courtship and play, never offspring. " +

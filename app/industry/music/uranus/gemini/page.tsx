@@ -2,7 +2,7 @@
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import { GEMINI_PRINCIPLES } from "@/lib/industry/uranus-gemini-data";
 
-const GEMINI_COLOR = "#7dc0d8"; // air · same palette as Aquarius era
+const GEMINI_COLOR = "#a8b4c0"; // air · same palette as Aquarius era
 
 export default function UranusGeminiPage() {
   return (

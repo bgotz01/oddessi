@@ -54,7 +54,7 @@ export default function NeptuneEraDrawer({
                   className="datum text-[0.6875rem] uppercase tracking-[0.2em]"
                   style={{ color }}
                 >
-                  {era.concept}
+                  {era.domain}
                 </span>
                 {era.status !== "completed" ? (
                   <>
@@ -103,12 +103,19 @@ export default function NeptuneEraDrawer({
 
         <div className="space-y-7 px-7 py-7">
           <section>
-            <p className="eyebrow mb-2 text-[0.6875rem]">Power structure</p>
+            <p className="eyebrow mb-2 text-[0.6875rem]">Collective ideal</p>
             <p className="text-[1.125rem] leading-relaxed text-bone">
-              {era.structure}
+              {era.ideal}
             </p>
             <p className="mt-1 text-[1.0625rem] leading-relaxed text-bone-soft">
-              {era.ideal}
+              Idealization of {era.domain.toLowerCase()}
+            </p>
+          </section>
+
+          <section className="border-t border-rule-faint pt-6">
+            <p className="eyebrow mb-2 text-[0.6875rem]">Question</p>
+            <p className="text-[1.0625rem] leading-relaxed text-bone">
+              {era.question}
             </p>
           </section>
 
@@ -124,6 +131,26 @@ export default function NeptuneEraDrawer({
                 {" · "}
                 {era.majorEvent.label}
               </p>
+            </div>
+          </section>
+
+          <section className="border-t border-rule-faint pt-6">
+            <p className="eyebrow mb-3 text-[0.6875rem]">Trigger</p>
+            <div className="flex gap-2.5">
+              <span
+                className="mt-[0.65em] h-[3px] w-[3px] shrink-0"
+                style={{ backgroundColor: color }}
+              />
+              <div>
+                <p className="datum text-[0.875rem] leading-relaxed text-bone-soft">
+                  <span className="text-bone">{era.trigger.date}</span>
+                  {" · "}
+                  {era.trigger.label}
+                </p>
+                <p className="mt-1 text-[0.9375rem] leading-relaxed text-bone-soft">
+                  {era.trigger.unlocks}
+                </p>
+              </div>
             </div>
           </section>
 
@@ -147,7 +174,7 @@ export default function NeptuneEraDrawer({
           <section className="border-t border-rule-faint pt-6">
             <p className="eyebrow mb-2 text-[0.6875rem]">Neptune&apos;s lens</p>
             <p className="text-[1.0625rem] leading-relaxed text-bone-soft">
-              {era.conceptNote}
+              {era.idealNote}
             </p>
           </section>
 
