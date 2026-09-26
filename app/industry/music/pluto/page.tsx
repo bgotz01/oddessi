@@ -1,5 +1,8 @@
 // app/industry/music/pluto/page.tsx
-import { PageTitle } from "@/components/primitives";
+"use client";
+
+import { useState } from "react";
+import { PageTitle, SectionHeading } from "@/components/primitives";
 import { ELEMENT_COLOR, signMeta } from "@/lib/symbols";
 import {
   PLUTO_ELEMENT_FUNCTION,
@@ -7,6 +10,7 @@ import {
   PLUTO_MUSIC_ERAS,
 } from "@/lib/industry/pluto-music-eras-data";
 import PlutoEraTable from "@/components/industry/pluto-era-table";
+import PlutoEraDrawer from "@/components/industry/pluto-era-drawer";
 
 /**
  * The pattern across eras, which no single card can show.
@@ -97,6 +101,9 @@ function ElementalPattern() {
 }
 
 export default function MusicPlutoPage() {
+  const [selectedSign, setSelectedSign] = useState<string | null>(null);
+  const selectedEra = PLUTO_MUSIC_ERAS.find((era) => era.sign === selectedSign) ?? null;
+
   return (
     <div className="mx-auto w-full max-w-6xl px-4 pb-24 sm:px-8">
       <div className="pt-12">
@@ -107,9 +114,35 @@ export default function MusicPlutoPage() {
         />
       </div>
 
-      <PlutoEraTable />
+      <section className="mb-20">
+        <SectionHeading aside={`${PLUTO_MUSIC_ERAS.length} eras · ~12–20 years each`}>
+          <span className="inline-flex items-center text-[1.1875rem] tracking-[0.16em]">
+            <span aria-hidden="true" className="glyph mr-3 text-[1.5rem] leading-none text-patina">
+              ♇
+            </span>
+            <span>Pluto</span>
+            <span aria-hidden="true" className="mx-3 h-px w-8 bg-patina-dim" />
+            <span className="text-patina">Structural Power</span>
+          </span>
+        </SectionHeading>
+
+        <p className="mb-2 text-bone-soft">Where does structural power concentrate in the music industry?</p>
+        <p className="mb-5 max-w-2xl text-[0.9375rem] leading-relaxed text-bone-faint">
+          Found by naming the bottleneck: the scarce function no one could route
+          around, and the position holding it.
+        </p>
+        <PlutoEraTable selectedSign={selectedSign} onSelect={setSelectedSign} />
+      </section>
 
       <ElementalPattern />
+
+      {selectedEra && (
+        <PlutoEraDrawer
+          era={selectedEra}
+          onNavigate={setSelectedSign}
+          onClose={() => setSelectedSign(null)}
+        />
+      )}
     </div>
   );
 }

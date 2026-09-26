@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PageTitle, SectionHeading } from "@/components/primitives";
+import PlanetArchetypes from "@/components/western/macro/planet-archetypes";
 import CycleRow, { type CycleRowData } from "@/components/western/cycles/cycle-row";
 import CycleDrawer from "@/components/western/cycles/cycle-drawer";
 import JupiterLongCycle from "@/components/western/cycles/jupiter-long-cycle";
@@ -24,7 +25,7 @@ export default function CyclesPage() {
     chart ? `/api/cycles?chartId=${encodeURIComponent(chart.id)}` : null,
   );
   const now = new Date();
-  const [selectedCycle, setSelectedCycle] = useState<CycleRowData | null>(null);
+  const [selectedCycle, setSelectedCycle] = useState<(CycleRowData & { chartId: string }) | null>(null);
 
   // Push visible transit data into the chat context so the model can
   // answer questions about what is actually on screen.
@@ -41,7 +42,13 @@ export default function CyclesPage() {
         "cusp and make two transits overlap, so use the `next` dates below rather " +
         "than reasoning about when an ingress ought to fall. `next` is read from " +
         "the same cache the page draws from; the page names the first entry and " +
-        "the rest are here. /western/cycles/explorer shows the whole span.",
+        "the rest are here. /western/cycles/explorer shows the whole span. " +
+        "`transitStart`/`transitEnd` are the envelope; `passes` are the stretches " +
+        "the planet is actually in the house. Envelopes of neighbouring houses " +
+        "overlap when a retrograde carries the planet back over a cusp — that is " +
+        "never two houses at once. Passes tile end to end, so read them to say " +
+        "which house the planet is in on a date. A `next` entry's `start` is its " +
+        "next crossing, which is a re-entry when the planet has been there before.",
       cycles: state.data.cycles.map((c) => ({
         planet: c.planet,
         house: c.house,
@@ -49,6 +56,7 @@ export default function CyclesPage() {
         significance: c.significance,
         transitStart: c.start,
         transitEnd: c.end,
+        passes: c.band.segments,
         // Whether the row on screen is in force or still ahead — a planet in a
         // retrograde gap is shown its incoming transit, and calling that
         // "current" would misdate everything downstream of it.
@@ -69,7 +77,16 @@ export default function CyclesPage() {
 
       />
 
+      <section className="mb-16">
+        <SectionHeading aside="5 slow planets">Planet Archetypes</SectionHeading>
+        <PlanetArchetypes layout="columns" />
+      </section>
 
+      <SectionHeading
+        aside={state.status === "ready" ? `${state.data.cycles.length} in force` : undefined}
+      >
+        Active Transits
+      </SectionHeading>
 
       {!chart ? (
         <p className="font-light text-bone-soft">No chart selected.</p>
@@ -83,22 +100,21 @@ export default function CyclesPage() {
         </p>
       ) : (
         <section>
-          <SectionHeading aside={`${state.data.cycles.length} in force`}>
-            In Force
-          </SectionHeading>
           <div className="border-t border-rule">
             {state.data.cycles.map((c) => (
               <CycleRow
                 key={c.planet}
                 cycle={c}
                 now={now}
-                onClick={() => setSelectedCycle(c)}
-                selected={selectedCycle?.planet === c.planet}
+                onClick={() => setSelectedCycle({ ...c, chartId: chart.id })}
+                selected={selectedCycle?.chartId === chart.id && selectedCycle.planet === c.planet}
               />
             ))}
           </div>
         </section>
       )}
+
+
 
       <JupiterLongCycle />
       <SaturnLongCycle />
@@ -113,7 +129,7 @@ export default function CyclesPage() {
       </p>
 
       {/* Right drawer */}
-      {selectedCycle && (
+      {selectedCycle && selectedCycle.chartId === chart?.id && (
         <CycleDrawer
           cycle={selectedCycle}
           onClose={() => setSelectedCycle(null)}

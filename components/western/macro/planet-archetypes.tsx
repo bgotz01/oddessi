@@ -3,6 +3,7 @@
 "use client";
 
 import { useState } from "react";
+import { planetMeta, type SlowPlanet } from "@/lib/bodies";
 
 /**
  * A static reference panel for the five slow outer planets — what each one
@@ -12,12 +13,13 @@ import { useState } from "react";
  * core meanings without leaving the page. This keeps the macro page from
  * bloating while still answering "wait, what does Uranus actually rule?"
  * inline.
+ *
+ * Glyph, colour and the one-line role come from `lib/bodies.ts`, the same
+ * source the Cycles pages read, so the two never drift apart.
  */
 
 interface PlanetArchetype {
-  name: string;
-  glyph: string;
-  color: string;
+  name: SlowPlanet;
   tagline: string;
   house: string;
   houseDesc: string;
@@ -28,8 +30,6 @@ interface PlanetArchetype {
 const ARCHETYPES: PlanetArchetype[] = [
   {
     name: "Jupiter",
-    glyph: "♃",
-    color: "#c9a84c",
     tagline: "Expansion, luck, optimism, wisdom, and abundance.",
     house: "9th",
     houseDesc: "philosophy, travel, and higher mind",
@@ -55,8 +55,6 @@ const ARCHETYPES: PlanetArchetype[] = [
   },
   {
     name: "Saturn",
-    glyph: "♄",
-    color: "#8a8a7a",
     tagline: "Discipline, structure, responsibility, boundaries, and time.",
     house: "10th",
     houseDesc: "career, public status, and authority",
@@ -82,8 +80,6 @@ const ARCHETYPES: PlanetArchetype[] = [
   },
   {
     name: "Uranus",
-    glyph: "♅",
-    color: "#7ec8c8",
     tagline: "Rebellion, innovation, sudden change, liberation, and eccentricity.",
     house: "11th",
     houseDesc: "community, networks, and hopes for the future",
@@ -109,8 +105,6 @@ const ARCHETYPES: PlanetArchetype[] = [
   },
   {
     name: "Neptune",
-    glyph: "♆",
-    color: "#6b9fd4",
     tagline: "Dreams, imagination, spirituality, illusion, and dissolution.",
     house: "12th",
     houseDesc: "the hidden, the collective unconscious, and endings",
@@ -132,8 +126,6 @@ const ARCHETYPES: PlanetArchetype[] = [
   },
   {
     name: "Pluto",
-    glyph: "♇",
-    color: "#b07aad",
     tagline: "Transformation, power, regeneration, rebirth, and the subconscious.",
     house: "8th",
     houseDesc: "shared resources, intimacy, and transformation",
@@ -161,6 +153,7 @@ const ARCHETYPES: PlanetArchetype[] = [
 
 function ArchetypeRow({ planet }: { planet: PlanetArchetype }) {
   const [open, setOpen] = useState(false);
+  const { glyph, color, description: role } = planetMeta(planet.name)!;
 
   return (
     <div className="border-b border-rule-faint last:border-b-0">
@@ -174,10 +167,10 @@ function ArchetypeRow({ planet }: { planet: PlanetArchetype }) {
         {/* Glyph */}
         <span
           className="glyph shrink-0 text-[2.25rem] leading-none"
-          style={{ color: planet.color }}
+          style={{ color }}
           aria-hidden
         >
-          {planet.glyph}
+          {glyph}
         </span>
 
         {/* Name + tagline */}
@@ -185,11 +178,12 @@ function ArchetypeRow({ planet }: { planet: PlanetArchetype }) {
           <div className="flex items-baseline gap-3">
             <span
               className="inscription text-[1.125rem] tracking-[0.1em]"
-              style={{ color: planet.color }}
+              style={{ color }}
             >
               {planet.name}
             </span>
-            <span className="datum hidden text-[0.8125rem] text-bone-faint sm:block">
+            <span className="whitespace-nowrap text-[0.9375rem] text-bone">{role}</span>
+            <span className="datum hidden whitespace-nowrap text-[0.8125rem] text-bone-faint sm:block">
               {planet.house} House
             </span>
           </div>
@@ -198,15 +192,15 @@ function ArchetypeRow({ planet }: { planet: PlanetArchetype }) {
           </p>
         </div>
 
-        {/* Keywords — hidden on smallest screens */}
-        <div className="hidden shrink-0 items-center gap-2 lg:flex">
+        {/* Keywords — only when the row is wide enough to hold them */}
+        <div className="hidden shrink-0 items-center gap-2 2xl:flex">
           {planet.keywords.map((kw) => (
             <span
               key={kw}
               className="datum rounded border px-2.5 py-1 text-[0.6875rem] tracking-[0.14em] uppercase"
               style={{
-                borderColor: `${planet.color}40`,
-                color: `${planet.color}cc`,
+                borderColor: `${color}40`,
+                color: `${color}cc`,
               }}
             >
               {kw}
@@ -228,14 +222,14 @@ function ArchetypeRow({ planet }: { planet: PlanetArchetype }) {
       {open && (
         <div className="border-t border-rule-faint px-6 pb-7 pt-5">
           {/* Keyword pills — visible on all screens when open */}
-          <div className="mb-5 flex flex-wrap gap-2 lg:hidden">
+          <div className="mb-5 flex flex-wrap gap-2 2xl:hidden">
             {planet.keywords.map((kw) => (
               <span
                 key={kw}
                 className="datum rounded border px-2.5 py-1 text-[0.6875rem] tracking-[0.14em] uppercase"
                 style={{
-                  borderColor: `${planet.color}40`,
-                  color: `${planet.color}cc`,
+                  borderColor: `${color}40`,
+                  color: `${color}cc`,
                 }}
               >
                 {kw}
@@ -249,7 +243,7 @@ function ArchetypeRow({ planet }: { planet: PlanetArchetype }) {
               <div key={m.label}>
                 <p
                   className="datum mb-1.5 text-[0.75rem] tracking-[0.18em] uppercase"
-                  style={{ color: `${planet.color}99` }}
+                  style={{ color: `${color}99` }}
                 >
                   {m.label}
                 </p>
@@ -272,7 +266,125 @@ function ArchetypeRow({ planet }: { planet: PlanetArchetype }) {
   );
 }
 
-export default function PlanetArchetypes() {
+/**
+ * The compact face of a planet for the column layout: name, role and tags.
+ * The column is the control; everything else opens in the detail below.
+ */
+function ArchetypeColumn({
+  planet,
+  selected,
+  onSelect,
+}: {
+  planet: PlanetArchetype;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const { glyph, color, description: role } = planetMeta(planet.name)!;
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-expanded={selected}
+      className="row-span-3 grid grid-rows-subgrid content-start border-t-2 px-4 pb-5 pt-4 text-left transition-colors hover:bg-surface"
+      style={{
+        borderTopColor: color,
+        backgroundColor: selected ? `${color}14` : undefined,
+      }}
+    >
+      <span className="flex items-baseline gap-2.5">
+        <span className="glyph text-[1.75rem] leading-none" style={{ color }} aria-hidden>
+          {glyph}
+        </span>
+        <span className="inscription text-[1.0625rem] tracking-[0.1em]" style={{ color }}>
+          {planet.name}
+        </span>
+      </span>
+      <span className="text-[0.9375rem] leading-snug text-bone">{role}</span>
+      <span className="mt-1 flex flex-wrap content-start gap-1.5">
+        {planet.keywords.slice(0, 3).map((kw) => (
+          <span
+            key={kw}
+            className="datum rounded border px-2 py-0.5 text-[0.625rem] tracking-[0.12em] uppercase"
+            style={{ borderColor: `${color}40`, color: `${color}cc` }}
+          >
+            {kw}
+          </span>
+        ))}
+      </span>
+    </button>
+  );
+}
+
+/** The full-width description of the selected planet, under the columns. */
+function ArchetypeDetail({ planet }: { planet: PlanetArchetype }) {
+  const { glyph, color, description: role } = planetMeta(planet.name)!;
+
+  return (
+    <div className="mt-3 border-t border-b border-rule-faint px-4 py-7">
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <span className="glyph text-[2rem] leading-none" style={{ color }} aria-hidden>
+          {glyph}
+        </span>
+        <span className="inscription text-[1.25rem] tracking-[0.1em]" style={{ color }}>
+          {planet.name}
+        </span>
+        <span className="text-[1rem] text-bone">{role}</span>
+      </div>
+      <p className="mt-3 max-w-3xl text-[1rem] leading-relaxed text-bone-soft">{planet.tagline}</p>
+
+      <div className="mt-6 grid gap-x-8 gap-y-5 sm:grid-cols-2">
+        {planet.meanings.map((m) => (
+          <div key={m.label}>
+            <p
+              className="datum mb-1.5 text-[0.75rem] tracking-[0.18em] uppercase"
+              style={{ color: `${color}99` }}
+            >
+              {m.label}
+            </p>
+            <p className="text-[0.9375rem] leading-relaxed text-bone-soft">{m.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <p className="datum mt-6 border-t border-rule-faint pt-4 text-[0.8125rem] text-bone-faint">
+        Natural ruler of the <span className="text-bone">{planet.house} house</span> — the house
+        of {planet.houseDesc}.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * `rows` is the stacked list; `columns` sets the five planets side by side,
+ * with the selected one described full width beneath them.
+ */
+export default function PlanetArchetypes({
+  layout = "rows",
+}: {
+  layout?: "rows" | "columns";
+}) {
+  const [selected, setSelected] = useState<SlowPlanet | null>(null);
+
+  if (layout === "columns") {
+    const detail = ARCHETYPES.find((p) => p.name === selected);
+    return (
+      <div>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-3 md:grid-cols-3 lg:grid-cols-5">
+          {ARCHETYPES.map((planet) => (
+            <ArchetypeColumn
+              key={planet.name}
+              planet={planet}
+              selected={planet.name === selected}
+              onSelect={() => setSelected((s) => (s === planet.name ? null : planet.name))}
+            />
+          ))}
+        </div>
+        {detail && <ArchetypeDetail planet={detail} />}
+      </div>
+    );
+  }
+
   return (
     <div className="border-y border-rule">
       {ARCHETYPES.map((planet) => (

@@ -132,12 +132,16 @@ export async function buildTransitBlock(
     "contact by the better part of a year, which is exactly what the re-entries",
     "below record.",
     "",
-    "A window is the whole stretch a transit spends inside orb. `exact` is the",
-    "moment of exactness within it. A `re-entry` is a retrograde pass back into",
-    "orb after the planet had already left: the first direct pass runs from the",
-    "window's start, the planet moves off, turns, and returns. Two- and",
-    "three-pass transits are ordinary, and the re-entries ARE those later",
-    "contacts — not a restatement of the window.",
+    "A window is the envelope: first contact to final release. `exact` is the",
+    "moment of exactness within it. Where a retrograde breaks the window up,",
+    "`passes` lists every stretch the transit is actually in effect, first pass",
+    "included; between two passes the planet has backed out and is NOT in that",
+    "house or orb. Two- and three-pass transits are ordinary.",
+    "",
+    "Windows for consecutive houses overlap for exactly this reason, and that",
+    "overlap is NEVER two houses at once. The passes of neighbouring houses tile",
+    "end to end — where one ends, the other begins — so read the passes, not the",
+    "windows, to say which house a planet is in on a date and when it crosses.",
     "",
     "Aspects are computed against the Sun, Moon, Mercury, Venus, Mars, the North",
     "Node, the Ascendant and the Midheaven. Nothing else is a target: no other",
@@ -178,7 +182,8 @@ export async function buildTransitBlock(
     "a ranking: never say one transit will be bigger, harder or more important",
     "than another because its label reads higher.",
     "",
-    `Ages are this chart's own. ▸ marks a transit in force as of ${asOf}.`,
+    `Ages are this chart's own. As of ${asOf}, ▸ marks a transit in force and`,
+    "◦ one whose window is open but which is between passes — not in force.",
     "",
   ];
 
@@ -192,23 +197,24 @@ export async function buildTransitBlock(
 
     for (const r of rows) {
       const age = ageAt(birthISO, r.start);
-      // Re-entries ride on the transit's own line rather than under it. Given
-      // one line each they outnumbered the transits roughly two to one and
-      // spent most of their width on indentation — the same facts at three
-      // times the size, in the one block that pays for its width on every
-      // message.
-      const passes = r.reentries
-        .map((re) => `${re.start}→${re.end}`)
-        .join(", ");
+      // Passes ride on the transit's own line rather than under it. Given one
+      // line each they outnumbered the transits roughly two to one and spent
+      // most of their width on indentation — the same facts at three times the
+      // size, in the one block that pays for its width on every message. A
+      // single pass is the window itself, so it is left off.
+      const passes =
+        r.passes.length > 1
+          ? r.passes.map((p) => `${p.start}→${p.end}`).join(", ")
+          : "";
       lines.push(
         [
-          r.status === "active" ? "  ▸ " : "    ",
+          r.status === "active" ? "  ▸ " : r.status === "between" ? "  ◦ " : "    ",
           r.what.padEnd(pad),
           `  ${r.start} → ${r.end}`,
           r.peak ? `  exact ${r.peak}` : "",
           age === null ? "" : `  age ${age}`,
           `  ${r.significance}`,
-          passes ? `  re-entry ${passes}` : "",
+          passes ? `  passes ${passes}` : "",
         ].join(""),
       );
     }

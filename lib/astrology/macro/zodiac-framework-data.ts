@@ -27,21 +27,24 @@ export interface CanonicalSign {
   label: string;       // display name
   element: ElementKey;
   domain: string;       // the sign's permanent territory
+  // How this sign expresses its element's theme, so signs sharing an element
+  // stay distinct (Libra: connection between two; Aquarius: among many).
+  mode: string;
 }
 
 export const SIGNS: Record<SignKey, CanonicalSign> = {
-  aries: { glyph: "♈", label: "Aries", element: "fire", domain: "Initiation" },
-  taurus: { glyph: "♉", label: "Taurus", element: "earth", domain: "Stability" },
-  gemini: { glyph: "♊", label: "Gemini", element: "air", domain: "Exchange" },
-  cancer: { glyph: "♋", label: "Cancer", element: "water", domain: "Security" },
-  leo: { glyph: "♌", label: "Leo", element: "fire", domain: "Expression" },
-  virgo: { glyph: "♍", label: "Virgo", element: "earth", domain: "Systems" },
-  libra: { glyph: "♎", label: "Libra", element: "air", domain: "Relationships" },
-  scorpio: { glyph: "♏", label: "Scorpio", element: "water", domain: "Power" },
-  sagittarius: { glyph: "♐", label: "Sagittarius", element: "fire", domain: "Expansion" },
-  capricorn: { glyph: "♑", label: "Capricorn", element: "earth", domain: "Structure" },
-  aquarius: { glyph: "♒", label: "Aquarius", element: "air", domain: "Networks" },
-  pisces: { glyph: "♓", label: "Pisces", element: "water", domain: "Unity" },
+  aries: { glyph: "♈", label: "Aries", element: "fire", domain: "Initiation", mode: "Action to begin" },
+  taurus: { glyph: "♉", label: "Taurus", element: "earth", domain: "Stability", mode: "Material to hold" },
+  gemini: { glyph: "♊", label: "Gemini", element: "air", domain: "Exchange", mode: "Connection through information" },
+  cancer: { glyph: "♋", label: "Cancer", element: "water", domain: "Security", mode: "Integration through care" },
+  leo: { glyph: "♌", label: "Leo", element: "fire", domain: "Expression", mode: "Action to express" },
+  virgo: { glyph: "♍", label: "Virgo", element: "earth", domain: "Systems", mode: "Material to refine" },
+  libra: { glyph: "♎", label: "Libra", element: "air", domain: "Relationships", mode: "Connection between two" },
+  scorpio: { glyph: "♏", label: "Scorpio", element: "water", domain: "Power", mode: "Integration through intensity" },
+  sagittarius: { glyph: "♐", label: "Sagittarius", element: "fire", domain: "Expansion", mode: "Action to expand" },
+  capricorn: { glyph: "♑", label: "Capricorn", element: "earth", domain: "Structure", mode: "Material to structure" },
+  aquarius: { glyph: "♒", label: "Aquarius", element: "air", domain: "Networks", mode: "Connection among many" },
+  pisces: { glyph: "♓", label: "Pisces", element: "water", domain: "Unity", mode: "Integration of everything" },
 };
 
 /** Canonical sign order */
@@ -93,7 +96,7 @@ export const URANUS_FRAMEWORK: PlanetFramework = {
 
 export const NEPTUNE_FRAMEWORK: PlanetFramework = {
   planet: "Neptune",
-  principle: "Idealization",
+  principle: "Dream",
   color: "#7b8fe0",
 
   signs: {

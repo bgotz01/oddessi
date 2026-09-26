@@ -8,10 +8,10 @@ import NeptuneEraDrawer from "@/components/western/macro/neptune-era-drawer";
 import MacroPlanetNav from "@/components/western/macro/macro-planet-nav";
 import NeptunePiscesAries from "@/components/western/macro/neptune-pisces-aries";
 import { NEPTUNE_ERAS } from "@/lib/astrology/macro/neptune-eras-data";
-import type { NeptuneEraElement } from "@/lib/astrology/macro/neptune-eras-data";
+import type { NeptuneEra, NeptuneEraElement } from "@/lib/astrology/macro/neptune-eras-data";
 
-const ERAS = NEPTUNE_ERAS;
-type Era = (typeof ERAS)[number];
+const ERAS: readonly NeptuneEra[] = NEPTUNE_ERAS;
+type Era = NeptuneEra;
 
 const ELEMENT_COLOR: Record<NeptuneEraElement, string> = {
   earth: "#8ebf7a",
@@ -23,16 +23,8 @@ const ELEMENT_COLOR: Record<NeptuneEraElement, string> = {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-const TOTAL_START = ERAS[0].startYear;
-const TOTAL_END = ERAS[ERAS.length - 1].endYear;
-const TOTAL_SPAN = TOTAL_END - TOTAL_START;
-const NOW = 2026; // current year for "now" marker
-
-function eraWidthPct(index: number) {
-  const era = ERAS[index];
-  const boundary = ERAS[index + 1]?.startYear ?? era.endYear;
-  return ((boundary - era.startYear) / TOTAL_SPAN) * 100;
-}
+// Same comparative matrix as the markets Neptune timeline: row labels once on
+// the left, eras as columns sized by their length, rows aligned by subgrid.
 
 function NeptuneTimeline({
   selectedSign,
@@ -41,128 +33,102 @@ function NeptuneTimeline({
   selectedSign: string | null;
   onSelect: (sign: string) => void;
 }) {
-  const nowPct = ((NOW - TOTAL_START) / TOTAL_SPAN) * 100;
-
+  // The arc rows (opening, inflection, disillusionment) collapse together.
+  const [arcOpen, setArcOpen] = useState(true);
+  const [manifestationsOpen, setManifestationsOpen] = useState(false);
+  // header, dream, archetype, arc heading, [opening, inflection, disillusionment], manifestations
+  const rows = arcOpen ? 8 : 5;
   return (
-    <div className="mb-2">
-      {/* ── "now" label sits above the bar, aligned to the marker ─────── */}
-      <div className="relative mb-1 h-5 w-full">
-        <span
-          className="datum absolute -translate-x-1/2 text-[0.75rem] text-bone"
-          style={{ left: `${nowPct}%` }}
-        >
-          now
-        </span>
+    <div
+      className="grid min-w-[1010px]"
+      style={{
+        gridTemplateColumns: `128px ${ERAS.map((era) => `${era.endYear - era.startYear}fr`).join(" ")}`,
+        gridTemplateRows: `repeat(${rows}, auto)`,
+      }}
+    >
+      {/* Row labels, once for all eras */}
+      <div className="sticky left-0 z-10 grid grid-rows-subgrid border-r border-rule bg-void" style={{ gridRow: `span ${rows}` }}>
+        <span />
+        <span className="border-t border-rule px-3 py-3 text-left"><span className="datum block text-[0.625rem] uppercase tracking-widest text-bone-faint">The dream</span></span>
+        <span className="border-t border-rule px-3 py-3 text-left"><span className="datum block text-[0.625rem] uppercase tracking-widest text-bone-faint">Archetype</span></span>
+        {/* The arc is one group: its heading toggles its three stages */}
+        <button type="button" aria-expanded={arcOpen} onClick={() => setArcOpen((open) => !open)}
+          className="border-t border-rule px-3 py-2 text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-patina">
+          <span className="datum block text-[0.625rem] uppercase tracking-widest cursor-pointer text-patina hover:text-bone">The arc <span aria-hidden="true" className="ml-1">{arcOpen ? "▾" : "▸"}</span></span>
+        </button>
+        {arcOpen && (
+          <>
+        <span className="border-t border-rule-faint py-2.5 pl-6 pr-3 text-left"><span className="datum block text-[0.5625rem] uppercase tracking-widest text-bone-faint">Opening</span></span>
+        <span className="border-t border-rule-faint py-2.5 pl-6 pr-3 text-left"><span className="datum block text-[0.5625rem] uppercase tracking-widest text-bone-faint">Inflection</span></span>
+        <span className="border-t border-dashed border-rule py-3 pl-6 pr-3 text-left"><span className="datum block text-[0.5625rem] uppercase tracking-widest text-bone-faint">Disillusionment</span></span>
+          </>
+        )}
+        <button type="button" aria-expanded={manifestationsOpen} onClick={() => setManifestationsOpen((open) => !open)}
+          className="self-start border-t border-rule px-3 py-3 text-left focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-patina">
+          <span className="datum block cursor-pointer text-[0.625rem] uppercase tracking-widest text-patina hover:text-bone">
+            <span aria-hidden="true" className="mr-1">{manifestationsOpen ? "▾" : "▸"}</span>Manifestations
+          </span>
+        </button>
       </div>
-
-      {/* ── Colour bar ────────────────────────────────────────────────── */}
-      <div className="relative flex h-10 w-full overflow-hidden rounded-[2px]">
-        {ERAS.map((era, index) => {
-          const color = ELEMENT_COLOR[era.element];
-          const widthPct = eraWidthPct(index);
-          return (
+      {ERAS.map((era) => {
+        const color = ELEMENT_COLOR[era.element];
+        const active = selectedSign === era.sign;
+        return (
+          <div
+            key={era.sign}
+            className="grid min-w-0 grid-rows-subgrid border-r border-rule text-center transition-colors last:border-r-0"
+            style={{ gridRow: `span ${rows}`, backgroundColor: `${color}${active ? "20" : "08"}` }}
+          >
+            {/* Only the header opens the reading */}
             <button
               type="button"
-              key={era.sign}
+              aria-haspopup="dialog"
+              aria-expanded={active}
+              aria-label={`Neptune in ${era.sign}, ${era.years}: ${era.ideal}. Open the reading.`}
               onClick={() => onSelect(era.sign)}
-              aria-label={`Open Neptune in ${era.sign}`}
-              aria-pressed={selectedSign === era.sign}
-              className="relative cursor-pointer transition-[filter] hover:brightness-110"
-              style={{
-                width: `${widthPct}%`,
-                backgroundColor: color,
-                opacity: era.status === "active" ? 0.95 : 0.85,
-              }}
+              className="group flex cursor-pointer flex-col justify-start pb-3 transition-colors hover:bg-white/[0.03] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-patina"
             >
-              <span className="absolute right-0 top-0 h-full w-px bg-void/30" />
+              {/* Solid for the dream, hatched after the inflection */}
+              <span className="mb-3 flex h-2 transition-[filter] group-hover:brightness-125" title={era.inflection ? `Inflection ${era.inflection.date}: ${era.inflection.label}` : undefined}>
+                <span style={{ backgroundColor: color, flex: (era.inflection?.year ?? era.endYear) - era.startYear }} />
+                {era.inflection && <span style={{ flex: era.endYear - era.inflection.year, background: `repeating-linear-gradient(135deg, ${color} 0 3px, ${color}55 3px 6px)` }} />}
+              </span>
+              <span className="datum block text-[0.625rem] uppercase tracking-widest text-bone"><span className="glyph mr-1.5 text-base normal-case" style={{ color }} aria-hidden="true">{era.glyph}</span>{era.sign}</span>
+              <span className="datum mt-1 block text-[0.625rem] text-bone-faint">{era.startYear}–{era.endYear}</span>
+              <span className="datum block text-[0.625rem] uppercase tracking-widest mt-1.5 px-3" style={{ color }}>{era.domain}</span>
             </button>
-          );
-        })}
-
-        {/* Now marker */}
-        <div
-          className="absolute top-0 h-full w-[2px] bg-bone/80"
-          style={{ left: `${nowPct}%` }}
-        />
-      </div>
-
-      {/* ── Year ticks ────────────────────────────────────────────────── */}
-      <div className="relative mt-1.5 h-5 w-full">
-        {ERAS.map((era, index) => {
-          const pct = ((era.startYear - TOTAL_START) / TOTAL_SPAN) * 100;
-          return (
-            <span
-              key={era.sign}
-              className={`datum absolute text-[0.75rem] text-bone-faint ${index === 0 ? "" : "-translate-x-1/2"
-                }`}
-              style={{ left: `${pct}%` }}
-            >
-              {era.startYear}
+            <span className="block border-t border-rule px-3 py-3">
+              <span className="block text-lg font-semibold leading-tight" style={{ color }}>{era.ideal}</span>
             </span>
-          );
-        })}
-        <span className="datum absolute right-0 text-[0.75rem] text-bone-faint">
-          {TOTAL_END}
-        </span>
-      </div>
-
-      {/* ── Per-segment label blocks ───────────────────────────────────── */}
-      <div className="mt-6 flex w-full items-stretch">
-        {ERAS.map((era, index) => {
-          const color = ELEMENT_COLOR[era.element];
-          const widthPct = eraWidthPct(index);
-          const selected = selectedSign === era.sign;
-          return (
-            <button
-              type="button"
-              key={era.sign}
-              onClick={() => onSelect(era.sign)}
-              aria-pressed={selected}
-              className={`grid cursor-pointer grid-rows-[4.5rem_3rem_4.5rem_minmax(4.5rem,1fr)] gap-2 px-2 py-3 text-center transition-colors hover:bg-surface-alt ${selected ? "bg-surface-alt" : ""
-                }`}
-              style={{
-                width: `${widthPct}%`,
-                borderLeft: `2px solid ${color}`,
-              }}
-            >
-              <div className="flex flex-col items-center justify-center gap-1">
-                <span className="flex min-w-0 items-baseline justify-center gap-1.5">
-                  <span className="glyph text-[1.125rem] leading-none" style={{ color }}>
-                    {era.glyph}
-                  </span>
-                  <span className="inscription text-[0.9375rem] tracking-[0.03em] text-bone">
-                    {era.sign}
-                  </span>
-                </span>
-                <span className="text-[0.6875rem] italic leading-none text-bone-faint">
-                  rules House {era.house}
-                </span>
-                <span className="datum text-[0.6875rem] leading-snug text-bone-faint">
-                  {era.years}
-                </span>
-              </div>
-              <span
-                className="datum flex items-start justify-center break-words text-[0.6875rem] leading-relaxed uppercase tracking-[0.14em]"
-                style={{ color }}
-              >
-                {era.domain}
-              </span>
-              <span className="flex flex-col items-center justify-start gap-1 break-words text-[1.0625rem] leading-snug text-bone">
-                <span className="datum text-[0.5625rem] uppercase tracking-[0.12em] text-bone-faint/60">
-                  Collective ideal
-                </span>
-                {era.ideal}
-              </span>
-              <span className="flex flex-col items-center justify-start gap-1 break-words border-t border-rule-faint pt-2.5 text-[0.9375rem] leading-snug text-bone-soft">
-                <span className="datum text-[0.5625rem] uppercase tracking-[0.12em] text-bone-faint/60">
-                  Archetype
-                </span>
-                {era.archetype}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+            <span className="block border-t border-rule px-3 py-3 text-sm leading-snug text-bone-soft">{era.archetype}</span>
+            <span aria-hidden="true" className="border-t border-rule" />
+            {arcOpen && (
+              <>
+            <span className="block border-t border-rule px-3 py-2.5">
+              <span className="datum block text-[0.625rem] uppercase tracking-widest" style={{ color }}>{era.trigger.date}</span>
+              <span className="mt-0.5 block text-sm leading-snug text-bone">{era.trigger.label}</span>
+            </span>
+            <span className="block border-t border-rule px-3 py-2.5">
+              {era.inflection && <span className="datum block text-[0.625rem] uppercase tracking-widest" style={{ color }}>{era.inflection.date}</span>}
+              <span className={`mt-0.5 block text-sm leading-snug ${era.inflection ? "text-bone" : "italic text-bone-faint"}`}>{era.inflection?.label ?? "Not yet"}</span>
+            </span>
+            <span className="block border-t border-dashed border-rule px-3 py-3">
+              <span className={`block text-[0.9375rem] leading-snug ${era.disillusionment ? "font-semibold text-bone" : "italic text-bone-faint"}`}>{era.disillusionment ?? "Not yet identified"}</span>
+            </span>
+              </>
+            )}
+            <span className="block self-start border-t border-rule px-3 py-3">
+              {era.manifestations.length === 0
+                ? <span className="block text-sm italic text-bone-faint">Not yet</span>
+                : manifestationsOpen
+                  ? era.manifestations.map((item) => (
+                      <span key={item} className="block text-sm leading-snug text-bone-soft [&:not(:first-child)]:mt-1">{item}</span>
+                    ))
+                  : <span className="datum block text-[0.625rem] uppercase tracking-widest text-bone-faint">{era.manifestations.length} examples</span>}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -176,18 +142,13 @@ function IdealProgression({
 }) {
   return (
     <div className="mb-12">
-      <p className="mx-auto mb-8 max-w-3xl text-center text-[1.25rem] italic leading-relaxed text-bone-soft">
-        What does society increasingly believe in, desire, or mythologize?
-      </p>
-
-      <div className="-mx-2 overflow-x-auto px-2 pb-3">
-        <div className="min-w-[980px]">
-          <NeptuneTimeline selectedSign={selectedSign} onSelect={onSelect} />
-        </div>
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <p className="text-[1.0625rem] italic text-bone-soft">What does society increasingly believe in, desire, or mythologize?</p>
+        <span className="datum text-xs text-bone-faint">{ERAS[0].startYear}–{ERAS[ERAS.length - 1].endYear} · {ERAS.length} eras · Select an era to read it</span>
       </div>
-      <p className="datum mt-3 text-center text-[0.6875rem] uppercase tracking-[0.16em] text-bone-faint">
-        Select an era to open its full reading
-      </p>
+      <div role="region" aria-label="Explore the Neptune eras" tabIndex={0} className="overflow-x-auto pb-3">
+        <NeptuneTimeline selectedSign={selectedSign} onSelect={onSelect} />
+      </div>
     </div>
   );
 }
@@ -208,7 +169,7 @@ export default function NeptunePage() {
         <PageTitle
           eyebrow="Collective · Neptune"
           title="The Neptune Sequence"
-          lede="Neptune represents idealization. Each sign names a canonical domain; each era shows how society dreams about, desires, and mythologizes that domain as a collective ideal."
+          lede="Neptune represents the collective dream. Each sign names a canonical domain; each era shows how society dreams about, desires, and mythologizes that domain as a collective ideal."
         />
       </div>
 
@@ -227,7 +188,7 @@ export default function NeptunePage() {
               aria-hidden="true"
               className="mx-3 h-px w-8 bg-patina-dim"
             />
-            <span className="text-patina">Idealization</span>
+            <span className="text-patina">Dream</span>
           </span>
         </SectionHeading>
         <IdealProgression

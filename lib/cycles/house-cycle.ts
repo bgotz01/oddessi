@@ -157,8 +157,21 @@ export function buildHouseCycle(
   /**
    * Which house is in force, so boxes with no cached transit can still be
    * placed before or after the reader rather than defaulting to "ahead".
+   *
+   * Read from the passes first. The last-entered envelope is wrong for the
+   * whole stretch a retrograde carries the planet back over a cusp — Jupiter
+   * enters the 1st, backs into the 12th for four months, and the envelope
+   * still says 1st. The passes tile, so one contains today.
    */
-  const currentHouse = rows.length ? rows[currentIndex(rows, t)].house : null;
+  const inPass = bands.find(
+    (b) =>
+      b.kind === "house-transit" &&
+      typeof b.houseNumber === "number" &&
+      b.segments.some((s) => ms(s.start) <= t && t < ms(s.end)),
+  );
+  const currentHouse =
+    (inPass?.houseNumber as number | undefined) ??
+    (rows.length ? rows[currentIndex(rows, t)].house : null);
 
   const step = (phase: CyclePhase, row: Pass | undefined, rebirth: boolean): CycleStep => {
     const id = rebirth ? "rebirth" : `h${phase.house}`;
@@ -171,7 +184,7 @@ export function buildHouseCycle(
      * Saturn's eighth and ninth overlap by eight months on the chart this was
      * written against — so the strip said "now" twice and its readout defaulted
      * to the earlier of them, which is the one the rows above this have already
-     * moved past. Position in the sequence decides, which is also how
+     * moved past. The pass containing today decides, which is also how
      * `fetchActiveHouseTransits` resolves the same overlap.
      */
     let state: CycleStepState;

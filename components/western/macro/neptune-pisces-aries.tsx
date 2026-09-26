@@ -97,7 +97,7 @@ export default function NeptunePiscesAries() {
                 </span>
               </div>
               <p className="datum mt-4 text-[0.625rem] uppercase tracking-[0.14em]" style={{ color: era.color }}>
-                Idealization of {era.domain}
+                The dream of {era.domain}
               </p>
               <p className="inscription mt-1 text-[1.375rem] leading-snug text-bone">
                 {era.focus}

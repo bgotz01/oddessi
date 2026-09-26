@@ -1,211 +1,165 @@
 //components/industry/pluto-era-table.tsx
 "use client";
 
-import { useState } from "react";
-import { SectionHeading } from "@/components/primitives";
+import { useState, type ReactNode } from "react";
 import { ELEMENT_COLOR, signMeta } from "@/lib/symbols";
 import {
   PLUTO_MUSIC_ERAS,
   plutoEraLabel,
-  plutoEraState,
   type PlutoEra,
 } from "@/lib/industry/pluto-music-eras-data";
-import { eraStatus, type EraStatus } from "@/lib/industry/era-years";
+import { eraStatus } from "@/lib/industry/era-years";
 import { useReadingYear } from "@/lib/industry/use-reading-year";
-import PlutoEraDrawer from "@/components/industry/pluto-era-drawer";
 
 /**
- * Controlled when a caller passes `onSelect`, and self-contained otherwise —
- * the same contract the Uranus grid has, so a future combined chart can drive
- * this lane without the component changing.
- *
- * A grid rather than a comparison table, for the reason the Uranus grid is one:
- * a table wide enough to hold every era puts most of them off-screen, and the
- * page is read era after era rather than dimension across. The seven dimensions
- * live in the drawer, where a definition list can give each one a full line.
+ * The Pluto eras as a comparison table, built to the Neptune table's pattern —
+ * sticky row labels, one column per era, the column lit on hover — so the two
+ * music pages read the same way. The seven dimensions stay in the drawer.
  */
-export default function PlutoEraTable({
-  selectedSign: controlledSign,
-  onSelect,
-}: {
-  selectedSign?: string | null;
-  onSelect?: (sign: string) => void;
-} = {}) {
-  const [ownSign, setOwnSign] = useState<string | null>(null);
-  const selectedSign = onSelect ? (controlledSign ?? null) : ownSign;
-  const select = onSelect ?? setOwnSign;
-  // The caller that drives the selection also draws the drawer.
-  const selectedEra = onSelect
-    ? undefined
-    : PLUTO_MUSIC_ERAS.find((era) => era.sign === selectedSign);
+const ROWS: { key: string; label: string; italic?: boolean; cell: (era: PlutoEra, color: string) => ReactNode }[] = [
+  {
+    key: "model",
+    label: "Model",
+    cell: (era, color) =>
+      era.model ? (
+        <span style={{ color }} className="block text-[1.0625rem] font-semibold leading-snug">{era.model}</span>
+      ) : (
+        <Unknown />
+      ),
+  },
+  {
+    key: "leverage",
+    label: "Leverage",
+    cell: (era) =>
+      era.holder ? <span className="block text-[1.0625rem] leading-snug text-bone-soft">{era.holder}</span> : <Unknown />,
+  },
+  {
+    key: "artists",
+    label: "Artists",
+    cell: (era) =>
+      era.artists.length > 0 ? (
+        <ul className="space-y-1">
+          {era.artists.map((artist) => (
+            <li key={artist.name}><span className="block text-[0.9375rem] leading-snug text-bone-soft">{artist.name}</span></li>
+          ))}
+        </ul>
+      ) : (
+        <Unknown />
+      ),
+  },
+  {
+    key: "earlySignal",
+    label: "Early signal",
+    italic: true,
+    cell: (era) =>
+      era.earlySignal ? (
+        <span className="text-[0.9375rem] italic leading-snug text-bone-soft">
+          {era.earlySignal.name}
+          <span className="ml-1 not-italic text-bone-faint">[{era.earlySignal.year}]</span>
+        </span>
+      ) : (
+        <Unknown />
+      ),
+  },
+];
 
-  const year = useReadingYear();
-
-  return (
-    <section className="mb-20">
-      <SectionHeading aside={`${PLUTO_MUSIC_ERAS.length} eras · Pluto`}>
-        <span className="glyph text-patina" aria-hidden="true">♇</span> Pluto Eras
-      </SectionHeading>
-      <p className="mb-2 text-bone-soft">
-        Where does structural power concentrate in the music industry?
-      </p>
-      <p className="mb-6 max-w-2xl text-[0.9375rem] leading-relaxed text-bone-faint">
-        Found by naming the bottleneck: the scarce function no one could route
-        around, and the position holding it.
-      </p>
-
-      <ul className="flex flex-col gap-4 sm:grid sm:grid-cols-2 sm:gap-x-4 sm:gap-y-3 lg:grid-cols-3 xl:grid-cols-4">
-        {PLUTO_MUSIC_ERAS.map((era) => (
-          <EraCard
-            key={era.sign}
-            era={era}
-            status={year === null ? null : eraStatus(era.dates, year)}
-            selected={selectedSign === era.sign}
-            onSelect={() => select(era.sign)}
-          />
-        ))}
-      </ul>
-
-      {selectedEra && (
-        <PlutoEraDrawer
-          era={selectedEra}
-          onNavigate={setOwnSign}
-          onClose={() => setOwnSign(null)}
-        />
-      )}
-    </section>
-  );
+function Unknown() {
+  return <span className="text-[0.9375rem] italic text-bone-faint">To be identified</span>;
 }
 
-/**
- * Which shared row each part of a card sits on.
- *
- * The cards are subgrids of the era grid, so every card's holder, artists and
- * confidence line up with its neighbours' no matter how differently the text
- * above them wraps. Rows are assigned explicitly rather than by auto-placement
- * because most cards are missing something — Aquarius has no verb, no holder
- * and no acts — and auto-placement would pull everything below the gap up a
- * row, which is the misalignment this exists to prevent.
- */
-const ROW = {
-  sign: 1,
-  dates: 2,
-  rule: 3,
-  verb: 4,
-  model: 5,
-  leverage: 6,
-  artistsRule: 7,
-  artists: 8,
-  state: 9,
-} as const;
-
-const ROW_COUNT = 9;
-
-function EraCard({
-  era,
-  status,
-  selected,
-  onSelect,
-}: {
-  era: PlutoEra;
-  status: EraStatus | null;
-  selected: boolean;
-  onSelect: () => void;
+export default function PlutoEraTable({ selectedSign, onSelect }: {
+  selectedSign: string | null;
+  onSelect: (sign: string) => void;
 }) {
-  const meta = signMeta(era.sign);
-  const color = meta ? ELEMENT_COLOR[meta.element] : "var(--color-patina)";
-  const state = plutoEraState(era);
+  const [hoveredSign, setHoveredSign] = useState<string | null>(null);
+  const [focusedSign, setFocusedSign] = useState<string | null>(null);
+  const activeSign = hoveredSign ?? focusedSign ?? selectedSign;
+  const year = useReadingYear();
+
+  const colorOf = (era: PlutoEra) => {
+    const meta = signMeta(era.sign);
+    return meta ? ELEMENT_COLOR[meta.element] : "var(--color-patina)";
+  };
+  const columnStyle = (sign: string, color: string) => ({
+    backgroundColor: `${color}${activeSign === sign ? "20" : "0B"}`,
+  });
+  const rowLabel = "sticky left-0 z-10 border-r border-rule bg-void px-3 py-3 text-center align-middle datum text-[0.625rem] font-normal uppercase leading-relaxed tracking-[0.08em] text-bone-faint sm:px-4";
 
   return (
-    <li className="sm:grid sm:grid-rows-subgrid" style={{ gridRow: `span ${ROW_COUNT}` }}>
-      <button
-        type="button"
-        onClick={onSelect}
-        aria-haspopup="dialog"
-        aria-expanded={selected}
-        aria-label={`Explore Pluto in ${era.sign}, ${era.dates}${status === "active" ? ", the era running now" : ""}`}
-        className="group flex h-full w-full cursor-pointer flex-col items-center gap-3 border sm:grid sm:grid-rows-subgrid sm:justify-items-center border-rule-faint border-t-[3px] px-5 pt-5 pb-5 text-center transition-colors hover:border-rule focus-visible:outline-offset-[-3px]"
-        style={{
-          gridRow: `span ${ROW_COUNT}`,
-          borderTopColor: color,
-          backgroundColor: `${color}${selected ? "1A" : "08"}`,
-        }}
+    <div>
+      <p id="pluto-scroll-hint" className="datum mb-3 text-[0.625rem] text-bone-faint xl:hidden">
+        Scroll sideways to compare all {PLUTO_MUSIC_ERAS.length} eras →
+      </p>
+      <div
+        role="region"
+        aria-label="Pluto music era comparison"
+        aria-describedby="pluto-scroll-hint"
+        tabIndex={0}
+        className="overflow-x-auto border-y border-rule pb-1"
+        onMouseLeave={() => setHoveredSign(null)}
       >
-        <span className="text-[1.1875rem] leading-none" style={{ gridRow: ROW.sign, color }}>
-          <span className="glyph" aria-hidden="true">{era.symbol}</span> {era.sign}
-        </span>
-
-        <span className="datum text-[0.75rem] text-bone-faint" style={{ gridRow: ROW.dates }}>
-          {era.dates}
-          {status === "active" && <span style={{ color }}> · Now</span>}
-        </span>
-
-        <span
-          className="h-px w-8 self-center"
-          style={{ gridRow: ROW.rule, backgroundColor: `${color}55` }}
-          aria-hidden="true"
-        />
-
-        {/* One word, read down the grid: distribute, develop, concentrate,
-            manufacture, platform. The structural sequence, before any of the
-            market names that used to stand in for it. */}
-        {era.verb && (
-          <span
-            className="datum text-[0.625rem] uppercase tracking-[0.18em]"
-            style={{ gridRow: ROW.verb, color }}
-          >
-            {era.verb}
-          </span>
-        )}
-
-        <span
-          className="text-[1.3125rem] leading-tight font-semibold text-balance text-bone"
-          style={{ gridRow: ROW.model }}
-        >
-          {era.model ?? (
-            <span className="font-normal italic text-bone-faint">To be identified</span>
-          )}
-        </span>
-
-        {/* The answer to the question the section asks. It was cut in an
-            earlier pass on the grounds that the model implies it — but only
-            loosely: "mass distribution" could be held by radio or by
-            retailers, and which one it is IS the claim. */}
-        {era.holder && (
-          <span className="flex flex-col items-center gap-1" style={{ gridRow: ROW.leverage }}>
-            <span className="datum text-[0.5625rem] uppercase tracking-[0.14em] text-bone-faint">
-              Leverage
-            </span>
-            <span className="text-[1rem] leading-snug text-bone-soft">{era.holder}</span>
-          </span>
-        )}
-
-        {/* The acts, on the card rather than in the drawer: an era is quicker
-            to place by who was in it than by what it is called. */}
-        {era.artists.length > 0 && (
-          <>
-            <span
-              className="h-px w-8 self-end"
-              style={{ gridRow: ROW.artistsRule, backgroundColor: `${color}55` }}
-              aria-hidden="true"
-            />
-            <span
-              className="text-[0.9375rem] leading-relaxed text-bone-soft"
-              style={{ gridRow: ROW.artists }}
-            >
-              {era.artists.map((artist) => artist.name).join(" · ")}
-            </span>
-          </>
-        )}
-
-        <span
-          className="datum self-end text-[0.625rem] uppercase leading-relaxed tracking-[0.12em]"
-          style={{ gridRow: ROW.state, color: state === "tested" ? color : "var(--color-bone-faint)" }}
-        >
-          {plutoEraLabel(era)}
-        </span>
-
-      </button>
-    </li>
+        <table className="w-full min-w-[1000px] table-fixed border-separate border-spacing-0 text-center">
+          <caption className="sr-only">{PLUTO_MUSIC_ERAS.length} Pluto eras compared by power model, leverage, artists, and early signal. Aquarius is an open question.</caption>
+          <thead>
+            <tr>
+              <th scope="col" className={`${rowLabel} w-[120px] sm:w-[150px]`}>
+                <span className="block">Power<br />at a glance</span>
+              </th>
+              {PLUTO_MUSIC_ERAS.map((era) => {
+                const color = colorOf(era);
+                const element = signMeta(era.sign)?.element;
+                const status = year === null ? null : eraStatus(era.dates, year);
+                return (
+                  <th
+                    key={era.sign} scope="col"
+                    onMouseEnter={() => setHoveredSign(era.sign)}
+                    style={{ ...columnStyle(era.sign, color), borderTopColor: color }}
+                    className={`border-l border-rule-faint border-t-[3px] align-top font-normal transition-colors ${era.model ? "" : "border-t-dashed"}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => onSelect(era.sign)}
+                      onFocus={() => setFocusedSign(era.sign)}
+                      onBlur={() => setFocusedSign(null)}
+                      aria-label={`Explore Pluto in ${era.sign}, ${era.dates}${status === "active" ? ", the era running now" : ""}`}
+                      aria-haspopup="dialog"
+                      aria-expanded={selectedSign === era.sign}
+                      className="group w-full cursor-pointer px-4 py-4 text-center focus-visible:outline-offset-[-3px]"
+                    >
+                      <span className="flex items-center justify-center gap-2 text-[1rem]" style={{ color }}>
+                        <span className="glyph" aria-hidden="true">{era.symbol}</span>
+                        {era.sign}
+                        <span aria-hidden="true" className="text-bone-faint group-hover:text-bone">→</span>
+                      </span>
+                      {element && <span className="datum mt-2 block text-[0.5625rem] uppercase tracking-[0.08em] text-bone-faint">{element}</span>}
+                      <span className="datum mt-1 block text-[0.625rem] text-bone-soft">
+                        {era.dates}
+                        {status === "active" && <span style={{ color }}> · Now</span>}
+                      </span>
+                      <span className="datum mt-2 block text-[0.5625rem] uppercase tracking-[0.08em] text-bone-faint">{plutoEraLabel(era)}</span>
+                    </button>
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {ROWS.map((row) => (
+              <tr key={row.key}>
+                <th scope="row" className={`${rowLabel} border-t border-rule ${row.italic ? "italic" : ""}`}>{row.label}</th>
+                {PLUTO_MUSIC_ERAS.map((era) => {
+                  const color = colorOf(era);
+                  return (
+                    <td key={era.sign} onMouseEnter={() => setHoveredSign(era.sign)} style={columnStyle(era.sign, color)} className="border-l border-t border-rule-faint px-4 py-3 align-middle transition-colors">
+                      {row.cell(era, color)}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

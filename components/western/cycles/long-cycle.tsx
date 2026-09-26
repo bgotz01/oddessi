@@ -2,7 +2,6 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { SectionHeading } from "@/components/primitives";
 import { useChart } from "@/components/chart-context";
 import { useJson } from "@/lib/use-json";
 import { planetMeta } from "@/lib/bodies";
@@ -360,8 +359,15 @@ export default function LongCycle({ spec }: { spec: LongCycleSpec }) {
   };
 
   return (
-    <section className="mt-14">
-      <SectionHeading aside={aside}>{spec.title}</SectionHeading>
+    <details className="group mt-10 border-y border-rule">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-patina [&::-webkit-details-marker]:hidden">
+        <span>
+          <span className="inscription block text-[1.0625rem] text-bone">{spec.title}</span>
+          <span className="datum mt-1 block text-[0.6875rem] text-bone-faint">{aside ?? spec.kind}</span>
+        </span>
+        <span aria-hidden="true" className="text-xl text-bone-faint transition-transform group-open:rotate-45">+</span>
+      </summary>
+      <div className="border-t border-rule-faint py-6">
 
       {/*
         What the house progression is, and the question it answers. Two cycles
@@ -473,6 +479,7 @@ export default function LongCycle({ spec }: { spec: LongCycleSpec }) {
           ) : null}
         </>
       )}
-    </section>
+      </div>
+    </details>
   );
 }

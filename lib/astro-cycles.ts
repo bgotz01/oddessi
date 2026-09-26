@@ -66,6 +66,26 @@ function buildSegments(
     .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
 }
 
+/**
+ * Whether a pass — not the envelope — contains `now`.
+ *
+ * The envelope is the wrong test for "is the planet here". Jupiter's 12th and
+ * 1st overlap for eight months on the chart this was fixed against, because it
+ * crossed into the 1st, turned, and spent four months back in the 12th. Asked
+ * of the envelopes, both houses answer yes for the whole overlap; asked of the
+ * passes, which tile, exactly one does.
+ */
+function inPass(segments: Segment[], now: Date): boolean {
+  const t = now.getTime();
+  return segments.some((s) => Date.parse(s.start) <= t && t < Date.parse(s.end));
+}
+
+/** The next time the planet crosses into this row, if it still does. */
+function nextIngress(segments: Segment[], now: Date): string | undefined {
+  const t = now.getTime();
+  return segments.find((s) => Date.parse(s.start) > t)?.start;
+}
+
 interface Row {
   id: string;
   planet: string;
@@ -126,8 +146,15 @@ function toBand(row: Row): Band {
 export interface UpcomingTransit {
   house: string;
   houseNumber: number | null;
+  /**
+   * The next crossing into this house — which is the envelope's start for a
+   * house not yet reached, and a retrograde re-entry for one the planet has
+   * already touched and backed out of.
+   */
   start: string;
   end: string;
+  /** Every stretch the planet actually spends in the house. */
+  passes: Segment[];
   significance: string;
 }
 
@@ -167,8 +194,10 @@ const AHEAD_PER_PLANET = 3;
  * different question ("what is being triggered right now") than the one this
  * page asks ("what long season am I in"). They live in the explorer instead.
  *
- * Where retrogrades make two house transits overlap, the later-starting one is
- * the planet's current house.
+ * Where retrogrades make two house transits overlap, the planet's current
+ * house is the one with a PASS containing now. The passes tile, so exactly one
+ * does; "the later-starting envelope wins", which this used to say, is wrong
+ * for the whole stretch a retrograde carries the planet back over the cusp.
  *
  * A planet is always in a house. When no row covers now, the calculator
  * recorded a retrograde gap — Jupiter briefly re-crossed a cusp and was stored
@@ -202,18 +231,21 @@ export async function fetchActiveHouseTransits(
     (p) => !rows.some((r) => r.planet === p),
   );
 
-  // Everything still ahead, for every planet — not only the ones with a gap to
-  // fill. One query answers both questions: which house a planet caught between
-  // two is about to enter, and what follows the house each planet is in now.
-  const futureRows = (await prisma.lifeCycleCache.findMany({
+  // Everything not yet finished, for every planet — not only the ones with a
+  // gap to fill. One query answers both questions: which house a planet caught
+  // between two is about to enter, and what follows the house each planet is
+  // in now. Unfinished rather than unstarted, because a house the planet
+  // entered and then retrograded out of is still ahead of it.
+  const openRows = (await prisma.lifeCycleCache.findMany({
     where: {
       chartId,
       type: "house-transit",
       planet: { in: PLANET_NAMES },
-      startDate: { gt: now },
+      endDate: { gt: now },
     },
     orderBy: [{ startDate: "asc" }],
   })) as unknown as Row[];
+  const futureRows = openRows.filter((r) => r.startDate > now);
 
   const recentlyEndedRows: Row[] =
     missingPlanets.length > 0
@@ -242,7 +274,11 @@ export async function fetchActiveHouseTransits(
   const cycles: ActiveCycle[] = [];
 
   for (const planet of PLANET_NAMES) {
-    const activeRow = rows.find((r) => r.planet === planet);
+    const own = rows.filter((r) => r.planet === planet);
+    const activeRow =
+      own.find((r) =>
+        inPass(buildSegments(r.startDate, r.endDate, r.interpretation), now),
+      ) ?? own[0];
 
     let row: Row | undefined = activeRow;
     let upcoming = false;
@@ -264,15 +300,19 @@ export async function fetchActiveHouseTransits(
 
     if (!row) continue;
 
-    // Anything that begins after the transit shown. Keyed off the shown row's
-    // start rather than off `now`, because the two differ in both odd cases:
-    // a planet held at a cusp has a later-starting row already running, and a
-    // planet in a retrograde gap is being shown a row that has not begun.
-    const shownStart = row.startDate.getTime();
-    const ahead = futureRows
-      .filter(
-        (r) => r.planet === planet && r.startDate.getTime() > shownStart,
-      )
+    // Every other house the planet crosses into from here, in the order it
+    // crosses. Ordered by the next ingress rather than by envelope start: a
+    // planet back in the 12th on a retrograde re-enters the 1st next, even
+    // though the 1st's envelope began months ago.
+    const shownId = row.id;
+    const ahead = openRows
+      .filter((r) => r.planet === planet && r.id !== shownId)
+      .map((r) => {
+        const passes = buildSegments(r.startDate, r.endDate, r.interpretation);
+        return { r, passes, ingress: nextIngress(passes, now) };
+      })
+      .filter((x): x is typeof x & { ingress: string } => Boolean(x.ingress))
+      .sort((a, b) => Date.parse(a.ingress) - Date.parse(b.ingress))
       .slice(0, AHEAD_PER_PLANET);
 
     cycles.push({
@@ -284,11 +324,12 @@ export async function fetchActiveHouseTransits(
       start: iso(row.startDate),
       end: iso(row.endDate),
       upcoming: upcoming || undefined,
-      next: ahead.map((r) => ({
+      next: ahead.map(({ r, passes, ingress }) => ({
         house: subtitleFor(r),
         houseNumber: r.houseNumber,
-        start: iso(r.startDate),
+        start: ingress,
         end: iso(r.endDate),
+        passes,
         significance: r.significance,
       })),
     });
@@ -393,13 +434,22 @@ export interface PromptCycle {
   /** The moment of exactness. Absent on house transits, which have no peak. */
   peak?: string;
   /**
-   * Retrograde re-entries — the passes back into orb after the planet first
-   * left it. The first direct pass is `start`→ the first re-entry's start, so
-   * these are the extra contacts and not a restatement of the window.
+   * Every stretch actually spent in the house or in orb, first pass included.
+   *
+   * This used to carry only the re-entries, on the reasoning that the first
+   * pass was `start` → the first re-entry. It is not: it ends at `initialEnd`,
+   * when the planet backs out, and there is a gap before it returns. Without
+   * that date the model could see a house re-entered but never when it had
+   * been left, and read two overlapping windows as two houses at once.
    */
-  reentries: Array<{ start: string; end: string }>;
+  passes: Segment[];
   significance: string;
-  status: "completed" | "active" | "upcoming";
+  /**
+   * From the passes, not the envelope. `between` is inside the window but in
+   * a retrograde gap — the planet is in a neighbouring house, or out of orb,
+   * and has not finished with this one.
+   */
+  status: "completed" | "active" | "between" | "upcoming";
 }
 
 /**
@@ -421,10 +471,15 @@ function promptLabel(row: Row): string {
 }
 
 /** Status from the dates, never from the stored column. */
-function statusAt(start: Date, end: Date, now: Date): PromptCycle["status"] {
+function statusAt(
+  start: Date,
+  end: Date,
+  passes: Segment[],
+  now: Date,
+): PromptCycle["status"] {
   if (now < start) return "upcoming";
   if (now > end) return "completed";
-  return "active";
+  return inPass(passes, now) ? "active" : "between";
 }
 
 /**
@@ -470,7 +525,7 @@ export async function fetchCyclesForPrompt(
         a.startDate.getTime() - b.startDate.getTime(),
     )
     .map((row) => {
-      const segments = buildSegments(row.startDate, row.endDate, row.interpretation);
+      const passes = buildSegments(row.startDate, row.endDate, row.interpretation);
       return {
         planet: row.planet,
         kind: row.type as CycleType,
@@ -478,9 +533,9 @@ export async function fetchCyclesForPrompt(
         start: iso(row.startDate),
         end: iso(row.endDate),
         peak: row.peakDate ? iso(row.peakDate) : undefined,
-        reentries: segments.slice(1),
+        passes,
         significance: row.significance,
-        status: statusAt(row.startDate, row.endDate, now),
+        status: statusAt(row.startDate, row.endDate, passes, now),
       };
     });
 }

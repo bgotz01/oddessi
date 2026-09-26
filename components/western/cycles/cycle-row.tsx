@@ -1,5 +1,4 @@
 import type { Band } from "@/lib/band";
-import { hasRetrograde } from "@/lib/band";
 import { planetMeta } from "@/lib/bodies";
 import { HOUSE_NAMES } from "@/lib/astrology/standard-definitions";
 
@@ -67,7 +66,13 @@ export interface CycleRowData {
   /** Planet is between houses; this is the next incoming transit. */
   upcoming?: boolean;
   /** The houses ahead of the one shown, soonest first. May be absent. */
-  next?: { house: string; houseNumber: number | null; start: string }[];
+  next?: {
+    house: string;
+    houseNumber: number | null;
+    start: string;
+    end?: string;
+    passes?: { start: string; end: string }[];
+  }[];
 }
 
 export default function CycleRow({
@@ -88,15 +93,6 @@ export default function CycleRow({
   const planetRole = meta?.description ?? null;
   const houseName = cycle.houseNumber ? HOUSE_NAMES[cycle.houseNumber] : null;
 
-  /**
-   * The house after this one, named on the row.
-   *
-   * The sequence itself is not news — houses are contiguous sectors in order,
-   * so the sixth always follows the fifth — but the date is, because a
-   * retrograde can hold a planet at a cusp for the better part of a year. A
-   * page that shows only what is in force can say when it ends and still leave
-   * "so what comes next, and when" unanswerable, which is exactly what it did.
-   */
   const start = Date.parse(band.start);
   const span = Date.parse(band.end) - start;
   const pos = (iso: string) =>
@@ -106,10 +102,9 @@ export default function CycleRow({
   const nowVisible = nowX >= 0 && nowX <= 100;
   const elapsed = Math.min(1, Math.max(0, (now.getTime() - start) / span));
   const labels = labelPoints(band, pos);
-  const retro = hasRetrograde(band);
 
   // Extra height when we have labels below the bar
-  const trackH = TRACK_TOP + BAR_H + (labels.length ? 22 : 4);
+  const trackH = TRACK_TOP + BAR_H + (labels.length ? 26 : 4);
 
   return (
     <div
@@ -120,7 +115,7 @@ export default function CycleRow({
         role={onClick ? "button" : undefined}
         tabIndex={onClick ? 0 : undefined}
         onClick={onClick}
-        onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") onClick(); } : undefined}
+        onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
         className={`mb-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 ${onClick
           ? "cursor-pointer rounded-sm outline-none hover:opacity-80 focus-visible:ring-1 focus-visible:ring-[var(--color-patina)]"
           : ""
@@ -176,18 +171,19 @@ export default function CycleRow({
         </div>
       </div>
 
+
       {/* Track */}
       <div className="relative w-full" style={{ height: `${trackH}px` }}>
 
         {/* Year labels — only at the very start and end of the envelope */}
         <div
-          className="datum absolute text-[0.625rem] whitespace-nowrap"
+          className="datum absolute text-[0.75rem] whitespace-nowrap"
           style={{ left: "0%", top: "2px", color, opacity: 0.65 }}
         >
           {new Date(`${band.start}T00:00:00Z`).getUTCFullYear()}
         </div>
         <div
-          className="datum absolute text-[0.625rem] whitespace-nowrap"
+          className="datum absolute text-[0.75rem] whitespace-nowrap"
           style={{ right: "0%", top: "2px", color, opacity: 0.65 }}
         >
           {new Date(`${band.end}T00:00:00Z`).getUTCFullYear()}
@@ -291,7 +287,7 @@ export default function CycleRow({
                 }}
               />
               <span
-                className="datum block text-[0.625rem] whitespace-nowrap"
+                className="datum block text-[0.75rem] whitespace-nowrap"
                 style={{
                   color,
                   opacity: 0.9,

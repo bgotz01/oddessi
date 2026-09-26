@@ -64,6 +64,13 @@ const NAV: NavGroup[] = [
           { href: "/industry/music/pluto", label: "Pluto" },
         ],
       },
+      { href: "/industry/markets", label: "Markets", children: [
+        { href: "/industry/markets/timeline", label: "Timeline" },
+        { href: "/industry/markets/neptune", label: "Neptune" },
+        { href: "/industry/markets/uranus", label: "Uranus" },
+        { href: "/industry/markets/pluto", label: "Pluto" },
+        { href: "/industry/markets/inversion", label: "Inversion" },
+      ] },
     ],
   },
   {
@@ -109,7 +116,10 @@ const NAV: NavGroup[] = [
       {
         href: "/western/cycles",
         label: "Cycles",
-        children: [{ href: "/western/cycles/explorer", label: "Explorer" }],
+        children: [
+          { href: "/western/cycles/explorer", label: "Explorer" },
+          { href: "/western/cycles/guide", label: "Guide" },
+        ],
       },
     ],
   },

@@ -2,17 +2,53 @@
 
 import { useEffect } from "react";
 import { planetMeta } from "@/lib/bodies";
-import { HOUSE_NAMES } from "@/lib/astrology/standard-definitions";
+import { HOUSE_DEFINITIONS, HOUSE_NAMES } from "@/lib/astrology/standard-definitions";
 import { getCycleInterpretation } from "@/lib/cycle-interpretations";
+import { ARCS } from "@/lib/cycles/arcs-data";
 import type { CycleRowData } from "@/components/western/cycles/cycle-row";
 
-const PLANET_ELABORATIONS: Record<string, { action: string; description: string }> = {
-  Jupiter: { action: "Expansion", description: "Enlarges, spreads, amplifies" },
-  Saturn: { action: "Structure", description: "Constrains, formalizes, institutionalizes" },
-  Uranus: { action: "Disruption", description: "Breaks existing patterns and introduces the unexpected" },
-  Neptune: { action: "Dissolution", description: "Erodes boundaries, certainty, and established narratives" },
-  Pluto: { action: "Transformation", description: "Destroys/reconstitutes something at a fundamental level" },
+/**
+ * What each planet does to whatever house it crosses. Fragments, not
+ * sentences — the drawer is bullets throughout.
+ */
+const PLANET_ACTIONS: Record<string, string[]> = {
+  Jupiter: ["Enlarges what is already there", "Spreads into new territory", "Amplifies confidence and appetite", "Opens doors, guarantees nothing"],
+  Saturn: ["Tests what is already there", "Formalizes and asks for commitment", "Removes what cannot hold weight", "Rewards sustained effort"],
+  Uranus: ["Breaks existing patterns", "Brings the unexpected", "Frees what was stuck", "Pushes toward the new"],
+  Neptune: ["Softens boundaries", "Draws you toward an ideal", "Blurs fact and hope", "Dissolves certainty"],
+  Pluto: ["Exposes what is underneath", "Breaks down what no longer works", "Rebuilds at the root", "Leaves nothing as it was"],
 };
+
+/** A labelled bullet list — the drawer's one building block. */
+function Bullets({
+  label,
+  items,
+  mark,
+  labelClass = "text-bone",
+  markClass = "text-bone-faint",
+}: {
+  label: string;
+  items: string[];
+  mark?: string;
+  labelClass?: string;
+  markClass?: string;
+}) {
+  return (
+    <section>
+      <p className={`eyebrow mb-3 text-[0.75rem] ${labelClass}`}>{label}</p>
+      <ul className="space-y-2">
+        {items.map((item) => (
+          <li key={item} className="flex gap-2.5">
+            <span className={`datum mt-[5px] shrink-0 text-[0.75rem] leading-5 ${markClass}`}>
+              {mark ?? "—"}
+            </span>
+            <span className="text-[1.0625rem] leading-relaxed text-bone">{item}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
 export default function CycleDrawer({
   cycle,
@@ -27,7 +63,12 @@ export default function CycleDrawer({
   const interp = cycle.houseNumber
     ? getCycleInterpretation(cycle.planet, cycle.houseNumber)
     : undefined;
-  const elaboration = PLANET_ELABORATIONS[cycle.planet];
+  const actions = PLANET_ACTIONS[cycle.planet];
+  const territory = cycle.houseNumber ? HOUSE_DEFINITIONS[cycle.houseNumber] : undefined;
+  // The developmental arc for this planet and house, where one is written.
+  const houseArc = ARCS.find((a) => a.planet === cycle.planet)?.houses.find(
+    (h) => h.house === cycle.houseNumber,
+  );
 
   // Close on Escape
   useEffect(() => {
@@ -52,7 +93,7 @@ export default function CycleDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={`${cycle.planet} in ${cycle.house}`}
-        className="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto border-l border-rule bg-surface shadow-2xl flex flex-col"
+        className="fixed right-0 top-0 z-50 h-full w-full max-w-lg overflow-y-auto border-l border-rule bg-surface shadow-2xl flex flex-col"
       >
         {/* Header */}
         <div className="shrink-0 border-b border-rule px-6 py-5">
@@ -66,124 +107,96 @@ export default function CycleDrawer({
               </span>
               <div>
                 <div className="flex items-baseline gap-2">
-                  <span className="inscription text-[1.125rem]" style={{ color }}>
+                  <span className="inscription text-[1.25rem]" style={{ color }}>
                     {cycle.planet}
                   </span>
-                  <span className="inscription text-[1.125rem] text-bone">
+                  <span className="inscription text-[1.25rem] text-bone">
                     {cycle.house}
                   </span>
                 </div>
                 {houseName && (
-                  <p className="datum mt-0.5 text-[0.6875rem] tracking-[0.14em] text-bone-soft uppercase">
+                  <p className="datum mt-0.5 text-[0.75rem] tracking-[0.14em] text-bone-soft uppercase">
                     {houseName}
                   </p>
                 )}
-                {elaboration && (
-                  <p className="mt-3 text-[1.25rem] italic leading-snug text-bone-faint">
-                    {elaboration.description}
-                  </p>
+                {meta && (
+                  <p className="mt-2 text-[1.0625rem] text-bone-soft">{meta.description}</p>
                 )}
               </div>
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="datum mt-1 shrink-0 text-[0.625rem] tracking-[0.18em] text-bone-faint uppercase transition-colors hover:text-bone"
+              className="datum mt-1 shrink-0 text-[0.75rem] tracking-[0.18em] text-bone-faint uppercase transition-colors hover:text-bone"
             >
               Close
             </button>
           </div>
 
-          {/* Core process + duration */}
-          {interp && (
-            <div className="mt-3 flex items-center gap-2">
-              <span
-                className="h-[6px] w-[6px] shrink-0"
-                style={{ backgroundColor: color, opacity: 0.7 }}
-              />
-              <span className="datum text-[0.625rem] tracking-[0.18em] text-bone-faint uppercase">
-                {interp.coreProcess} · {interp.typicalDuration}
-              </span>
-            </div>
-          )}
-
-          {/* Significance */}
-          {cycle.significance && (
-            <div className="mt-4 pt-4 border-t border-rule-faint">
-              <p className="text-[0.9375rem] leading-relaxed text-bone-soft">
-                {cycle.significance}
-              </p>
-            </div>
-          )}
         </div>
 
-        {/* Body */}
-        <div className="px-6 py-7 space-y-6">
-          {!interp ? (
-            <p className="text-[0.9375rem] text-bone-soft">
+        {/* Body — bullets only */}
+        <div className="px-6 py-7 space-y-7">
+          {interp && (
+            <section>
+              <h3 className="inscription mb-3 text-[1.125rem] text-bone">{interp.headline}</h3>
+              <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+                {interp.themes.map((t, i) => (
+                  <div key={t} className="flex items-center gap-3">
+                    <span
+                      className="datum text-[0.75rem] tracking-[0.2em] uppercase"
+                      style={{ color }}
+                    >
+                      {t}
+                    </span>
+                    {i < interp.themes.length - 1 && (
+                      <span
+                        className="h-1 w-1 rounded-full"
+                        style={{ backgroundColor: color, opacity: 0.5 }}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {actions && <Bullets label={`What ${cycle.planet} does`} items={actions} />}
+          {territory && <Bullets label="Where it acts" items={territory} />}
+
+          {houseArc && (
+            <>
+              <Bullets label="What attracts you" items={houseArc.fascinations.slice(0, 4)} />
+              <Bullets
+                label="What blurs"
+                items={houseArc.blurs.slice(0, 4).map(([a, b]) => `${a} ⟷ ${b}`)}
+              />
+              <Bullets
+                label="What changes"
+                items={houseArc.revisions.map((r) => `${r.from} → ${r.to}`)}
+              />
+            </>
+          )}
+
+          {interp ? (
+            <div className="grid gap-6 sm:grid-cols-2">
+              <Bullets
+                label="Growth"
+                items={interp.gifts}
+                labelClass="text-patina"
+                markClass="text-patina"
+              />
+              <Bullets
+                label="Challenges"
+                items={interp.challenges}
+                labelClass="text-ember"
+                markClass="text-ember"
+              />
+            </div>
+          ) : (
+            <p className="text-[1.0625rem] text-bone-soft">
               No interpretation available for this transit.
             </p>
-          ) : (
-            <>
-              {/* Headline + overview */}
-              <section>
-                <h3 className="inscription mb-3 text-[1rem] text-bone">
-                  {interp.headline}
-                </h3>
-                <p className="text-[1.0625rem] leading-relaxed text-bone-soft">
-                  {interp.overview}
-                </p>
-              </section>
-
-              {/* Themes */}
-              <section>
-                <p className="eyebrow mb-3 text-bone">Themes</p>
-                <div className="flex flex-wrap gap-3">
-                  {interp.themes.map((t, i) => (
-                    <div key={t} className="flex items-center gap-3">
-                      <span
-                        className="datum text-[0.625rem] tracking-[0.22em] uppercase"
-                        style={{ color }}
-                      >
-                        {t}
-                      </span>
-                      {i < interp.themes.length - 1 && (
-                        <span
-                          className="h-1 w-1 rounded-full"
-                          style={{ backgroundColor: color, opacity: 0.5 }}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* Growth + Challenges */}
-              <section className="grid gap-6 sm:grid-cols-2">
-                <div>
-                  <p className="eyebrow mb-3 text-patina">Growth</p>
-                  <ul className="space-y-2">
-                    {interp.gifts.map((g) => (
-                      <li key={g} className="flex gap-2.5">
-                        <span className="datum mt-[3px] shrink-0 text-[0.625rem] text-patina leading-5">—</span>
-                        <span className="text-[0.9375rem] leading-relaxed text-bone">{g}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <p className="eyebrow mb-3 text-ember">Challenges</p>
-                  <ul className="space-y-2">
-                    {interp.challenges.map((c) => (
-                      <li key={c} className="flex gap-2.5">
-                        <span className="datum mt-[3px] shrink-0 text-[0.625rem] text-ember leading-5">—</span>
-                        <span className="text-[0.9375rem] leading-relaxed text-bone">{c}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </section>
-            </>
           )}
         </div>
 
