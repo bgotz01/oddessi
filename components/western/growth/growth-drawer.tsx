@@ -226,7 +226,7 @@ export default function GrowthDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={`${t.arc.from} to ${t.arc.into}`}
-        className="fixed top-0 right-0 z-50 flex h-full w-full max-w-lg flex-col border-l border-rule bg-surface"
+        className="fixed top-0 right-0 z-50 flex h-full w-full max-w-xl flex-col border-l border-rule bg-surface"
       >
         {/* The axis, stated once. It frames every tab, so repeating it inside
             each one — which is what five separate drawers had to do — was three
@@ -234,9 +234,9 @@ export default function GrowthDrawer({
         <div className="shrink-0 border-b border-rule px-8 py-6">
           <div className="flex items-start justify-between gap-6">
             <div className="min-w-0">
-              <p className={`${T.tiny} text-bone-faint`}>{active.kicker}</p>
-              <p className="inscription mt-2.5 flex flex-wrap items-baseline gap-x-3 text-[1.375rem] leading-none text-bone">
-                <span className="text-bone-faint">{t.arc.from}</span>
+              <p className={`${T.micro} text-bone-soft`}>{active.kicker}</p>
+              <p className={`mt-2.5 flex flex-wrap items-baseline gap-x-3 ${T.title}`}>
+                <span className="text-bone-soft">{t.arc.from}</span>
                 <span className="glyph text-[1rem] text-patina">→</span>
                 <span>{t.arc.into}</span>
               </p>
@@ -567,8 +567,8 @@ export default function GrowthDrawer({
                     which reads as the conversion running backwards. The
                     correction is not a conversion; it is what this ground is
                     called before any conversion starts. */}
-                <p className={`${T.phrase} uppercase`}>
-                  {t.conversionArc.from}
+                <p className={`${T.phrase} capitalize`}>
+                  {t.conversionArc.from.toLowerCase()}
                 </p>
                 {/* The correction only. The charge this returns alongside it
                     is what "Embedded in the territory" prints directly below,

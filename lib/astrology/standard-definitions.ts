@@ -1,5 +1,7 @@
 // Standard astrological definitions that can be reused across the app
 
+import { HOUSE_CATEGORIES } from "@/lib/astrology/house-categories";
+
 // Standard house definitions
 export const HOUSE_DEFINITIONS: Record<number, string[]> = {
     1: ['Personal identity and self-image', 'Physical appearance and first impressions', 'Personal initiative and leadership style', 'How you present yourself to the world', 'Your basic approach to life'],
@@ -32,21 +34,11 @@ export const HOUSE_CHARACTERS: Record<number, string> = {
     12: 'The house of the unseen — the unconscious, solitude, surrender, spirituality, and what lies beyond ordinary awareness.',
 };
 
-// Short house names for titles
-export const HOUSE_NAMES: Record<number, string> = {
-    1: 'Identity & Self',
-    2: 'Resources & Values',
-    3: 'Communication & information',
-    4: 'Home & Family',
-    5: 'Creativity & Romance',
-    6: 'Work & Health',
-    7: 'Partnerships & Relationships',
-    8: 'Shared Resources & Intimacy',
-    9: 'Beliefs & Higher Learning',
-    10: 'Career & Public Life',
-    11: 'Networks & Collective',
-    12: 'Inner World & Transcendence',
-};
+// Short house names for titles — derived from the canonical titles in
+// house-categories, so Cycles names a house the same way every other page does.
+export const HOUSE_NAMES: Record<number, string> = Object.fromEntries(
+    Object.values(HOUSE_CATEGORIES).map((c) => [c.house, c.title]),
+);
 
 // Standard planet definitions with specific explanatory text
 export const PLANET_DEFINITIONS: Record<string, { areas: string[]; character: string }> = {

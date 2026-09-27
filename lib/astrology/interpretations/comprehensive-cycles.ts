@@ -5,6 +5,7 @@ import {
 } from './life-cycles';
 import { ASPECT_CYCLE_INTERPRETATIONS } from './aspect-cycles';
 import { PLANETARY_RETURN_INTERPRETATIONS } from './planetary-returns';
+import { getHouseTitle, type House as HouseNumber } from '@/lib/astrology/house-categories';
 
 // Legacy interface for backward compatibility
 interface LegacyLifeCycleInterpretation {
@@ -497,14 +498,9 @@ function getPlanetName(planet: Planet | string): string {
 }
 
 function getHouseName(house: number): string {
-    const names = [
-        '', 'Identity & Self', 'Resources & Values', 'Communication & Learning',
-        'Home & Family', 'Creativity & Romance', 'Work & Health',
-        'Partnerships & Relationships', 'Transformation & Shared Resources',
-        'Wisdom & Higher Learning', 'Career & Public Life', 'Networks & Collective',
-        'Spirituality & Service'
-    ];
-    return names[house] || `${house}th House`;
+    return house >= 1 && house <= 12
+        ? getHouseTitle(house as HouseNumber)
+        : `${house}th House`;
 }
 
 function getHouseThemes(house: number): string[] {

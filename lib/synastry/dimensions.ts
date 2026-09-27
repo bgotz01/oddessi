@@ -448,7 +448,7 @@ function askFor(
         ? `ease +${dimension.ease}, so it leans toward flow`
         : `ease ${dimension.ease}, so it leans toward friction`;
 
-  return `On the compatibility page: ${definition.label.toLowerCase()} reads chemistry ${dimension.chemistry} with ${character}, off ${dimension.contactCount} contact${dimension.contactCount === 1 ? "" : "s"}${drivers ? ` — ${drivers}` : ""}. Chemistry and ease are separate measurements and a high one of each is not the same as a high average of both. ${definition.question} Answer from these contacts specifically, name what it would actually feel like between two people, and do not predict what will happen to them.`;
+  return `On the compatibility page: ${definition.label.toLowerCase()} reads intensity ${dimension.chemistry} with ${character}, off ${dimension.contactCount} contact${dimension.contactCount === 1 ? "" : "s"}${drivers ? ` — ${drivers}` : ""}. Intensity and ease are separate measurements and a high one of each is not the same as a high average of both. ${definition.question} Answer from these contacts specifically, name what it would actually feel like between two people, and do not predict what will happen to them.`;
 }
 
 const BY_ID = new Map(DEFINITIONS.map((d) => [d.id, d]));

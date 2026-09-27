@@ -1,20 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import HousePositions from "@/components/western/houses/house-positions";
-import HouseRow from "@/components/western/houses/house-row";
 import HouseDrawer from "@/components/western/houses/house-drawer";
 import ScoringDetails from "@/components/scoring-details";
 import {
   HouseCircuits,
-  PlanetaryInfluences,
   ReadingTheGrid,
 } from "@/components/western/houses/house-context";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import type { Chart } from "@/lib/charts";
-import { formatBirth, tenantsOf } from "@/lib/charts";
+import { tenantsOf } from "@/lib/charts";
 import { dominanceMode, houseCircuits, houseDominance, prominence } from "@/lib/dominance";
 import { useScoring } from "@/components/scoring-context";
 import ScoringEditor from "@/components/scoring-editor";
@@ -22,11 +20,14 @@ import ChartPresets from "@/components/chart-presets";
 import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 import { easePoints, houseEase, quadrantOf } from "@/lib/ease";
 import HouseGeometry from "@/components/western/houses/house-geometry";
+import HouseBasics from "@/components/western/houses/house-basics";
 
 /**
- * The twelve houses, following arc's order of operations: what bodies do to a
- * house, then all twelve at a glance with their dominance scores, then the
- * rulership circuits, then the type guide, then the long readings.
+ * The twelve houses: all twelve at a glance with their dominance scores and
+ * the type guide, then the geometry, then the rulership circuits. The long
+ * readings live in the drawer. (What bodies do to a house, and the plain
+ * meaning of each, close the page as House Basics; what bodies do to a house is on
+ * the Planets page.)
  *
  * The grid and the readings share one selection. Clicking a box opens that
  * house's reading in the drawer, so the wall of boxes is a way *into* the text
@@ -39,13 +40,11 @@ import HouseGeometry from "@/components/western/houses/house-geometry";
  */
 
 function Houses({ chart }: { chart: Chart }) {
-  const [open, setOpen] = useState<number | null>(null);
   const [drawerHouse, setDrawerHouse] = useState<number | null>(null);
   const [dominanceOpen, setDominanceOpen] = useState(false);
   const [scoringOpen, setScoringOpen] = useState(false);
   const { config } = useScoring();
   const { setPageContext } = useChat();
-  const anchors = useRef(new Map<number, HTMLDivElement | null>());
 
   const dominance = useMemo(
     () => houseDominance(chart, config),
@@ -55,19 +54,6 @@ function Houses({ chart }: { chart: Chart }) {
     () => new Map(dominance.map((d) => [d.house, d])),
     [dominance],
   );
-
-  const toggle = (house: number) => {
-    if (open === house) {
-      setOpen(null);
-      return;
-    }
-    setOpen(house);
-    requestAnimationFrame(() =>
-      anchors.current
-        .get(house)
-        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
-    );
-  };
 
   const heaviest = dominance
     .filter((d) => d.rank <= 3)
@@ -82,10 +68,6 @@ function Houses({ chart }: { chart: Chart }) {
     if (drawerHouse === null) return;
     setDrawerHouse(((drawerHouse - 1 + delta + 12) % 12) + 1);
   };
-
-  const tenanted = chart.houses.filter(
-    (h) => tenantsOf(chart.placements, h.number).length > 0,
-  ).length;
 
   const explainWeight = () => setDominanceOpen(true);
 
@@ -236,62 +218,11 @@ function Houses({ chart }: { chart: Chart }) {
       </section>
 
       <section className="mb-16">
-        <SectionHeading aside={formatBirth(chart.birth)}>
-          How Bodies Act On A House
-        </SectionHeading>
-        <PlanetaryInfluences />
-      </section>
-
-      <section className="mb-16">
         <SectionHeading aside="mutual reception">House Circuits</SectionHeading>
         <HouseCircuits chart={chart} />
       </section>
 
-      <section>
-        <SectionHeading aside={`${tenanted} of 12 tenanted`}>
-          The Twelve
-        </SectionHeading>
-        <div className="border-t border-rule">
-          {/* Column headers — mirror the row grid in HouseRow exactly. */}
-          <div className="grid grid-cols-[2.5rem_1fr_auto] items-baseline gap-4 border-b border-rule-faint py-2 md:grid-cols-[2.5rem_11rem_1fr_7rem_4rem_1rem]">
-            <span className="datum text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase">
-              House
-            </span>
-            <span className="datum text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase">
-              Domain
-            </span>
-            <span className="datum hidden text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase md:block">
-              Sign
-            </span>
-            <span className="datum text-right text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase">
-              Tenants
-            </span>
-            <button
-              type="button"
-              onClick={explainWeight}
-              title="Scoring details"
-              className="datum hidden text-right text-[0.5625rem] tracking-[0.16em] text-bone-faint uppercase transition-colors hover:text-patina md:block"
-            >
-              Weight ?
-            </button>
-            <span className="hidden md:block" />
-          </div>
-          {chart.houses.map((cusp) => (
-            <HouseRow
-              key={cusp.number}
-              cusp={cusp}
-              tenants={tenantsOf(chart.placements, cusp.number)}
-              dominance={byHouse.get(cusp.number)}
-              open={open === cusp.number}
-              scores={scores}
-              ease={easeOf.get(cusp.number)}
-              onToggle={() => toggle(cusp.number)}
-              anchorRef={(el) => anchors.current.set(cusp.number, el)}
-              onExplainWeight={explainWeight}
-            />
-          ))}
-        </div>
-      </section>
+      <HouseKey />
 
       {dominanceOpen ? (
         <ScoringDetails onClose={() => setDominanceOpen(false)} />
@@ -319,30 +250,47 @@ function Houses({ chart }: { chart: Chart }) {
   );
 }
 
+/**
+ * The plain meaning of each house. It depends on no chart, so it closes the
+ * page in every state — including the two where there is nothing else to show.
+ */
+function HouseKey() {
+  return (
+    <section className="mb-16">
+      <SectionHeading aside="six axes · each house and its opposite">
+        House Basics
+      </SectionHeading>
+      <HouseBasics />
+    </section>
+  );
+}
+
 export default function HousesPage() {
   const { chart } = useChart();
 
   if (!chart) {
     return (
-      <div className="mx-auto w-full max-w-6xl px-8">
+      <div className="mx-auto w-full max-w-6xl px-8 pb-24">
         <PageTitle
           eyebrow="No chart"
           title="Houses"
           lede="No chart selected. Add birth data to begin the study."
         />
+        <HouseKey />
       </div>
     );
   }
 
   if (chart.houses.length === 0) {
     return (
-      <div className="mx-auto w-full max-w-6xl px-8">
+      <div className="mx-auto w-full max-w-6xl px-8 pb-24">
         <PageTitle
           eyebrow={chart.name}
           title="Houses"
           lede="No house system stored for this chart. Recalculating it from the
                 birth data would fill the cusps in."
         />
+        <HouseKey />
       </div>
     );
   }

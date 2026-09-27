@@ -37,7 +37,7 @@ import { FLOW, GRIND } from "./compatibility-ui";
  */
 
 const W = 440;
-const H = 250;
+const H = 190;
 const PAD = 1;
 
 const PLOT_W = W - PAD * 2;
@@ -94,8 +94,8 @@ export default function RelationshipField({
 
   return (
     <figure className="w-full">
-      <div className="border border-rule bg-void/50 p-4 sm:p-5">
-        <div className="flex items-stretch gap-4 sm:gap-5">
+      <div className="border border-rule bg-void/50 p-3 sm:p-4">
+        <div className="flex items-stretch gap-3 sm:gap-4">
           {/* The vertical axis, laid out horizontally beside the frame: the
               measure in the middle with its two ends above and below it. */}
           <div className="flex w-14 shrink-0 flex-col justify-between py-0.5 text-right sm:w-16">
@@ -120,7 +120,7 @@ export default function RelationshipField({
             <svg
               viewBox={`0 0 ${W} ${H}`}
               role="img"
-              aria-label={`Chemistry ${signature.chemistry}, ease ${signature.ease ?? "unresolved"} — ${here}`}
+              aria-label={`Intensity ${signature.chemistry}, ease ${signature.ease ?? "unresolved"} — ${here}`}
               className="block w-full"
             >
               {REGIONS.map((region) => {
@@ -227,15 +227,17 @@ export default function RelationshipField({
 
         {/* The horizontal axis, named the same way as the vertical one and
             indented past the gutter so it measures the plot, not the panel. */}
-        <div className="pl-[4.5rem] sm:pl-[5.25rem]">
-          <div className="mt-3 flex items-baseline justify-between gap-4 border-t border-rule pt-2">
-            <span className={`${END} text-bone-soft`}>← Slight · 1</span>
-            <span className={MEASURE}>Chemistry</span>
-            <span className={`${END} text-bone-soft`}>Dense · 99 →</span>
+        <div className="pl-[4.25rem] sm:pl-[5rem]">
+          <div className="mt-2 flex items-baseline justify-between gap-4 border-t border-rule pt-1.5">
+            <span className={`${END} whitespace-nowrap text-bone-soft`}>← Slight · 1</span>
+            <span className="flex flex-col items-center gap-0.5">
+              <span className={MEASURE}>Intensity</span>
+              <span className={`${END} text-bone-faint`}>(contact)</span>
+            </span>
+            <span className={`${END} whitespace-nowrap text-bone-soft`}>Dense · 99 →</span>
           </div>
           <p className={`${FOOT} mt-1 text-center`}>
-            how much the two charts touch · 50 = an unrelated pairing · line at{" "}
-            {HIGH_CHEMISTRY}
+            how much the two charts touch · {HIGH_CHEMISTRY} = average
           </p>
         </div>
       </div>
@@ -244,10 +246,10 @@ export default function RelationshipField({
           read this" drawer, where the rest of the page's reasoning lives. They
           were six lines of prose under a figure whose axes now name and explain
           themselves, and this block is the one the page is read from. */}
-      <figcaption className={`${FOOT} mt-3 text-bone-soft`}>
+      <figcaption className={`${FOOT} mt-2 text-bone-soft`}>
         {unread
           ? "Too little contact to place"
-          : `Chemistry ${signature.chemistry} · Ease ${
+          : `Intensity ${signature.chemistry} · Ease ${
               signature.ease === null
                 ? "unresolved"
                 : `${signature.ease > 0 ? "+" : ""}${signature.ease}`

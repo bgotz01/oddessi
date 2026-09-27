@@ -39,7 +39,7 @@ import { BODY_WEIGHT, SYNASTRY_BODIES, housed } from "./contacts";
  * The twelve fields, named for what it is like to have someone land in one.
  *
  * Deliberately not `HOUSE_CATEGORIES` from `lib/astrology/house-categories.ts`,
- * whose titles ("Values & Resources", "Work & Health") are written to describe
+ * whose titles ("Money & Values", "Work & Health") are written to describe
  * a region of one's own chart. The question here is different and so is the
  * grammar: these names have to finish the sentence "she switches on his ___",
  * which "Work & Health" does not. One word each, so two of them can be crossed

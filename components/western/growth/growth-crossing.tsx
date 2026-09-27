@@ -1,5 +1,7 @@
 "use client";
 
+import { bodyColor } from "@/lib/bodies";
+import { bodyGlyph } from "@/lib/symbols";
 import type { Trajectory } from "@/lib/growth";
 
 import { T, type ChapterKey } from "@/components/western/growth/growth-ui";
@@ -11,25 +13,11 @@ import { T, type ChapterKey } from "@/components/western/growth/growth-ui";
  * asks for something neither pole resolves, which is a different claim from
  * ordinary resistance and worth knowing about at a glance.
  *
- * Knowing about it is all this does. It used to expand in place into demand,
- * conflict, interruption, integration and provenance, which cost most of a
- * screen between the Arc and the Conversion — and for a chart with more than
- * one crossing body it opened on "Several demands cut across the move", a
- * sentence with no chart in it at all. The interpretation is the same length
- * whether it sits here or in a panel, and in a panel it is not standing between
- * two sections that are trying to be read in sequence.
- *
- * So the page states the fact and names the bodies, and the Crossing tab of the
- * drawer holds the reading. Naming the bodies is what keeps this from being a
- * badge: "Mars" is already a claim a reader of this chart can recognise, where
- * "this chart has a crossing" is trivia.
- *
- * The single body's demand used to trail the names here, and it was the one
- * thing on the line that said nothing: "A way of arriving that fits the move"
- * is the dictionary's headline for the Ascendant, true of every chart with that
- * crossing and readable only as a paraphrase of the name beside it. The demand
- * still leads its Block in the drawer, where the conflict and the arena follow
- * it and it is actually doing work.
+ * Knowing about it is all this does. The interpretation — demand, conflict,
+ * interruption, integration — is the Crossing tab of the drawer; on the page it
+ * cost most of a screen between the Arc and the Conversion. Naming the bodies
+ * is what keeps this from being a badge: "Mars" is already a claim a reader of
+ * this chart can recognise, where "this chart has a crossing" is trivia.
  */
 export default function GrowthCrossing({
   t,
@@ -42,24 +30,31 @@ export default function GrowthCrossing({
     return null;
   }
 
-  const bodies = t.crossing.bodies;
-
   return (
     <button
       type="button"
       onClick={() => onOpen("crossing")}
-      className="group flex flex-wrap items-baseline gap-x-3 gap-y-1 border-l-2 border-ember/60 py-0.5 pl-4 text-left"
+      className="group flex w-full flex-wrap items-baseline gap-x-4 gap-y-1.5 rounded-sm border-l-2 border-ember bg-ember-dim/15 px-5 py-3.5 text-left"
     >
-      <span className={`${T.tiny} text-ember`}>The crossing</span>
+      <span className={`${T.micro} text-ember`}>Crossing</span>
 
-      <span className={`${T.tiny} text-bone-soft`}>
-        {bodies.map((c) => c.body).join(" · ")}
+      <span className={`flex flex-wrap items-baseline gap-x-3 ${T.read}`}>
+        {t.crossing.bodies.map((c) => (
+          <span key={c.body} className="flex items-baseline gap-1.5">
+            <span className="glyph" style={{ color: bodyColor(c.body) }}>
+              {bodyGlyph(c.body)}
+            </span>
+            {c.body}
+          </span>
+        ))}
       </span>
 
+      <span className={T.body}>cuts across both ends of the axis</span>
+
       <span
-        className={`${T.tiny} text-bone-faint transition-colors group-hover:text-patina`}
+        className={`${T.micro} ml-auto text-bone-soft transition-colors group-hover:text-patina`}
       >
-        →
+        Read →
       </span>
     </button>
   );

@@ -81,7 +81,7 @@ import { T, type ChapterKey } from "@/components/western/growth/growth-ui";
  * uses for a destination, in the sidebar and in every section title.
  */
 const EXIT =
-  "inscription block border border-patina-dim px-8 py-7 text-center " +
+  "inscription block rounded-sm border border-patina-dim px-8 py-7 text-center " +
   "text-[1rem] leading-none text-patina transition-colors " +
   "hover:border-patina hover:bg-patina-deep";
 
@@ -247,29 +247,29 @@ function Growth({ chart, t }: { chart: Chart; t: Trajectory }) {
       <PageTitle
         eyebrow={chart.name}
         title="Growth"
-        lede=""
         aside={<GrowthRulership />}
       />
 
-      {/* The three sections. Spacing lives here rather than inside them, so a
+      {/* The four sections. Spacing lives here rather than inside them, so a
           section can be reordered or reused without carrying a margin that
-          only made sense in one arrangement. */}
+          only made sense in one arrangement. No rule between them: each
+          section header carries its own. */}
       <GrowthArc t={t} onOpen={setChapter} />
 
-      <div className="mt-16 border-t border-rule pt-16">
+      <div className="mt-24">
         <GrowthConversion t={t} onOpen={setChapter} />
       </div>
 
-      <div className="mt-16 border-t border-rule pt-16">
+      <div className="mt-24">
         <GrowthResistance t={t} onOpen={setChapter} />
       </div>
 
-      <div className="mt-16 border-t border-rule pt-16">
+      <div className="mt-24">
         <GrowthTailwinds t={t} onOpen={setChapter} />
       </div>
 
       {t.irregularAxis ? (
-        <p className={`mt-20 max-w-2xl border-l-2 border-ember pl-5 ${T.note}`}>
+        <p className={`mt-16 max-w-2xl border-l-2 border-ember pl-5 ${T.note}`}>
           The nodes are not in opposite houses in this chart. The arena and
           conversion layers assume they are, so read those two with care — the
           rest of the trajectory is unaffected.
@@ -290,7 +290,7 @@ function Growth({ chart, t }: { chart: Chart; t: Trajectory }) {
           of a static axis with no dates anywhere in them by design, and a
           transit calendar halfway down meant a reader after "who am I
           becoming" got an ephemeris instead. */}
-      <div className="mt-16 grid gap-5 border-t border-rule pt-12 @2xl:grid-cols-2">
+      <div className="mt-24 grid gap-5 border-t border-rule pt-12 @2xl:grid-cols-2">
         <Link href="/western/growth/activation" className={EXIT}>
           Activation Chart
         </Link>

@@ -6,7 +6,7 @@ import { bodyColor } from "@/lib/bodies";
 import { bodyGlyph } from "@/lib/symbols";
 import type { Conversion, Trajectory } from "@/lib/growth";
 import GrowthRoad from "@/components/western/growth/growth-road";
-import { Expand, SectionHead } from "@/components/western/growth/growth-field";
+import { Band, Panel, SectionHead } from "@/components/western/growth/growth-field";
 import { T, groundNote, shownConversions, type ChapterKey } from "@/components/western/growth/growth-ui";
 
 /**
@@ -39,6 +39,12 @@ import { T, groundNote, shownConversions, type ChapterKey } from "@/components/w
  * ground reading already argues it. Deleted; the group heading carries the
  * break it was occupying.
  *
+ * Road and ground reading share one panel: the paragraph is the argument for
+ * why the left end of the road reads the way it does, and printed forty pixels
+ * below it, centred, at the width of a pull-quote, it read as an aside. The
+ * rows run full width, a hairline between each, with the modes as labels at a
+ * size that can be read rather than deciphered.
+ *
  * The two groups are the section's other claim. CORE comes from the nodal axis
  * and is true of anyone on it; CHART-SPECIFIC exists only because a body stands
  * in the ground being left. Marking that with a glyph alone left the two kinds
@@ -65,131 +71,126 @@ export default function GrowthConversion({
         onOpen={() => onOpen("conversion")}
       />
 
-      <div className="mt-10">
-        <GrowthRoad
-          size="medium"
-          fromLabel="What you already do"
-          toLabel="What it becomes"
-          from={
-            <span className="flex flex-wrap items-baseline gap-x-3">
-              {t.conversionArc.from.toUpperCase()}
-              {/* The body that made this specific, marked on the thing it
-                changed. Without it the left side would read “comparison”. */}
-              {lead ? (
-                <span
-                  className="glyph text-[1rem]"
-                  style={{ color: bodyColor(lead.body) }}
-                  title={`${lead.body} deepens the departing ground — why this reads ${t.conversionArc.from}, not ${t.conversionArc.genericFrom}`}
-                >
-                  {bodyGlyph(lead.body)}
-                </span>
-              ) : null}
-            </span>
-          }
-          to={t.conversionArc.into.toUpperCase()}
-          toColor="var(--color-patina)"
-          onFrom={() => onOpen("conversion")}
-          onTo={() => onOpen("conversion")}
-        />
+      <Panel className="mt-8">
+        <div className="p-6 @2xl:p-9">
+          <GrowthRoad
+            size="medium"
+            fromLabel="What you already do"
+            toLabel="What it becomes"
+            from={
+              <span className="inline-flex flex-wrap items-baseline gap-x-3">
+                {word(t.conversionArc.from)}
+                {/* The body that made this specific, marked on the thing it
+                    changed. Without it the left side would read “comparison”. */}
+                {lead ? (
+                  <span
+                    className="glyph text-[1.25rem]"
+                    style={{ color: bodyColor(lead.body) }}
+                    title={`${lead.body} deepens the departing ground — why this reads ${t.conversionArc.from}, not ${t.conversionArc.genericFrom}`}
+                  >
+                    {bodyGlyph(lead.body)}
+                  </span>
+                ) : null}
+              </span>
+            }
+            to={word(t.conversionArc.into)}
+            toColor="var(--color-patina)"
+            onFrom={() => onOpen("conversion")}
+            onTo={() => onOpen("conversion")}
+          />
+        </div>
 
-        {/* Centered and given room rather than left-flush at half the section's
-          width: at the container's full measure a max-w-2xl paragraph stopped
-          well short of the road above it, which reads as an accident rather
-          than a stopping point. The extra width and the indent make it read
-          as a considered pull-quote instead.
-
-          Two sentences where `groundReading` had three. The one that went was
-          "Growth does not ask you to stop — it asks you to make attachment
-          produce self-directed conviction", which is the road drawn eight
-          pixels above this paragraph and then every row beneath it. What is
-          left is the pair the road cannot draw: why this ground is not the
-          textbook version of its house, and what the body standing in it does
-          there. The full paragraph still goes to the chat. */}
-        <p className={`mx-auto mt-10 max-w-3xl ${T.lead} @2xl:pl-10`}>
+        {/* Two sentences where `groundReading` has three. The one that went is
+            the road drawn above it and every row beneath it; what is left is
+            the pair the road cannot draw — why this ground is not the textbook
+            version of its house, and what the body standing in it does there.
+            The full paragraph still goes to the chat. */}
+        <p className={`border-t border-rule px-6 py-6 @2xl:px-9 ${T.lead}`}>
           {ground.correction}
           {ground.charge ? ` ${ground.charge}` : ""}
         </p>
+      </Panel>
 
-        <Rows
-          label="Core conversions"
-          // Which axis, precisely. A chart whose house pair has a written reading
-          // is being told something stronger than one falling back to the sign.
-          aside={
-            t.conversionsAreAxisSpecific
-              ? `${t.from.sign} H${t.from.house} → ${t.to.sign} H${t.to.house}`
-              : `${t.from.sign} → ${t.to.sign}`
-          }
-          rows={core}
-          // Rows are capped at three between the two groups, so a chart with
-          // more has some it is not showing. That used to be said by the exit
-          // button — "+ 1 more conversion" — and when the button went plain the
-          // fact had nowhere to live. It belongs on the group anyway: the
-          // heading is where this section states what a group IS, and "showing 2
-          // of 3" is exactly that.
-          showing={`${core.length} of ${t.conversions.filter((c) => !c.from_body).length}`}
-        />
+      <Rows
+        label="Core conversions"
+        // Which axis, precisely. A chart whose house pair has a written reading
+        // is being told something stronger than one falling back to the sign.
+        aside={
+          t.conversionsAreAxisSpecific
+            ? `${t.from.sign} H${t.from.house} → ${t.to.sign} H${t.to.house}`
+            : `${t.from.sign} → ${t.to.sign}`
+        }
+        rows={core}
+        // Rows are capped between the two groups, so a chart may have some it
+        // is not showing; the heading is where the section says what a group
+        // is, and "showing 2 of 3" is exactly that.
+        showing={`${core.length} of ${t.conversions.filter((c) => !c.from_body).length}`}
+      />
 
-        {/* Only when the chart has one. A "chart-specific" heading over an empty
+      {/* Only when the chart has one. A "chart-specific" heading over an empty
           list would advertise the absence of the most interesting rows. */}
-        {specific.length ? (
-          <Rows
-            label="Chart-specific"
-            aside={`${specific.map((c) => c.from_body).join(" · ")} in the departing ground`}
-            rows={specific}
-          />
-        ) : null}
-
-        <Expand onClick={() => onOpen("conversion")} />
-      </div>
+      {specific.length ? (
+        <Rows
+          label="Chart-specific"
+          accent="ember"
+          aside={`${specific.map((c) => c.from_body).join(" · ")} in the departing ground`}
+          rows={specific}
+        />
+      ) : null}
     </section>
   );
 }
 
 /**
+ * The arc's two nouns arrive in capitals from the model, which set them for the
+ * old `inscription` road. Mixed case in the display face reads as a word
+ * rather than as a label.
+ */
+function word(noun: string): string {
+  return noun.charAt(0).toUpperCase() + noun.slice(1).toLowerCase();
+}
+
+/**
  * One group of conversion rows.
  *
- * The mode pair is the row; the sentences are the gloss, which is why they sit
- * a step down in size and weight. The arrow is its own grid column rather than
- * a prefix on the right-hand text, so it lands on the same axis in every row
- * and the section reads as a column of transformations rather than as prose
- * with arrows in it.
+ * The mode pair names the row; the sentences say what it means, at reading
+ * size on both sides. The arrow is its own grid column rather than a prefix on
+ * the right-hand text, so it lands on the same axis in every row and the
+ * section reads as a column of transformations rather than as prose with
+ * arrows in it.
  */
 function Rows({
   label,
   aside,
   showing,
+  accent = "patina",
   rows,
 }: {
   label: string;
   aside: string;
   /** "2 of 3", when the group is showing fewer rows than it has. */
   showing?: string;
+  accent?: "patina" | "ember";
   rows: Conversion[];
 }) {
   return (
-    <>
-      <div className="mt-14 flex items-baseline justify-between gap-4 border-b border-rule pb-2">
-        <p className={`${T.tiny} text-patina-dim`}>
-          {label}
-          {showing ? (
-            <span className="ml-3 text-bone-faint">{showing}</span>
-          ) : null}
-        </p>
-        <p className={`${T.tiny} text-bone-faint`}>{aside}</p>
-      </div>
-
+    <Band
+      label={showing ? `${label} · ${showing}` : label}
+      aside={aside}
+      accent={accent}
+    >
       <ul>
         {rows.map((c) => (
           <li
             key={c.from}
-            className="mt-6 grid gap-6 @2xl:grid-cols-[1fr_auto_1fr] @2xl:items-start @2xl:gap-8"
+            className="grid gap-4 border-b border-rule py-6 @2xl:grid-cols-[1fr_auto_1fr] @2xl:items-start @2xl:gap-10"
           >
             <div>
-              <p className={`${T.tiny} text-bone-faint`}>
+              <p className={`${T.micro} flex items-baseline gap-2 text-bone-soft`}>
                 {c.fromMode}
                 {c.from_body ? (
                   <span
-                    className="glyph ml-2 text-[0.8125rem]"
+                    className="glyph text-[0.9375rem] normal-case"
                     style={{ color: bodyColor(c.from_body) }}
                     title={`${c.from_body} put this row here`}
                   >
@@ -197,27 +198,23 @@ function Rows({
                   </span>
                 ) : null}
               </p>
-              <p className={`mt-3 ${T.phrase} text-bone-soft`}>
-                {c.from}
-              </p>
+              <p className={`mt-2 ${T.read} text-bone-soft`}>{c.from}</p>
             </div>
 
             <span
               aria-hidden
-              className="glyph hidden pt-7 text-[1rem] text-patina @2xl:block"
+              className="glyph hidden pt-6 text-[1.125rem] text-patina @2xl:block"
             >
               →
             </span>
 
             <div>
-              <p className={`${T.tiny} text-patina`}>{c.intoMode}</p>
-              <p className={`mt-3 ${T.phrase}`}>
-                {c.into}
-              </p>
+              <p className={`${T.micro} text-patina`}>{c.intoMode}</p>
+              <p className={`mt-2 ${T.read}`}>{c.into}</p>
             </div>
           </li>
         ))}
       </ul>
-    </>
+    </Band>
   );
 }

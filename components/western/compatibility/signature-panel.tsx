@@ -4,7 +4,7 @@
 import { CELL, type Lens, type Signature } from "@/lib/synastry";
 import RelationshipField from "./relationship-field";
 import Points from "./points";
-import { T } from "./compatibility-ui";
+import { FLOW, GRIND, T } from "./compatibility-ui";
 import PanelHeading from "./panel-heading";
 
 /**
@@ -85,6 +85,35 @@ export default function SignaturePanel({
           </button>
         </div>
       </div>
+
+      {/* The axis was called "Chemistry" until readers kept taking it as a
+          good thing — which is what the word means in ordinary speech, and
+          exactly what the axis refuses to say. "Intensity (contact)" names an
+          amount. The key stays for the one confusion the plot still invites:
+          reading friction as the opposite of intensity, when it is the low end
+          of ease. Colours follow compatibility-ui: bone for intensity, the two
+          accents only for the ends of ease. */}
+      <dl className="mt-6 grid gap-x-10 gap-y-4 border-t border-rule pt-4 sm:grid-cols-2">
+        <div>
+          <dt className={`${T.micro} text-bone`}>Intensity (contact) · across</dt>
+          <dd className={`${T.note} mt-1.5`}>
+            How much the two charts touch. Amount, not tone — high intensity
+            can feel wonderful or exhausting.
+          </dd>
+        </div>
+        <div>
+          <dt className={`${T.micro} text-bone`}>
+            Ease · up and down ·{" "}
+            <span style={{ color: FLOW }}>flow</span> ↔{" "}
+            <span style={{ color: GRIND }}>friction</span>
+          </dt>
+          <dd className={`${T.note} mt-1.5`}>
+            What that contact is like. Trines and sextiles push toward flow,
+            squares and oppositions toward friction. Friction is not the
+            opposite of intensity — plenty of both is the Volatile corner.
+          </dd>
+        </div>
+      </dl>
     </section>
   );
 }

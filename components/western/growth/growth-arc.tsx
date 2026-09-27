@@ -1,17 +1,16 @@
 "use client";
 
-import { useState } from "react";
-
 import { bodyColor } from "@/lib/bodies";
+import { bodyGlyph, signGlyph } from "@/lib/symbols";
 import {
   getHouseTitle,
   type House,
 } from "@/lib/astrology/house-categories";
-import type { Trajectory } from "@/lib/growth";
+import type { Pole, Trajectory } from "@/lib/growth";
 
 import GrowthRoad from "@/components/western/growth/growth-road";
 import GrowthCrossing from "@/components/western/growth/growth-crossing";
-import { Expand, SectionHead } from "@/components/western/growth/growth-field";
+import { Panel, SectionHead } from "@/components/western/growth/growth-field";
 
 import {
   SHOWN,
@@ -25,50 +24,37 @@ import {
  *
  * The page's hero and the one thing a reader should still have a week later:
  *
- *     INTERPRETER  ─────✕─────▶  AUTHOR
+ *     Listener / Interpreter  ─────▸─────  Explorer / Author
  *
  * Every other view of the nodes lists them, and a list has no direction in it —
  * which is the one thing about the nodes that is not true of an ordinary
- * placement. So the axis is drawn as a road and read left to right.
+ * placement. So the axis is drawn as a road and read left to right, inside one
+ * panel with everything that belongs to it: the placement under each archetype,
+ * the four moves along the bottom, and the crossing flag when there is one.
  *
- * The archetypes sit above their placements because the derived reading is the
- * product. "Interpreter → Author" answers the question; "Libra H3 → Aries H9"
- * is provenance beneath it.
- *
- * THE COMPETENCE and THE DIRECTION name the poles deliberately. The South Node
- * is developed capacity rather than territory to discard. It is the material
- * the new direction has to convert.
+ * The placements used to sit in a row of their own above the road at 10px,
+ * which put the provenance first and made it unreadable. Each pole is now one
+ * container — archetype, then placement, house arena and ruler — with the node
+ * label above it, and the road runs between the two containers. The ruler is
+ * where each pole's mechanism lives and the page never said so.
  *
  * A square to the axis is different from ordinary resistance:
  *
  *     RESISTANCE  pulls backward toward the developed strategy.
  *     CROSSING    cuts sideways across both ends of the axis.
  *
- * GrowthRoad therefore draws a ✕ only when a genuine square exists, and
- * GrowthCrossing names the bodies behind it in a single line beneath. The
- * reading itself is a drawer tab: it modifies the Arc rather than being another
- * chapter, but it is also two paragraphs of interpretation, and two paragraphs
- * standing between the Arc and the Conversion break the sequence they are
- * supposed to belong to.
+ * The road draws a ✕ only when a genuine square exists, and GrowthCrossing
+ * names the bodies behind it. The reading itself is a drawer tab.
  *
- * The final part turns the axis into something recognisable in ordinary life:
- *
- *     the old move   ·  questions that catch it
- *     the new move   ·  questions that open it
- *
- * Both moves and the developmental questions come from the sign × house table,
- * so they are written for Aries IN THE NINTH rather than for Aries and for the
- * ninth separately. The difference is the whole point: "Stake your worldview"
- * and "Act on the problem" are both Aries, and a reader who got the generic
- * sentence would have to do that specialisation in their head.
- *
- * The questions on the OLD side stay sign-level on purpose. The combo table is
- * developmental throughout — every entry asks its role to grow — and pointing
- * that at the departing pole would have the page urging the reader to develop
- * the competence it just said they are converting. `reflexQuestions` is the
- * only table that catches a move in the act, which is what this column is for.
- * The move above them is specialised, so the generic questions land against a
- * sentence that is true of this chart alone.
+ * Beneath the panel the axis turns into something recognisable in ordinary
+ * life: the old move with questions that catch it, the new move with questions
+ * that open it. This was a collapsed "Questions" disclosure, which hid the most
+ * usable text on the page behind a 10px label. Both moves are written for the
+ * sign IN THAT HOUSE, from the 144-entry table; the old side's questions stay
+ * sign-level on purpose, because `reflexQuestions` is the only table that
+ * catches a move in the act — the combo table asks every role to grow, and
+ * pointed at the departing pole it would urge the reader to develop the
+ * competence the page says they are converting.
  */
 
 export default function GrowthArc({
@@ -84,12 +70,8 @@ export default function GrowthArc({
   // the sign-level questions the page has always had.
   const opening = t.practice.arriving?.questions ?? t.questions;
 
-  // Collapsed by default — see the doc comment above the disclosure below.
-  const [questionsOpen, setQuestionsOpen] = useState(false);
-
   return (
     <section className="@container">
-      {/* ── Section label ─────────────────────────────────────────────── */}
       <SectionHead
         index="01"
         name="Arc"
@@ -97,235 +79,163 @@ export default function GrowthArc({
         onOpen={() => onOpen("arc")}
       />
 
-      {/* ════════════════════════════════════════════════════════════════
-          THE ROAD
-          ════════════════════════════════════════════════════════════════ */}
-
-      {/* ── Astrological provenance ──────────────────────────────────────
-          The complete technical profile sits above the archetype road so the
-          reader sees the raw placement first, then the interpretation of it.
-          House and sign read as one unit — "H3 Libra", house first because
-          the house is the part of life this is happening in and the sign is
-          how it is done. Degree sits as a superscript for precision without
-          competing for the line. The house title drops below as context.
-          No glyphs — a reader who already knows the South Node from a Libra
-          dot has no use for either symbol here. */}
-      <div className="mt-10 grid grid-cols-1 gap-x-6 gap-y-3 @2xl:grid-cols-2">
-        <p className={`${T.tiny} text-bone-faint`}>
-          <span className="text-[0.9375rem] text-bone-soft">
-            {t.from.house ? `H${t.from.house} ` : ""}
-            {t.from.sign}
-          </span>
-          <span className="ml-1.5 align-super text-[0.625rem] text-bone-faint">
-            {prime(t.from.degree)}
-          </span>
-
-          <span className="mt-1 block">
-            {t.from.house
-              ? getHouseTitle(
-                t.from.house as House,
-              )
-              : ""}
-          </span>
-        </p>
-
-        <p className={`${T.tiny} text-bone-faint @2xl:text-right`}>
-          <span className="text-[0.9375rem] text-bone-soft">
-            {t.to.house ? `H${t.to.house} ` : ""}
-            {t.to.sign}
-          </span>
-          <span className="ml-1.5 align-super text-[0.625rem] text-bone-faint">
-            {prime(t.to.degree)}
-          </span>
-
-          <span className="mt-1 block">
-            {t.to.house
-              ? getHouseTitle(
-                t.to.house as House,
-              )
-              : ""}
-          </span>
-        </p>
-      </div>
-
-      {/* ── Archetype road ───────────────────────────────────────────────
-          The interpretation of the placements above: Interpreter → Author.
-          This is the product; the placements above are the provenance. */}
-      <div className="mt-7">
-        <GrowthRoad
-          fromLabel="South Node · The competence"
-          toLabel="North Node · The direction"
-          from={t.arc.from}
-          to={t.arc.into}
-          toColor={toColor}
-          onFrom={() => onOpen("arc")}
-          onTo={() => onOpen("arc")}
-          mark={
-            t.crossing ? (
-              <span
-                aria-hidden
-                title="A part of the chart cuts across both ends of the nodal axis"
-                className="relative z-10 flex items-center bg-void px-3.5"
-              >
-                <span className="glyph text-[1.125rem] leading-none text-ember">
-                  ✕
-                </span>
-              </span>
-            ) : undefined
-          }
-        />
-      </div>
-
-      {/* ════════════════════════════════════════════════════════════════
-          THE CROSSING
-          ════════════════════════════════════════════════════════════════
-
-          Conditional, and one line. The road carries the ✕; this names the
-          bodies behind it and opens the Crossing tab, where the reading is.
-      */}
-      {t.crossing ? (
-        <div className="mt-7">
-          <GrowthCrossing
-            t={t}
-            onOpen={onOpen}
-          />
-        </div>
-      ) : null}
-
-      {/* ════════════════════════════════════════════════════════════════
-    THE ARC IN PRACTICE
-    ════════════════════════════════════════════════════════════════ */}
-
-      <div className="mt-14">
-        <p className={`${T.tiny} text-bone-faint @2xl:text-center`}>
-          The arc in four moves
-        </p>
-
-        <div className="mt-5 flex flex-wrap gap-2.5 @2xl:justify-center">
-          {t.strapline.map((beat, index) => (
-            <div
-              key={beat}
-              className="flex items-center gap-2.5"
-            >
-              {index > 0 ? (
+      <Panel className="mt-8">
+        <div className="p-6 @2xl:p-9">
+          <GrowthRoad
+            fromLabel="South Node · The competence"
+            toLabel="North Node · The direction"
+            from={t.arc.from}
+            to={t.arc.into}
+            fromDetail={<PoleDetail pole={t.from} />}
+            toDetail={<PoleDetail pole={t.to} />}
+            boxed
+            toColor={toColor}
+            onFrom={() => onOpen("arc")}
+            onTo={() => onOpen("arc")}
+            mark={
+              t.crossing ? (
                 <span
                   aria-hidden
-                  className="glyph text-[0.6875rem] text-patina-dim"
+                  title="A part of the chart cuts across both ends of the nodal axis"
+                  className="relative z-10 flex items-center bg-surface px-3.5"
                 >
-                  →
+                  <span className="glyph text-[1.125rem] leading-none text-ember">
+                    ✕
+                  </span>
                 </span>
-              ) : null}
+              ) : undefined
+            }
+          />
 
-              <span className="rounded-sm border border-rule px-4 py-2.5 text-[1.0625rem] leading-none text-bone-soft">
-                {beat}
-              </span>
+          {t.crossing ? (
+            <div className="mt-8">
+              <GrowthCrossing t={t} onOpen={onOpen} />
             </div>
-          ))}
+          ) : null}
         </div>
-      </div>
 
-      {/* ════════════════════════════════════════════════════════════════
-          QUESTIONS ACROSS THE AXIS
-          ════════════════════════════════════════════════════════════════
-
-          Two poles, two columns, and as little air between them as the
-          reading survives. The label carries both jobs at once (THE OLD MOVE
-          · CATCH IT), the questions drop to supporting size because the move
-          above them is the finding and they are how you test it, and each
-          list hangs off a hairline rule rather than whitespace.
-
-          Collapsed by default and named like the disclosure it is: this is
-          the deepest layer the page shows inline, six questions under two
-          moves, and a reader scanning the four sections should not have to
-          scroll past all of it to reach Conversion. "Questions" says what is
-          behind the toggle without repeating "old move" / "new move", which
-          are the columns' own labels once it opens.
-      */}
-
-      <div className="mt-12 border-t border-rule pt-6">
-        <button
-          type="button"
-          onClick={() => setQuestionsOpen((value) => !value)}
-          aria-expanded={questionsOpen}
-          className="group flex items-baseline gap-3 text-left"
-        >
-          <span
-            aria-hidden
-            className="glyph inline-block shrink-0 text-[0.625rem] text-patina-dim transition-transform group-hover:text-patina"
-            style={questionsOpen ? { transform: "rotate(90deg)" } : undefined}
-          >
-            ▸
-          </span>
-          <span
-            className={`${T.tiny} text-bone-faint transition-colors group-hover:text-bone-soft`}
-          >
-            Questions
-          </span>
-        </button>
-
-        {questionsOpen ? (
-          <div className="mt-6 grid gap-x-14 gap-y-8 @2xl:grid-cols-2">
-            {/* Old / practised reflex */}
-            <div>
-              <p className={`${T.tiny} text-bone-faint`}>
-                The old move · catch it
-              </p>
-
-              {t.practice.departing ? (
-                <p className="mt-2 text-[1.0625rem] leading-snug text-bone-soft">
-                  {t.practice.departing.move}
-                </p>
-              ) : null}
-
-              <ul className="mt-3.5 space-y-2 border-l border-rule pl-4">
-                {t.reflexQuestions
-                  .slice(0, SHOWN)
-                  .map((question) => (
-                    <li
-                      key={question}
-                      className="text-[0.9375rem] leading-snug text-bone-faint"
-                    >
-                      {question}
-                    </li>
-                  ))}
-              </ul>
-            </div>
-
-            {/* New / developmental opening */}
-            <div>
-              <p
-                className={T.tiny}
-                style={{
-                  color: toColor,
-                }}
+        {/* ── The arc in four moves ──────────────────────────────────────────
+            Numbered steps across the foot of the panel. They were four pill
+            buttons centred under a 10px caption, which read as tags — filters
+            to click — rather than as a sequence. */}
+        <div className="border-t border-rule">
+          <p className={`${T.micro} px-6 pt-6 text-patina @2xl:px-9`}>
+            The arc in four moves
+          </p>
+          <ol className="grid @2xl:grid-cols-4">
+            {t.strapline.map((beat, index) => (
+              <li
+                key={beat}
+                className="flex items-baseline gap-3 border-rule px-6 py-5 @2xl:flex-col @2xl:gap-2 @2xl:border-l @2xl:px-9 @2xl:py-6 @2xl:first:border-l-0"
               >
-                The new move · open it
-              </p>
+                <span className={`${T.micro} text-patina-dim`}>
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span className={T.read}>{beat}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </Panel>
 
-              {t.practice.arriving ? (
-                <p className="mt-2 text-[1.0625rem] leading-snug text-bone">
-                  {t.practice.arriving.move}
-                </p>
-              ) : null}
-
-              <ul className="mt-3.5 space-y-2 border-l border-patina-dim pl-4">
-                {opening
-                  .slice(0, SHOWN)
-                  .map((question) => (
-                    <li
-                      key={question}
-                      className="text-[0.9375rem] leading-snug text-bone-soft"
-                    >
-                      {question}
-                    </li>
-                  ))}
-              </ul>
-            </div>
-          </div>
-        ) : null}
-
-        <Expand onClick={() => onOpen("arc")} />
+      {/* ── The two moves ──────────────────────────────────────────────────
+          Two cards, old against new, with the questions that test each one. */}
+      <div className="mt-6 grid gap-6 @3xl:grid-cols-2">
+        <Move
+          label="The old move · catch it"
+          move={t.practice.departing?.move ?? null}
+          questions={t.reflexQuestions.slice(0, SHOWN)}
+        />
+        <Move
+          label="The new move · open it"
+          move={t.practice.arriving?.move ?? null}
+          questions={opening.slice(0, SHOWN)}
+          arriving
+        />
       </div>
     </section>
+  );
+}
+
+/**
+ * Where one end of the axis stands: sign, degree and house on the first line,
+ * the house's arena under it, and the pole's ruler — which is where that end's
+ * mechanism actually lives in the chart.
+ *
+ * Set a size up from the rest of the page's rows. It shares a container with
+ * the archetype now, and at row size it read as a caption under the title
+ * rather than as the placement the title was derived from.
+ */
+function PoleDetail({ pole }: { pole: Pole }) {
+  const ruler = pole.rulerPlacement;
+
+  return (
+    <div className="space-y-2.5">
+      <p className={`flex flex-wrap items-baseline gap-x-2.5 ${T.phrase}`}>
+        <span className="glyph text-bone-soft">{signGlyph(pole.sign)}</span>
+        <span>{pole.sign}</span>
+        <span className={`${T.micro} text-bone-faint`}>{prime(pole.degree)}</span>
+        {pole.house ? (
+          <span className={`${T.micro} text-bone-soft`}>house {pole.house}</span>
+        ) : null}
+      </p>
+
+      {pole.house ? (
+        <p className={`${T.read} text-bone-soft`}>
+          {getHouseTitle(pole.house as House)}
+        </p>
+      ) : null}
+
+      <p className={`flex flex-wrap items-baseline gap-x-2.5 ${T.read}`}>
+        <span className={`${T.micro} text-bone-faint`}>Ruler</span>
+        <span className="glyph" style={{ color: bodyColor(pole.ruler) }}>
+          {bodyGlyph(pole.ruler)}
+        </span>
+        <span className="text-bone-soft">
+          {pole.ruler}
+          {ruler
+            ? ` in ${ruler.sign}${ruler.houseNumber ? `, house ${ruler.houseNumber}` : ""}`
+            : ""}
+        </span>
+      </p>
+    </div>
+  );
+}
+
+function Move({
+  label,
+  move,
+  questions,
+  arriving = false,
+}: {
+  label: string;
+  move: string | null;
+  questions: string[];
+  arriving?: boolean;
+}) {
+  return (
+    <div
+      className={`rounded-sm border p-6 @2xl:p-8 ${arriving ? "border-patina-dim bg-patina-deep/25" : "border-rule"}`}
+    >
+      <p className={`${T.micro} ${arriving ? "text-patina" : "text-bone-soft"}`}>
+        {label}
+      </p>
+
+      {move ? (
+        <p className={`mt-3 ${T.phrase} ${arriving ? "" : "text-bone-soft"}`}>
+          {move}
+        </p>
+      ) : null}
+
+      <ul
+        className={`mt-5 space-y-3 border-l pl-5 ${arriving ? "border-patina-dim" : "border-rule"}`}
+      >
+        {questions.map((question) => (
+          <li key={question} className={T.body}>
+            {question}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

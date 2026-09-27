@@ -167,7 +167,7 @@ function AreaDrawer({
 
       <dl className="mt-7 grid grid-cols-2 gap-x-6 gap-y-5 border-y border-rule py-6 sm:grid-cols-4">
         {[
-          { label: "Chemistry", value: String(area.chemistry), color: "var(--color-bone)" },
+          { label: "Intensity", value: String(area.chemistry), color: "var(--color-bone)" },
           { label: "Ease", value: easeLabel(area.ease), color: BAND_COLOR[area.band] },
           { label: "Contacts", value: String(area.contactCount), color: "var(--color-bone-soft)" },
           { label: "From houses", value: `${area.fromHouses}%`, color: "var(--color-bone-soft)" },
@@ -195,7 +195,7 @@ function AreaDrawer({
           <Points
             tone="note"
             items={[
-              `${area.fromHouses}% of this chemistry comes from houses, not aspects`,
+              `${area.fromHouses}% of this intensity comes from houses, not aspects`,
               "Houses say how much weight lands here",
               "Only aspects have a character — that share moved the ease not at all",
             ]}
@@ -280,7 +280,7 @@ export default function AreasPanel({
       <PanelHeading
         aside={
           <span className="datum text-[0.6875rem] text-bone-faint">
-            {lens.omits.length ? lens.omits[0] : "Chemistry · ease · never averaged"}
+            {lens.omits.length ? lens.omits[0] : "Intensity · ease · never averaged"}
           </span>
         }
       >
@@ -298,7 +298,7 @@ export default function AreasPanel({
 
       <div className="hidden grid-cols-[9rem_1fr_1px_1fr_6rem] gap-x-8 pb-2 sm:grid">
         <span className={`${T.tiny} text-bone-faint`}>Area</span>
-        <span className={`${T.tiny} text-bone-faint`}>Chemistry</span>
+        <span className={`${T.tiny} text-bone-faint`}>Intensity (contact)</span>
         <span aria-hidden />
         <span className={`${T.tiny} text-bone-faint`}>Friction ↔ Flow</span>
         <span className={`${T.tiny} text-right text-bone-faint`}>Reads</span>

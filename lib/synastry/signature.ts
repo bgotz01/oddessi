@@ -82,12 +82,12 @@ export const CELL: Record<
 > = {
   bonded: {
     label: "Bonded",
-    coords: "high chemistry · flowing",
+    coords: "high intensity · flowing",
     points: ["A great deal of contact", "Most of it comes easily"],
   },
   entangled: {
     label: "Entangled",
-    coords: "high chemistry · mixed",
+    coords: "high intensity · mixed",
     points: [
       "A great deal of contact",
       "Pulling both ways at once",
@@ -96,7 +96,7 @@ export const CELL: Record<
   },
   volatile: {
     label: "Volatile",
-    coords: "high chemistry · charged",
+    coords: "high intensity · charged",
     points: [
       "A great deal of contact",
       "Most of it costs something",
@@ -105,17 +105,17 @@ export const CELL: Record<
   },
   easy: {
     label: "Easy",
-    coords: "low chemistry · flowing",
+    coords: "low intensity · flowing",
     points: ["Little friction", "Little pull", "Comfortable company"],
   },
   cordial: {
     label: "Cordial",
-    coords: "low chemistry · mixed",
+    coords: "low intensity · mixed",
     points: ["The charts touch lightly", "In no particular direction"],
   },
   distant: {
     label: "Distant",
-    coords: "low chemistry · charged",
+    coords: "low intensity · charged",
     points: ["Little draws these two together", "What does tends to catch"],
   },
   unread: {
@@ -157,15 +157,16 @@ const TOP_CONTACTS = 8;
 /**
  * Above this percentile, chemistry counts as high for the purpose of the cell.
  *
- * 55 rather than 50 so that "high" means a little more contact than an
- * unrelated pairing rather than merely not less, and a pair sitting exactly at
- * typical falls on the quiet side of the grid where it belongs.
+ * 50, the median of unrelated pairings — the line on the plot sits at the one
+ * value the caption names, "50 = average". It was 55 so that a pair exactly at
+ * typical fell on the quiet side; the comparison below is strict instead, which
+ * keeps that without drawing the boundary somewhere the page never explains.
  *
  * Exported because the plot draws this boundary as a line and has to label it.
  * It kept its own copy of the number for a while, which is the kind of
  * duplication that survives until somebody moves one of them.
  */
-export const HIGH_CHEMISTRY = 55;
+export const HIGH_CHEMISTRY = 50;
 
 /**
  * How far from zero ease has to be before the cell is flowing or charged.
@@ -187,7 +188,7 @@ const PHRASE_MARGIN = 6;
 
 function cellOf(chemistry: number, ease: number | null, count: number): Cell {
   if (count < UNREAD_BELOW || ease === null) return "unread";
-  const high = chemistry >= HIGH_CHEMISTRY;
+  const high = chemistry > HIGH_CHEMISTRY;
   if (ease >= EASE_BAND) return high ? "bonded" : "easy";
   if (ease <= -EASE_BAND) return high ? "volatile" : "distant";
   return high ? "entangled" : "cordial";
@@ -377,6 +378,6 @@ export function signature(
     summary: summaryOf(ranked, tension, activation),
     contactCount: scoring.length,
     caveats,
-    ask: `On the compatibility page, read under the ${lens.label.toLowerCase()} lens: ${a.name} and ${b.name} land in the ${CELL[cell].label.toLowerCase()} cell — chemistry ${chemistry}, ease ${ease === null ? "unresolved" : ease}, off ${scoring.length} counted contacts. ${phrase ? `The areas carrying most of it are ${phrase.replace(" × ", " and ")}. ` : ""}Chemistry and ease are separate axes and the cell is the crossing of the two, not an average. ${lens.framing} Explain what it is like to be in a relationship of this kind that sits there. Do not say whether they are compatible and do not predict what will happen — the instrument measures contact between two charts and has no access to anything else about them.${caveats.length ? ` State these limits too: ${caveats.join(" ")}` : ""}`,
+    ask: `On the compatibility page, read under the ${lens.label.toLowerCase()} lens: ${a.name} and ${b.name} land in the ${CELL[cell].label.toLowerCase()} cell — intensity ${chemistry}, ease ${ease === null ? "unresolved" : ease}, off ${scoring.length} counted contacts. ${phrase ? `The areas carrying most of it are ${phrase.replace(" × ", " and ")}. ` : ""}Intensity and ease are separate axes and the cell is the crossing of the two, not an average. ${lens.framing} Explain what it is like to be in a relationship of this kind that sits there. Do not say whether they are compatible and do not predict what will happen — the instrument measures contact between two charts and has no access to anything else about them.${caveats.length ? ` State these limits too: ${caveats.join(" ")}` : ""}`,
   };
 }

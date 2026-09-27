@@ -3,7 +3,7 @@
 "use client";
 
 import type { Trajectory } from "@/lib/growth";
-import { Band, Expand, Placement, Row, SectionHead } from "@/components/western/growth/growth-field";
+import { Band, Panel, Placement, Row, SectionHead } from "@/components/western/growth/growth-field";
 import { resistanceAnchors } from "@/components/western/growth/growth-readings";
 import { T, type ChapterKey } from "@/components/western/growth/growth-ui";
 
@@ -60,13 +60,16 @@ export default function GrowthResistance({
       />
 
       {/* ── Behaviours ───────────────────────────────────────────────────────
-          The section's hero: things you can catch yourself doing, four or five
-          words each, set at value size because each one IS the finding rather
-          than a description of one. */}
-      <Band label="Behaviours" aside={`${t.from.sign} — going back`}>
-        <ul className="mt-6 grid gap-x-10 gap-y-5 @3xl:grid-cols-3">
+          Things you can catch yourself doing, four or five words each, set at
+          value size because each one IS the finding. Cards with an ember edge:
+          this is the one band on the page describing a loop to interrupt. */}
+      <Band label="How it shows up" aside={`${t.from.sign} — going back`} accent="ember">
+        <ul className="mt-6 grid gap-4 @3xl:grid-cols-3">
           {t.resistance.tells.map((tell) => (
-            <li key={tell} className={`border-l border-rule pl-5 ${T.phrase}`}>
+            <li
+              key={tell}
+              className={`rounded-sm border border-rule border-l-2 border-l-ember bg-surface px-6 py-5 ${T.phrase}`}
+            >
               {tell}
             </li>
           ))}
@@ -74,14 +77,12 @@ export default function GrowthResistance({
       </Band>
 
       {/* ── Response ─────────────────────────────────────────────────────────
-          The one block that is not a row, because it is not a list of things —
-          it is the road's own grammar at sentence scale, two poles and an
-          arrow, and the model's naming (oldPole / developedPole) rather than
-          the Less / More labels that used to sit over these quotes. */}
-      <Band label="Response" aside="what to say instead">
-        <div className="mt-6 grid gap-6 @2xl:grid-cols-[1fr_auto_1fr] @2xl:items-start @2xl:gap-8">
-          <div>
-            <p className={`${T.tiny} text-bone-faint`}>Old reflex</p>
+          The road's own grammar at sentence scale: two poles and an arrow, in
+          the model's naming (oldPole / developedPole). */}
+      <Band label="What to say instead">
+        <Panel className="mt-6 grid @2xl:grid-cols-[1fr_auto_1fr] @2xl:items-stretch">
+          <div className="p-6 @2xl:p-8">
+            <p className={`${T.micro} text-bone-soft`}>Old reflex</p>
             <p className={`mt-3 ${T.phrase} text-bone-soft`}>
               {t.movement.expression.oldPole}
             </p>
@@ -89,18 +90,18 @@ export default function GrowthResistance({
 
           <span
             aria-hidden
-            className="glyph hidden pt-7 text-[1rem] text-patina @2xl:block"
+            className="glyph hidden items-center border-x border-rule px-5 text-[1.125rem] text-patina @2xl:flex"
           >
             →
           </span>
 
-          <div>
-            <p className={`${T.tiny} text-patina`}>New move</p>
+          <div className="border-t border-rule p-6 @2xl:border-t-0 @2xl:p-8">
+            <p className={`${T.micro} text-patina`}>New move</p>
             <p className={`mt-3 ${T.phrase}`}>
               {t.movement.expression.developedPole}
             </p>
           </div>
-        </div>
+        </Panel>
       </Band>
 
       {/* ── Placements ───────────────────────────────────────────────────────
@@ -108,7 +109,7 @@ export default function GrowthResistance({
           where the chart supplies them: an empty heading here would advertise
           exactly the absence that makes the pull weak. */}
       {anchors.length ? (
-        <Band label="Placements" accent="ember">
+        <Band label="Where it lives in the chart">
           <ul>
             {anchors.map((anchor) => (
               <Row
@@ -127,8 +128,6 @@ export default function GrowthResistance({
           </ul>
         </Band>
       ) : null}
-
-      <Expand onClick={open} />
     </section>
   );
 }

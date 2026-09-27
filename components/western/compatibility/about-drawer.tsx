@@ -40,12 +40,12 @@ export default function AboutDrawer({
         <Points
           className="mt-4"
           items={[
-            "Chemistry — the eight strongest cross-chart contacts, weighted by aspect, by the bodies involved and by how exact each one is",
+            "Intensity (contact) — the eight strongest cross-chart contacts, weighted by aspect, by the bodies involved and by how exact each one is",
             "It says how much the two charts touch, and nothing about whether that is welcome",
             "Ease — trines and sextiles against squares and oppositions, across every counted contact rather than the loudest eight",
             "It says what the contact is like, and nothing about how much there is",
             "The cell is where they cross, never an average",
-            "Chemistry is a percentile against unrelated pairings of these same charts, so 50 is typical",
+            "Intensity is a percentile against unrelated pairings of these same charts, so 50 is typical",
           ]}
         />
       </div>

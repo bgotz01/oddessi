@@ -3,19 +3,36 @@
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import { useChart } from "@/components/chart-context";
 import { NatalWheel } from "@/components/western/planets/natal-wheel";
+import PlanetaryInfluences from "@/components/western/planets/planetary-influences";
 import { BodiesTable } from "@/components/western/planets/bodies-table";
+
+/**
+ * One verb per body — the key to the table above. It depends on no chart, so
+ * it renders with or without one.
+ */
+function PlanetKey() {
+  return (
+    <section className="mt-16">
+      <SectionHeading aside="what each body does to a house">
+        Planetary Influences
+      </SectionHeading>
+      <PlanetaryInfluences />
+    </section>
+  );
+}
 
 export default function PlanetsPage() {
   const { chart } = useChart();
 
   if (!chart) {
     return (
-      <div className="mx-auto w-full max-w-6xl px-8">
+      <div className="mx-auto w-full max-w-6xl px-8 pb-24">
         <PageTitle
           eyebrow="No chart"
           title="Planets"
           lede="No chart selected. Add birth data to begin the study."
         />
+        <PlanetKey />
       </div>
     );
   }
@@ -47,6 +64,8 @@ export default function PlanetsPage() {
         </SectionHeading>
         <BodiesTable placements={chart.placements} />
       </section>
+
+      <PlanetKey />
     </div>
   );
 }

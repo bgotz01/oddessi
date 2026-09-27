@@ -10,7 +10,7 @@ import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 import { T, prime } from "@/components/western/growth/growth-ui";
 
 /**
- * The furniture Resistance and Resources are both built from.
+ * The furniture every Growth section is built from.
  *
  * ─── Why it exists ──────────────────────────────────────────────────────────
  *
@@ -23,16 +23,16 @@ import { T, prime } from "@/components/western/growth/growth-ui";
  *
  * So there are five roles here and no other sizes:
  *
- *     TITLE     the section name                      inscription, 24px
+ *     TITLE     the section name                      26px  (T.title)
  *     VALUE     the thing itself — a tell, a
- *               placement                             22px  (T.phrase)
- *     SENTENCE  the one line a section is allowed     17px  (T.lead)
- *     READING   what a row's value means              15px  (T.body)
- *     LABEL     everything else: band names, row
- *               names, asides, degrees, houses        10px  (T.tiny)
+ *               placement                             23px  (T.phrase)
+ *     SENTENCE  the one line a section is allowed     20px  (T.lead)
+ *     READING   what a row's value means              18px  (T.body)
+ *     LABEL     band names, row names                 12px  (T.micro)
+ *     MEASURE   degrees, houses, asides               11px  (T.tiny)
  *
  * READING is the newest and the one worth justifying, since the list was four
- * for a while. A row's reading is a sentence and cannot be a tracked 10px
+ * for a while. A row's reading is a sentence and cannot be a tracked mono
  * label; it is also not the one line the section is answering, so it is not
  * SENTENCE either. `T.body` is the scale's existing step for a supporting
  * sentence and this is exactly that — no new size, a step these two sections
@@ -73,6 +73,17 @@ import { T, prime } from "@/components/western/growth/growth-ui";
 
 /* ─── Section header ──────────────────────────────────────────────────────── */
 
+/**
+ * Number and name as a label, the question as a title, and the way into the
+ * drawer.
+ *
+ * This was a single centred 11px caption — "02 · CONVERSION · HOW COMPETENCE
+ * CONVERTS" — with an Expand button at the section's foot. The caption was the
+ * quietest text on the page, so the page read as one long undifferentiated
+ * field, and the button was four identical controls a reader had to scroll
+ * past each section to find. The drawer control sits in the header now, where
+ * the reader decides whether they want more.
+ */
 export function SectionHead({
   index,
   name,
@@ -85,26 +96,51 @@ export function SectionHead({
   onOpen: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="group mb-10 block w-full text-center"
-    >
-      <p className={`${T.micro} text-patina-dim transition-colors group-hover:text-patina`}>
-        {index} · {name} · {title}
-      </p>
-    </button>
+    <header className="flex flex-col gap-5 border-b border-rule pb-6 @2xl:flex-row @2xl:items-end @2xl:justify-between @2xl:gap-10">
+      <div className="min-w-0">
+        <p className={`${T.micro} text-patina`}>
+          {index} · {name}
+        </p>
+        <h2 className={`mt-2.5 ${T.title}`}>{title}</h2>
+      </div>
+
+      <button
+        type="button"
+        onClick={onOpen}
+        className={`${T.micro} shrink-0 self-start rounded-sm border border-patina-dim px-4 py-2.5 text-patina transition-colors hover:border-patina hover:bg-patina-deep @2xl:self-end`}
+      >
+        Details →
+      </button>
+    </header>
+  );
+}
+
+/* ─── Panel ───────────────────────────────────────────────────────────────── */
+
+/**
+ * A raised surface for the one figure each section is built around — the axis,
+ * the conversion road, the response. Everything else sits on the page itself,
+ * so a panel means "this is the claim" rather than "this is a card".
+ */
+export function Panel({
+  className = "",
+  children,
+}: {
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`rounded-sm border border-rule bg-surface ${className}`}>
+      {children}
+    </div>
   );
 }
 
 /* ─── Band ────────────────────────────────────────────────────────────────── */
 
 /**
- * A labelled group of rows.
- *
- * The Conversion's heading grammar — tracked label left, provenance right, a
- * hairline under both — carried across the page so a heading means the same
- * thing in every section.
+ * A labelled group of rows: label left, provenance right, a hairline under
+ * both, so a heading means the same thing in every section.
  */
 export function Band({
   label,
@@ -119,14 +155,12 @@ export function Band({
   children: ReactNode;
 }) {
   return (
-    <div className="mt-14">
-      <div className="flex items-baseline justify-between gap-4 border-b border-rule pb-2">
-        <p
-          className={`${T.tiny} ${accent === "ember" ? "text-ember" : "text-patina-dim"}`}
-        >
+    <div className="mt-12">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-rule pb-3">
+        <p className={`${T.micro} ${accent === "ember" ? "text-ember" : "text-patina"}`}>
           {label}
         </p>
-        {aside ? <p className={`${T.tiny} text-bone-faint`}>{aside}</p> : null}
+        {aside ? <p className={`${T.tiny} text-bone-soft`}>{aside}</p> : null}
       </div>
       {children}
     </div>
@@ -155,15 +189,14 @@ export function Row({
   accent?: "quiet" | "patina";
   children: ReactNode;
 }) {
-  // 11rem, not 9: the widest label in either section is "In the departing
-  // house", and at 9rem it wrapped to two lines while every row around it
-  // stayed on one — which reads as a broken row rather than a long label. The
-  // value and the reading then split what is left evenly, so the third column
-  // has room to be read rather than squeezed to its content.
+  // 14rem: the widest label in either section is "In the departing house",
+  // and a label that wraps while every row around it stays on one line reads
+  // as a broken row. The value and the reading split what is left evenly, so
+  // the third column has room to be read rather than squeezed to its content.
   return (
-    <li className="grid gap-x-8 gap-y-2 border-b border-rule-faint py-5 @2xl:grid-cols-[11rem_1fr_1fr] @2xl:items-baseline">
+    <li className="grid gap-x-8 gap-y-2.5 border-b border-rule py-6 @2xl:grid-cols-[14rem_1fr_1fr] @2xl:items-baseline">
       <p
-        className={`${T.tiny} ${accent === "patina" ? "text-patina" : "text-bone-faint"}`}
+        className={`${T.micro} ${accent === "patina" ? "text-patina" : "text-bone-soft"}`}
       >
         {label}
       </p>
@@ -251,50 +284,11 @@ export function Placement({
       ) : null}
 
       {house ? (
-        <span className={`${T.tiny} text-bone-faint`}>
+        <span className={`${T.tiny} text-bone-soft`}>
           house {house}
           {panel ? ` · ${getHouseTitle(house as House)}` : ""}
         </span>
       ) : null}
     </span>
-  );
-}
-
-/* ─── Expand ──────────────────────────────────────────────────────────────── */
-
-/**
- * The control that opens the drawer, at the foot of a section.
- *
- * Every section had written its own, and each one had been written as a
- * sentence about what was behind it: "Why the old strategy still wins", "How
- * to lean on each of these", "+ 1 more conversion", "Full arc". Four different
- * promises for one control, none of which a reader can act on differently —
- * they all open the same panel on the tab they are already looking at. The
- * variety was doing no work and cost the page a consistent exit.
- *
- * Centred at the foot rather than set in the top right. The top right of every
- * section is already occupied and by something a reader needs more: the
- * departing pole in Resistance, the arriving pole in Resources, "What it
- * becomes" over the Conversion road, "North Node · The direction" over the
- * Arc's. Putting a control there would displace the one piece of provenance
- * each section header carries. The Arc has closed on a centred link at its
- * foot since it was written, so this is that pattern made general rather than
- * a new one.
- *
- * The hairline is what makes a single centred word read as a control rather
- * than as a stray caption, and it closes each section, which the page wanted
- * anyway — before this, one section ran into the next on whitespace alone.
- */
-export function Expand({ onClick }: { onClick: () => void }) {
-  return (
-    <div className="mt-12 flex justify-center">
-      <button
-        type="button"
-        onClick={onClick}
-        className={`${T.tiny} rounded-sm border border-rule px-8 py-3 text-bone-faint transition-colors hover:border-patina-dim hover:text-patina`}
-      >
-        Expand
-      </button>
-    </div>
   );
 }

@@ -187,7 +187,7 @@ export default function HouseGeometry({
   return (
     <div className="w-full">
       <p className="mb-6 text-[1.1rem] text-bone-soft italic">
-        How much zodiacal space each house axis occupies.
+        Wider houses hold transiting planets longer — a 45° house takes roughly 50% more transit time than a 30° one.
       </p>
       {AXES.map(([leftNumber, rightNumber]) => {
         const left = byNumber.get(leftNumber);

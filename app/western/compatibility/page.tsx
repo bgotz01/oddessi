@@ -196,9 +196,11 @@ function Compatibility({ chart }: { chart: Chart }) {
         {reading ? (
           <div className="mt-8">
             <div className="mb-3 flex items-baseline justify-between gap-4">
-              <p className="eyebrow">Relationship type</p>
+              <p className="eyebrow">
+                Relationship type <span className="text-patina">· choose one</span>
+              </p>
               <span className="datum text-[0.625rem] tracking-[0.14em] text-bone-faint uppercase">
-                Each scored over its own areas
+                The reading below follows your choice
               </span>
             </div>
             <LensToggle

@@ -90,40 +90,38 @@ export const TABS: { key: ChapterKey; label: string; kicker: string }[] = [
 ];
 
 /**
- * The type scale, fixed at seven steps.
+ * The type scale, one role per step.
  *
- * This page once carried eleven font sizes, its most-used size was nine pixels,
- * and the result read as a wall because nothing announced itself as the thing
- * to read first. Each step below is a *role*, not a size to choose from: if a
- * piece of text does not obviously belong to one, the layout is wrong rather
- * than the scale being short an option. Nothing sits below 10px, and 10px is
- * only for tracked-out micro labels that are glanced at rather than read.
+ * The first version of this scale floored at 10px mono labels in bone-faint and
+ * set reading text at 15px — in Cormorant, whose x-height is small enough that
+ * 15px reads like 12px in most faces. The page was accurate and nobody could
+ * read it: every label was a tracked sliver, every gloss a grey whisper, and
+ * the whitespace between them did the rest. Everything here is a step larger
+ * and a step brighter than it was, and faint is kept for the one role that is
+ * genuinely secondary — measurements beside a placement.
+ *
+ * `title` is new. Sections used to announce themselves with a centred 11px
+ * caption, which is why the page seemed to have no structure: the headings
+ * were the quietest text on it. A section title is now the second-largest
+ * thing on the page, mixed case in the display face.
  */
 export const T = {
+  /** A section's name. */
+  title: "font-[family-name:var(--font-display)] text-[1.625rem] leading-tight text-bone",
   /** The one sentence a section is answering. */
-  lead: "text-[1.0625rem] leading-relaxed text-bone-soft",
-  /**
-   * A finding in a few words.
-   *
-   * The seventh step, and the one the page is now mostly made of. It exists
-   * because the sections stopped explaining themselves in prose: a tell is
-   * "One more perspective before deciding", a relation is a placement, and
-   * neither is reading text with a paragraph around it — each is the thing
-   * itself, and set at reading size it looked like a fragment of something
-   * longer that had been cut off. Big enough to be the object on the page
-   * rather than a description of one.
-   */
-  phrase: "text-[1.375rem] leading-snug text-bone",
+  lead: "text-[1.25rem] leading-relaxed text-bone-soft",
+  /** A finding in a few words — a tell, a mode, a placement. */
+  phrase: "text-[1.4375rem] leading-snug text-bone",
   /** Primary reading text — the actual finding. */
-  read: "text-[1.0625rem] leading-snug text-bone",
+  read: "text-[1.1875rem] leading-snug text-bone",
   /** Supporting sentences. */
-  body: "text-[0.9375rem] leading-relaxed text-bone-soft",
+  body: "text-[1.125rem] leading-relaxed text-bone-soft",
   /** Asides and glosses. Quiet, still legible. */
-  note: "text-[0.875rem] leading-relaxed text-bone-faint",
-  /** Tracked micro label. The floor for anything carrying words. */
-  micro: "datum text-[0.6875rem] tracking-[0.16em] uppercase",
-  /** The smallest label, for section numbers and one-word tags. */
-  tiny: "datum text-[0.625rem] tracking-[0.14em] uppercase",
+  note: "text-[1.0625rem] leading-relaxed text-bone-soft",
+  /** Tracked label naming the block below it. */
+  micro: "datum text-[0.75rem] tracking-[0.14em] uppercase",
+  /** The smallest label: measurements, one-word tags. */
+  tiny: "datum text-[0.6875rem] tracking-[0.12em] uppercase",
 } as const;
 
 /**

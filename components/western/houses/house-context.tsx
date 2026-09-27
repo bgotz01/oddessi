@@ -9,48 +9,15 @@ import { HOUSE_TYPES, houseTypeStyle } from "@/lib/house-types";
 import { bodyGlyph } from "@/lib/symbols";
 
 /**
- * The three explanatory sections that sit between the grid and the readings:
- * what each body does to a house, which houses are wired to each other, and
- * what angular / succedent / cadent actually means.
+ * The explanatory sections that sit between the grid and the readings: which
+ * houses are wired to each other, and what angular / succedent / cadent
+ * actually means. (What each body does to a house moved to the Planets page, as
+ * `components/western/planets/planetary-influences`.)
  *
  * These are constants, not readings — nothing here depends on the chart except
  * the circuits. They exist so the grid above is legible to someone who has not
  * already memorised the system.
  */
-
-/** One verb per body. The whole point is that they are not interchangeable. */
-const VERBS: Array<[string, string]> = [
-  ["Sun", "centralises"],
-  ["Moon", "sensitises"],
-  ["Mercury", "interprets"],
-  ["Venus", "softens"],
-  ["Mars", "energises"],
-  ["Jupiter", "expands"],
-  ["Saturn", "hardens"],
-  ["Uranus", "disrupts"],
-  ["Neptune", "dissolves"],
-  ["Pluto", "transforms"],
-];
-
-export function PlanetaryInfluences() {
-  return (
-    <div className="grid grid-cols-2 gap-px bg-rule-faint sm:grid-cols-3 lg:grid-cols-5">
-      {VERBS.map(([body, verb]) => (
-        <div key={body} className="bg-surface px-4 py-3 flex flex-col items-center text-center">
-          <div className="flex items-baseline gap-2">
-            <span className="glyph text-[1.25rem] text-patina">
-              {bodyGlyph(body)}
-            </span>
-            <span className="inscription text-[0.75rem] text-bone">{body}</span>
-          </div>
-          <p className="mt-1 text-[1.0625rem] font-light text-bone-faint italic">
-            {verb}
-          </p>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export function HouseCircuits({ chart }: { chart: Chart }) {
   // Rulership is configurable, and a circuit is made of rulers — reading them

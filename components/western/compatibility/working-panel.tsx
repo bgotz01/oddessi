@@ -58,7 +58,7 @@ export default function WorkingPanel({
           tone="note"
           items={[
             `The whole reading rests on ${counted.length} counted contact${counted.length === 1 ? "" : "s"}`,
-            "Chemistry and ease are separate questions",
+            "Intensity and ease are separate questions",
             "The cell at the top is where they cross, not an average",
             "Both axes are percentiles against unrelated pairings of these same charts — 50 is typical",
           ]}

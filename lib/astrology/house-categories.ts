@@ -1,11 +1,19 @@
 // House Categories with Core Themes
 // Revised for tighter language, clearer engines, and consistent tone
+//
+// THE source for house titles. Every page that names a house — Growth, Houses,
+// Cycles, Flow & Grind, the birth chart — reads `getHouseTitle` from here, and
+// the older tables (`HOUSE_NAMES` in standard-definitions, `HOUSE_INFO.name` in
+// houses/houses) are derived from it rather than written out again. There were
+// four copies, and the ninth house was called four different things. Rename a
+// house here and nowhere else.
 
 export type House = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
 export interface HouseCategory {
     house: House;
     title: string; // Short title for UI display
+    essence: string; // The house in one first-person line — "Who I am."
     coreThemes: string[]; // Detailed thematic breakdown
 }
 
@@ -13,6 +21,7 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     1: {
         house: 1,
         title: "Self & Identity",
+        essence: "Who I am.",
         coreThemes: [
             "Physical body & appearance",
             "First impressions & presentation",
@@ -24,7 +33,8 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     },
     2: {
         house: 2,
-        title: "Values & Resources",
+        title: "Money & Values",
+        essence: "What is mine.",
         coreThemes: [
             "Personal values & priorities",
             "Money, possessions, and assets",
@@ -37,6 +47,7 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     3: {
         house: 3,
         title: "Mind & Communication",
+        essence: "What I think.",
         coreThemes: [
             "Thinking style & mental processing",
             "Communication: speaking, writing, messaging",
@@ -48,7 +59,8 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     },
     4: {
         house: 4,
-        title: "Home & Roots",
+        title: "Home & Family",
+        essence: "Where I belong.",
         coreThemes: [
             "Home, privacy, and inner life",
             "Family, ancestry, and lineage",
@@ -60,7 +72,8 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     },
     5: {
         house: 5,
-        title: "Creativity & Expression",
+        title: "Creativity & Pleasure",
+        essence: "What I create.",
         coreThemes: [
             "Creative authorship (making something new)",
             "Play as life-force (for its own sake)",
@@ -73,6 +86,7 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     6: {
         house: 6,
         title: "Work & Health",
+        essence: "How I live each day.",
         coreThemes: [
             "Daily work, routines, and discipline",
             "Health, habits, and optimization",
@@ -84,7 +98,8 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     },
     7: {
         house: 7,
-        title: "Partnership & Exchange",
+        title: "Relationships & Partnership",
+        essence: "Who I join with.",
         coreThemes: [
             "Committed partnership and marriage",
             "Business partners and collaborators",
@@ -96,7 +111,8 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     },
     8: {
         house: 8,
-        title: "Transformation & Shared Resources",
+        title: "Intimacy & Shared Resources",
+        essence: "What is ours.",
         coreThemes: [
             "Death & rebirth (psychological)",
             "Power, control, trust",
@@ -107,7 +123,8 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     },
     9: {
         house: 9,
-        title: "Belief & Meaning",
+        title: "Beliefs & Exploration",
+        essence: "What I believe.",
         coreThemes: [
             "Higher education & advanced study",
             "Philosophy, ethics, and worldview",
@@ -119,7 +136,8 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     },
     10: {
         house: 10,
-        title: "Career & Status",
+        title: "Career & Public Life",
+        essence: "What I become known for.",
         coreThemes: [
             "Career, vocation, and life direction",
             "Reputation, status, and visibility",
@@ -131,7 +149,8 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     },
     11: {
         house: 11,
-        title: "Networks & Collective",
+        title: "Friends & Networks",
+        essence: "Who I connect with.",
         coreThemes: [
             "Friends, allies, and supporters",
             "Groups, organizations, and communities",
@@ -144,6 +163,7 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     12: {
         house: 12,
         title: "Inner World & Retreat",
+        essence: "What exists beneath the surface.",
         coreThemes: [
             "Solitude, retreat, and restoration",
             "Subconscious patterns and hidden motivations",
@@ -163,6 +183,10 @@ export function getHouseCategory(house: House): HouseCategory {
 
 export function getHouseTitle(house: House): string {
     return HOUSE_CATEGORIES[house].title;
+}
+
+export function getHouseEssence(house: House): string {
+    return HOUSE_CATEGORIES[house].essence;
 }
 
 export function getHouseCoreThemes(house: House): string[] {

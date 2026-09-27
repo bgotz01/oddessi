@@ -3,7 +3,7 @@
 "use client";
 
 import type { Trajectory } from "@/lib/growth";
-import { Band, Expand, Placement, Row, SectionHead } from "@/components/western/growth/growth-field";
+import { Band, Placement, Row, SectionHead } from "@/components/western/growth/growth-field";
 import {
   resourceReadings,
   type ResourceReading,
@@ -89,7 +89,7 @@ export default function GrowthTailwinds({
         onOpen={open}
       />
 
-      <Band label="Support">
+      <Band label="Support" aside="soft contact to the axis">
         {helps.length ? (
           <Rows rows={helps} />
         ) : (
@@ -97,7 +97,7 @@ export default function GrowthTailwinds({
           // need it. "Nothing holds a soft contact" is a real finding, and far
           // better than folding those charts into a single list that implies
           // five helpers.
-          <p className={`mt-6 max-w-xl ${T.lead}`}>
+          <p className={`mt-6 max-w-2xl ${T.lead}`}>
             Nothing holds a trine or a sextile to the axis. What follows is
             relevance, not ease.
           </p>
@@ -105,12 +105,10 @@ export default function GrowthTailwinds({
       </Band>
 
       {relations.length ? (
-        <Band label="Relations">
+        <Band label="Relations" aside="routes, not ease">
           <Rows rows={relations} />
         </Band>
       ) : null}
-
-      <Expand onClick={open} />
     </section>
   );
 }
