@@ -110,7 +110,7 @@ export const ARCHETYPE_QUESTIONS: Record<
     },
 
     "Aries/11": {
-        move: "Start the collective move.",
+        move: "Set the group in motion.",
         questions: [
             "What shared project is waiting for someone to initiate it?",
             "Where am I waiting for consensus when a first experiment would teach us more?",
@@ -157,7 +157,7 @@ export const ARCHETYPE_QUESTIONS: Record<
     },
 
     "Taurus/4": {
-        move: "Build somewhere to belong.",
+        move: "Make belonging tangible.",
         questions: [
             "What does my environment need in order to genuinely restore me?",
             "Which parts of home create security, and which merely preserve familiarity?",
@@ -294,7 +294,7 @@ export const ARCHETYPE_QUESTIONS: Record<
     },
 
     "Gemini/7": {
-        move: "Keep the other person surprising.",
+        move: "Stay curious about the other.",
         questions: [
             "What have I stopped asking because I think I already know this person?",
             "What changes if I become curious about their position instead of preparing my response?",
@@ -359,7 +359,7 @@ export const ARCHETYPE_QUESTIONS: Record<
     },
 
     "Cancer/2": {
-        move: "Build enough to provide.",
+        move: "Create enough to provide.",
         questions: [
             "What resources would make me feel genuinely secure rather than temporarily reassured?",
             "Who or what do I want to be capable of providing for?",
@@ -469,7 +469,7 @@ export const ARCHETYPE_QUESTIONS: Record<
     },
 
     "Leo/2": {
-        move: "Put your name behind the value.",
+        move: "Claim the value you create.",
         questions: [
             "What have I created or built that I am genuinely proud to call mine?",
             "Where am I letting external recognition determine what I think my work is worth?",
@@ -689,7 +689,7 @@ export const ARCHETYPE_QUESTIONS: Record<
     },
 
     "Libra/2": {
-        move: "Decide what is worth it.",
+        move: "Judge what deserves your resources.",
         questions: [
             "What am I comparing this against when I decide what it is worth?",
             "Where am I accepting someone else's valuation instead of making my own judgment?",
@@ -725,7 +725,7 @@ export const ARCHETYPE_QUESTIONS: Record<
     },
 
     "Libra/6": {
-        move: "Make cooperation work.",
+        move: "Balance the working relationship.",
         questions: [
             "Where are responsibilities poorly balanced in the work we are doing together?",
             "What practical adjustment would make cooperation easier for everyone involved?",
@@ -1028,7 +1028,7 @@ export const ARCHETYPE_QUESTIONS: Record<
     },
 
     "Capricorn/3": {
-        move: "Put the facts in order.",
+        move: "Turn information into a plan.",
         questions: [
             "What needs to happen first before anything else can move?",
             "Which information actually changes the plan, and which is merely interesting?",
@@ -1231,7 +1231,7 @@ export const ARCHETYPE_QUESTIONS: Record<
     // ─── Pisces ────────────────────────────────────────────────────────────────
 
     "Pisces/1": {
-        move: "Let identity remain alive.",
+        move: "Let identity stay fluid.",
         questions: [
             "Which version of myself am I holding onto because having a fixed identity feels safer than changing?",
             "What part of me appears only when I stop trying to define who I am?",
@@ -1312,7 +1312,7 @@ export const ARCHETYPE_QUESTIONS: Record<
     },
 
     "Pisces/10": {
-        move: "Let the work carry something larger.",
+        move: "Serve something larger through the work.",
         questions: [
             "What wants to move through my work that is larger than my personal ambition?",
             "Where am I trying to control how my contribution will be understood instead of making the contribution itself?",

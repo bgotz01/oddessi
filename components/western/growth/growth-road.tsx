@@ -33,6 +33,8 @@ export default function GrowthRoad({
   to,
   fromDetail,
   toDetail,
+  fromNotes,
+  toNotes,
   toColor,
   mark,
   onFrom,
@@ -48,6 +50,12 @@ export default function GrowthRoad({
   /** What stands under each terminal — its placement, its provenance. */
   fromDetail?: ReactNode;
   toDetail?: ReactNode;
+  /**
+   * Boxed only: a second container under each terminal's box, in the same
+   * column, so the two read as one stack.
+   */
+  fromNotes?: ReactNode;
+  toNotes?: ReactNode;
   toColor: string;
   /** Optional mark standing on the road — only drawn when it means something. */
   mark?: ReactNode;
@@ -109,7 +117,7 @@ export default function GrowthRoad({
       "rounded-sm border bg-surface-alt p-6 @3xl:p-7 @2xl:row-span-2 @2xl:row-start-2 @2xl:grid @2xl:grid-rows-subgrid";
 
     return (
-      <div className="grid grid-cols-1 @2xl:grid-cols-[1fr_minmax(3rem,7rem)_1fr] @2xl:grid-rows-[auto_auto_1fr] @2xl:gap-x-6">
+      <div className="grid grid-cols-1 @2xl:grid-cols-[1fr_minmax(3rem,7rem)_1fr] @2xl:grid-rows-[auto_auto_1fr_auto] @2xl:gap-x-6">
         <p className={`${T.micro} mb-3 text-bone-soft @2xl:col-start-1 @2xl:row-start-1`}>
           {fromLabel}
         </p>
@@ -118,7 +126,7 @@ export default function GrowthRoad({
             type="button"
             onClick={onFrom}
             disabled={!onFrom}
-            className="group block self-start text-left disabled:cursor-default"
+            className="group block w-full self-start text-center disabled:cursor-default"
           >
             <span
               className={`${face} text-bone-soft ${onFrom ? "group-hover:text-bone" : ""}`}
@@ -130,6 +138,12 @@ export default function GrowthRoad({
             <div className="mt-5 border-t border-rule pt-5">{fromDetail}</div>
           ) : null}
         </div>
+
+        {fromNotes ? (
+          <div className="mt-3 rounded-sm border border-rule p-6 @3xl:p-7 @2xl:col-start-1 @2xl:row-start-4">
+            {fromNotes}
+          </div>
+        ) : null}
 
         <div className="relative flex min-h-14 items-center justify-center @2xl:col-start-2 @2xl:row-span-2 @2xl:row-start-2">
           {line}
@@ -149,7 +163,7 @@ export default function GrowthRoad({
             type="button"
             onClick={onTo}
             disabled={!onTo}
-            className="group block self-start text-left disabled:cursor-default"
+            className="group block w-full self-start text-center disabled:cursor-default"
           >
             <span
               className={`${face} text-bone ${onTo ? "group-hover:text-patina" : ""}`}
@@ -161,6 +175,14 @@ export default function GrowthRoad({
             <div className="mt-5 border-t border-rule pt-5">{toDetail}</div>
           ) : null}
         </div>
+        {toNotes ? (
+          <div
+            className="mt-3 rounded-sm border p-6 @3xl:p-7 @2xl:col-start-3 @2xl:row-start-4"
+            style={{ borderColor: `color-mix(in srgb, ${toColor} 25%, transparent)` }}
+          >
+            {toNotes}
+          </div>
+        ) : null}
       </div>
     );
   }

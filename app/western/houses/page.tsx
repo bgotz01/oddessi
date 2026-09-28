@@ -21,6 +21,7 @@ import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 import { easePoints, houseEase, quadrantOf } from "@/lib/ease";
 import HouseGeometry from "@/components/western/houses/house-geometry";
 import HouseBasics from "@/components/western/houses/house-basics";
+import { bodyInHouse, signOnCusp } from "@/lib/interpretation";
 
 /**
  * The twelve houses: all twelve at a glance with their dominance scores and
@@ -161,6 +162,15 @@ function Houses({ chart }: { chart: Chart }) {
           easeConfidence: easeOf.get(d.house)?.confidence ?? 0,
           easeReadFrom: easeOf.get(d.house)?.constituents ?? [],
           quadrant: quadrantOf(d.score, easeOf.get(d.house)?.band ?? "sparse"),
+          // The drawer composes its reading from generic sign and body lines;
+          // the combination-specific text is here only, for the chat to draw
+          // on. It is generic third-party copy — use it as raw material, not
+          // as a finding, and do not repeat its flattery.
+          cuspInThisHouse: signOnCusp(cusp.sign, d.house),
+          tenantsInThisHouse: tenantsOf(chart.placements, d.house).map((t) => ({
+            body: t.body,
+            reading: bodyInHouse(t.body, d.house),
+          })),
         };
       }),
       // Mutual reception loops, shown further down the same page.

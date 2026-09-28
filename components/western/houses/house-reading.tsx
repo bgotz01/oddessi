@@ -1,22 +1,18 @@
 "use client";
 
-import { Block, ListColumn, Pair, Panel, Prose, Terms } from "@/components/study-panel";
+import { Block, Bullets, ListColumn, Pair, Panel } from "@/components/study-panel";
+import { getHouseCategory, type House } from "@/lib/astrology/house-categories";
+import { BODY_IN_A_HOUSE, SIGN_MANNER } from "@/lib/house-reading";
 import type { HouseCusp, Placement } from "@/lib/charts";
-import { modeNote, type HouseDominance } from "@/lib/dominance";
+import type { HouseDominance } from "@/lib/dominance";
 import { easeLabel, type HouseEase } from "@/lib/ease";
 import { useScoring } from "@/components/scoring-context";
-import {
-  bodyInHouse,
-  houseInfo,
-  houseTypeNote,
-  signOnCusp,
-} from "@/lib/interpretation";
-import { houseTypeStyle } from "@/lib/house-types";
+import { bodyInHouse } from "@/lib/interpretation";
 import { bodyGlyph, signGlyph } from "@/lib/symbols";
 
 /**
  * The full reading for one house: what the house is, what it weighs, the sign
- * on its cusp, who is standing in it, and what kind of house it is.
+ * on its cusp, and who is standing in it.
  *
  * There are two ways into this on the houses page — the accordion row in "The
  * Twelve" and the drawer that a grid card opens — and they were carrying two
@@ -149,10 +145,6 @@ function WeightBlock({
           : ", which is not in this chart"}
         .
       </p>
-
-      <p className="mt-3 text-[0.9375rem] leading-snug font-light text-bone-faint italic">
-        {modeNote(dominance)}
-      </p>
     </Block>
   );
 }
@@ -179,12 +171,12 @@ function EaseBlock({ ease }: { ease: HouseEase }) {
   return (
     <Block title="Ease" aside={`${ease.band} · ${easeLabel(ease.ease)}`}>
       {ease.band === "sparse" ? (
-        <Prose>
-          {`Almost nothing in the chart touches this house — too few contacts to
-            call it either way. That is a statement about the chart, not a
-            verdict on the house: an untouched area is one that can be handled
-            on its own terms.`}
-        </Prose>
+        <Bullets
+          items={[
+            "Too few contacts to call either way",
+            "A fact about the chart, not a verdict on the house",
+          ]}
+        />
       ) : (
         <>
           <div className="relative h-7 border-b border-rule">
@@ -258,7 +250,9 @@ function EaseBlock({ ease }: { ease: HouseEase }) {
 
 /** One tenant with its interpretation. */
 function Tenant({ placement, house }: { placement: Placement; house: number }) {
+  // The vendored table supplies only the 2–4 word label; the body is ours.
   const inHouse = bodyInHouse(placement.body, house);
+  const brings = BODY_IN_A_HOUSE[placement.body];
 
   return (
     <div>
@@ -281,15 +275,14 @@ function Tenant({ placement, house }: { placement: Placement; house: number }) {
         ) : null}
       </div>
 
-      {inHouse ? (
+      {brings ? (
         <div className="border-l border-rule pl-4">
-          <p className="inscription mb-2 text-[0.6875rem] text-patina-dim">
-            {inHouse.meaning}
-          </p>
-          <Prose>{inHouse.shortDescription}</Prose>
-          <div className="mt-4">
-            <Terms terms={inHouse.manifestation} />
-          </div>
+          {inHouse ? (
+            <p className="inscription mb-2 text-[0.6875rem] text-patina-dim">
+              {inHouse.meaning}
+            </p>
+          ) : null}
+          <Bullets items={brings} />
         </div>
       ) : null}
     </div>
@@ -313,24 +306,17 @@ export default function HouseReading({
   ease?: HouseEase;
   onExplainWeight?: () => void;
 }) {
-  const info = houseInfo(cusp.number);
-  const onCusp = signOnCusp(cusp.sign, cusp.number);
-  const typeNote = info ? houseTypeNote(info.element) : null;
-  const typeTone = houseTypeStyle(info?.element);
+  const house = getHouseCategory(cusp.number as House);
+  const manner = SIGN_MANNER[cusp.sign];
 
   return (
     <Panel>
-      {info ? (
-        <div>
-          <p className="inscription mb-3 text-[0.8125rem] text-patina">
-            {info.name}
-          </p>
-          <Prose>{info.description}</Prose>
-          <div className="mt-4">
-            <Terms terms={info.lifeAreas} />
-          </div>
-        </div>
-      ) : null}
+      <div>
+        <p className="mb-3 text-[1.1875rem] leading-relaxed text-patina italic">
+          {house.essence}
+        </p>
+        <Bullets items={house.coreThemes} />
+      </div>
 
       {dominance ? (
         <WeightBlock
@@ -342,23 +328,17 @@ export default function HouseReading({
 
       {ease ? <EaseBlock ease={ease} /> : null}
 
-      {onCusp ? (
+      {manner ? (
         <Block
           title={`${cusp.sign} on the cusp`}
           aside={`${cusp.degree} ${cusp.sign}`}
         >
-          <Prose>{onCusp.description}</Prose>
-          <div className="mt-4">
-            <Prose>{onCusp.approach}</Prose>
-          </div>
+          <Bullets items={manner.manner} />
           <div className="mt-6">
             <Pair>
-              <ListColumn label="Strengths" items={onCusp.strengths} />
-              <ListColumn label="Costs" items={onCusp.challenges} tone="ember" />
+              <ListColumn label="Gives" items={manner.gives} />
+              <ListColumn label="Costs" items={manner.costs} tone="ember" />
             </Pair>
-          </div>
-          <div className="mt-6 border-l border-rule pl-4">
-            <Prose>{onCusp.lifeExpression}</Prose>
           </div>
         </Block>
       ) : null}
@@ -372,12 +352,12 @@ export default function HouseReading({
         }
       >
         {tenants.length === 0 ? (
-          <Prose>
-            {`Nothing sits in this house. That is the ordinary case — there
-              are more houses than bodies — and it means the domain is run
-              by its cusp sign and by wherever that sign's ruler has
-              landed, rather than being worked on directly.`}
-          </Prose>
+          <Bullets
+            items={[
+              "Empty — the ordinary case, with more houses than bodies",
+              "Run by the cusp sign and wherever its ruler landed",
+            ]}
+          />
         ) : (
           <div className="space-y-8">
             {tenants.map((t) => (
@@ -386,14 +366,6 @@ export default function HouseReading({
           </div>
         )}
       </Block>
-
-      {info && typeNote ? (
-        <Block title={`${info.element} house`} aside={info.modality}>
-          <div className="border-l-2 pl-4" style={{ borderColor: typeTone.color }}>
-            <Prose>{typeNote}</Prose>
-          </div>
-        </Block>
-      ) : null}
     </Panel>
   );
 }

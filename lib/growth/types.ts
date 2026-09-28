@@ -11,6 +11,7 @@ import type { Placement } from "@/lib/charts";
 import type { SignEntry } from "./signs";
 import type { HouseEntry } from "./houses";
 import type { Crossing } from "./crossing";
+import type { ArchetypeExplained } from "./archetypes";
 import type { ArchetypeQuestionsEntry as ArchetypeQuestions } from "./archetype-questions";
 import type { SignElement, SignModality } from "@/lib/symbols";
 
@@ -176,7 +177,16 @@ export interface Trajectory {
   from: Pole;
   to: Pole;
   /** "Interpreter → Author". The compressed arc. */
-  arc: { from: string; into: string };
+  arc: {
+    from: string;
+    into: string;
+    /**
+     * What each role means — its words glossed, then what it looks like in
+     * practice. Null when the pole has no house.
+     */
+    fromGloss: ArchetypeExplained | null;
+    intoGloss: ArchetypeExplained | null;
+  };
   /** Four imperative beats under the arc. */
   strapline: string[];
   movement: SignEntry;

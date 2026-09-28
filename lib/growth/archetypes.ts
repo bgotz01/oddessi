@@ -39,6 +39,7 @@
 
 import type { House } from "@/lib/astrology/house-categories";
 import { HOUSE } from "./houses";
+import { ARCHETYPE_GLOSS } from "./archetype-glosses";
 
 export interface ArchetypeEntry {
   role: string;
@@ -123,7 +124,7 @@ export const ARCHETYPE: Record<string, ArchetypeEntry> = {
   },
 
   "Aries/11": {
-    role: "Starter / Instigator",
+    role: "Initiator / Mobilizer",
     why:
       "The eleventh house moves through groups and shared futures; Aries contributes the first move — initiating the project, challenge or possibility that gets the collective moving.",
   },
@@ -156,7 +157,7 @@ export const ARCHETYPE: Record<string, ArchetypeEntry> = {
   },
 
   "Taurus/3": {
-    role: "Thinker / Grounder",
+    role: "Thinker / Pragmatist",
     why:
       "The third house moves through ideas, language and exchange; Taurus gives thought weight by making it concrete, practical and usable rather than leaving it abstract or endlessly mobile.",
   },
@@ -186,7 +187,7 @@ export const ARCHETYPE: Record<string, ArchetypeEntry> = {
   },
 
   "Taurus/8": {
-    role: "Holder / Steward",
+    role: "Custodian / Steward",
     why:
       "The eighth house deals with what is shared, entangled and placed in another person's hands; Taurus brings the question of stewardship into that territory — learning how to hold shared value without trying to make it entirely one's own.",
   },
@@ -255,13 +256,13 @@ export const ARCHETYPE: Record<string, ArchetypeEntry> = {
   },
 
   "Gemini/6": {
-    role: "Communicator / Coordinator",
+    role: "Coordinator / Dispatcher",
     why:
       "The sixth house is daily work, method and service; Gemini develops there by linking moving parts — keeping information flowing, adapting quickly and making practical work function through communication.",
   },
 
   "Gemini/7": {
-    role: "Partner / Communicator",
+    role: "Conversationalist / Negotiator",
     why:
       "The seventh house requires real engagement with another person; Gemini develops there by keeping the relationship mentally alive — asking, listening, negotiating meaning and allowing the other person to remain surprising.",
   },
@@ -354,7 +355,7 @@ export const ARCHETYPE: Record<string, ArchetypeEntry> = {
   },
 
   "Cancer/9": {
-    role: "Believer / Keeper",
+    role: "Traditionalist / Keeper",
     why:
       "The ninth house carries beliefs, traditions and larger frameworks across generations and cultures; Cancer develops there by asking what inheritance is worth preserving and giving enduring ideas somewhere to remain alive.",
   },
@@ -424,7 +425,7 @@ export const ARCHETYPE: Record<string, ArchetypeEntry> = {
   },
 
   "Leo/7": {
-    role: "Partner / Protagonist",
+    role: "Counterpart / Protagonist",
     why:
       "The seventh house requires encounter between equals; Leo develops there by remaining fully present as a distinct self inside relationship — allowing another strong person to stand opposite without surrendering either visibility or individuality.",
   },
@@ -448,7 +449,7 @@ export const ARCHETYPE: Record<string, ArchetypeEntry> = {
   },
 
   "Leo/11": {
-    role: "Leader / Organizer",
+    role: "Ringleader / Organizer",
     why:
       "The eleventh house operates through groups and collective projects; Leo contributes a visible centre of enthusiasm — giving people something to rally around and turning shared participation into an effort with energy and identity.",
   },
@@ -469,7 +470,7 @@ export const ARCHETYPE: Record<string, ArchetypeEntry> = {
   // here and make it work better" become in this particular territory?
 
   "Virgo/1": {
-    role: "Practitioner / Perfectionist",
+    role: "Practitioner / Self-Editor",
     why:
       "The first house is the arena of self and agency; Virgo develops there by treating the self as something practised rather than merely declared — learning through observation, adjustment and repeated improvement of how one actually operates.",
   },
@@ -581,7 +582,7 @@ export const ARCHETYPE: Record<string, ArchetypeEntry> = {
   },
 
   "Libra/6": {
-    role: "Helper / Coordinator",
+    role: "Coordinator / Harmonizer",
     why:
       "The sixth house is the arena of practical work and functioning systems; Libra develops there by coordinating people, responsibilities and competing requirements so that the work functions through cooperation rather than isolated effort.",
   },
@@ -646,7 +647,7 @@ export const ARCHETYPE: Record<string, ArchetypeEntry> = {
   },
 
   "Scorpio/3": {
-    role: "Detective / Investigator",
+    role: "Questioner / Detective",
     why:
       "The third house is the arena of questions, information and exchange; Scorpio develops there by refusing the surface account — following contradictions, motives and missing information until it reaches what is actually going on.",
   },
@@ -700,7 +701,7 @@ export const ARCHETYPE: Record<string, ArchetypeEntry> = {
   },
 
   "Scorpio/12": {
-    role: "Explorer / Depth Diver",
+    role: "Diver / Excavator",
     why:
       "The twelfth house contains what is hidden even from conscious inspection; Scorpio develops there by entering psychological and symbolic material that cannot be reached through surface explanation — remaining with what is buried long enough for it to reveal itself.",
   },
@@ -811,7 +812,7 @@ export const ARCHETYPE: Record<string, ArchetypeEntry> = {
   },
 
   "Capricorn/3": {
-    role: "Organizer / Planner",
+    role: "Planner / Strategist",
     why:
       "The third house is the arena of information, thought and immediate decisions; Capricorn develops there by organising scattered information into a sequence — determining what matters, what comes first and what practical course follows from it.",
   },
@@ -918,7 +919,7 @@ export const ARCHETYPE: Record<string, ArchetypeEntry> = {
   },
 
   "Aquarius/7": {
-    role: "Partner / Collaborator",
+    role: "Individualist / Collaborator",
     why:
       "The seventh house requires sustained encounter with another person; Aquarius develops there by building partnership without possession — creating relationships in which two autonomous people can cooperate without either being required to conform to the other.",
   },
@@ -942,7 +943,7 @@ export const ARCHETYPE: Record<string, ArchetypeEntry> = {
   },
 
   "Aquarius/11": {
-    role: "Organizer / Networker",
+    role: "Networker / Architect",
     why:
       "The eleventh house already concerns networks, groups and shared futures; Aquarius intensifies it into the ability to organise people around a common possibility — creating a structure through which distributed individuals can act collectively without requiring a single centre.",
   },
@@ -1052,4 +1053,30 @@ export function archetypeFor(
     ARCHETYPE[`${sign}/${house}`]?.role ??
     HOUSE[house as House].noun
   );
+}
+/**
+ * What a pole's archetype means, as scannable points: each role word with what
+ * it does, then what the role looks like in practice.
+ *
+ * Null when the pole has no house or the combination is unauthored; the
+ * fallback house noun has no gloss of its own. The `why` stays out of this —
+ * it is the argument for the name, which the chat reads, not the page.
+ */
+export function archetypeGlossFor(
+  sign: string,
+  house: number | null,
+): ArchetypeExplained | null {
+  if (house === null) return null;
+  const gloss = ARCHETYPE_GLOSS[`${sign}/${house}`];
+  if (!gloss) return null;
+
+  return {
+    terms: Object.entries(gloss.terms).map(([term, means]) => ({ term, means })),
+    inPractice: gloss.inPractice,
+  };
+}
+
+export interface ArchetypeExplained {
+  terms: { term: string; means: string }[];
+  inPractice: string[];
 }

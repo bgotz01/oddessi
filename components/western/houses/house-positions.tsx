@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Chart, HouseCusp, Placement } from "@/lib/charts";
 import { tenantsOf } from "@/lib/charts";
-import { modeNote, type HouseDominance } from "@/lib/dominance";
+import { type HouseDominance } from "@/lib/dominance";
 import { getHouseTitle } from "@/lib/astrology/house-categories";
 import type { House } from "@/lib/astrology/house-categories";
 import { HOUSE_TYPES, houseTypeStyle } from "@/lib/house-types";
@@ -36,19 +36,6 @@ import { bodyGlyph, signGlyph } from "@/lib/symbols";
  *                card's own frame.
  */
 
-function Score({ value, label }: { value: number; label: string }) {
-  return (
-    <div className="flex items-baseline justify-between">
-      <span className="datum text-[0.625rem] tracking-[0.14em] text-bone-faint uppercase">
-        {label}
-      </span>
-      <span className="datum text-[0.6875rem] text-bone-soft">
-        {value.toFixed(1)}
-      </span>
-    </div>
-  );
-}
-
 function HouseBox({
   cusp,
   tenants,
@@ -65,7 +52,6 @@ function HouseBox({
   showScores: boolean;
   selected: boolean;
   onSelect: () => void;
-  /** Owned by the parent so one control can open every card at once. */
   openRuler: boolean;
   onToggleRuler: () => void;
 }) {
@@ -74,7 +60,6 @@ function HouseBox({
   const tone = houseTypeStyle(type);
   // Rank, not the score toggle, decides the highlight.
   const top3 = dominance !== undefined && dominance.rank <= 3;
-  const ruler = dominance?.rulerPlacement;
 
   return (
     <div
@@ -119,7 +104,7 @@ function HouseBox({
             className="inscription text-[1.5rem] leading-none"
             style={{ color: tone.color }}
           >
-            {cusp.roman}
+            {cusp.number}
           </span>
 
           {/* Tracking is pulled well in from the .inscription default: at six
@@ -181,68 +166,31 @@ function HouseBox({
             </span>
           </span>
         ) : null}
-      </button>
-
-      {/* Ruler — the second half of why a house scores what it does.
-
-          Rendered for every house that has one, even when the ruling body is
-          not itself in the chart, so all twelve cards finish on the same line.
-          Only expandable when there is a placement to expand into. */}
-      {dominance ? (
-        <div className="border-t border-rule">
-          <button
-            type="button"
-            onClick={onToggleRuler}
-            aria-expanded={ruler ? openRuler : undefined}
-            disabled={!ruler}
-            className="flex w-full items-baseline justify-center gap-1.5 px-3 py-2.5 transition-colors hover:bg-surface-alt disabled:cursor-default disabled:hover:bg-transparent"
-          >
-            <span className="datum text-[0.5625rem] tracking-[0.06em] text-bone-faint uppercase">
-              Ruler
-            </span>
-            <span className="datum text-[0.5625rem] tracking-[0.06em] text-bone uppercase">
-              {dominance.ruler}
-            </span>
-            <span className="datum text-[0.5625rem] tracking-[0.06em] text-bone-faint uppercase">
-              {ruler ? ruler.house : "—"}
-            </span>
-            {ruler ? (
-              <span
-                className={`datum text-[0.6875rem] text-bone-faint transition-transform ${openRuler ? "rotate-90 text-patina" : ""
-                  }`}
-              >
-                ›
+        {/* Zone 5 — ruler, shown when expanded. Mirrors the sign zone above:
+            body glyph + name on top, placement detail below. Sits inside the
+            button so the card stays one tap target. */}
+        {dominance && openRuler ? (
+          <span className="mt-5 flex flex-col items-center border-t border-rule pt-5">
+            <span className="flex items-center gap-2">
+              <span className="glyph text-[1.1rem] text-patina">
+                {bodyGlyph(dominance.ruler)}
               </span>
-            ) : null}
-          </button>
-
-          {openRuler && ruler ? (
-            <div className="border-t border-rule px-4 py-4 text-center">
-              <div className="text-[1.0625rem] font-light text-bone">
-                <span className="glyph mr-1.5 text-patina">
-                  {signGlyph(ruler.sign)}
-                </span>
-                {ruler.sign}
-              </div>
-              <div className="datum mt-1 text-[0.6875rem] text-bone-faint">
-                {ruler.degree}
-              </div>
-              <div className="mt-3 space-y-1.5 border-t border-rule pt-3 text-left">
-                <Score label="Occupancy" value={dominance.occupancy} />
-                <Score label="Strength" value={dominance.rulerStrength} />
-                <Score label="Activity" value={dominance.rulerActivity} />
-              </div>
-              {/* Floored at three lines so a longer note in one card cannot
-                  make its footer taller than its neighbours' — which would
-                  drop that card's whole stack out of line when all twelve are
-                  expanded at once. */}
-              <p className="mt-3 min-h-[3.5rem] text-[0.9375rem] leading-snug font-light text-bone-faint italic">
-                {modeNote(dominance)}
-              </p>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
+              <span className="datum text-[0.625rem] tracking-[0.1em] text-bone uppercase">
+                {dominance.ruler}
+              </span>
+            </span>
+            {dominance.rulerPlacement ? (
+              <span className="datum mt-1.5 text-[0.5625rem] tracking-[0.06em] text-bone-faint uppercase">
+                {dominance.rulerPlacement.sign} · {dominance.rulerPlacement.houseNumber ?? "—"} · {dominance.rulerPlacement.degree}
+              </span>
+            ) : (
+              <span className="datum mt-1.5 text-[0.5625rem] tracking-[0.06em] text-bone-faint uppercase">
+                not in chart
+              </span>
+            )}
+          </span>
+        ) : null}
+      </button>
     </div>
   );
 }
@@ -266,12 +214,12 @@ export default function HousePositions({
   onEditScoring?: () => void;
 }) {
   const [showScores, setShowScores] = useState(true);
-  const [openRulers, setOpenRulers] = useState<ReadonlySet<number>>(new Set());
+  const [openRulers, setOpenRulers] = useState<ReadonlySet<number>>(
+    () => new Set(dominance.filter((d) => d.rulerPlacement !== null).map((d) => d.house))
+  );
 
   const byHouse = new Map(dominance.map((d) => [d.house, d]));
 
-  // Only houses whose ruling body is actually in the chart have anything to
-  // open, so they alone decide whether "all" is open.
   const expandable = dominance
     .filter((d) => d.rulerPlacement !== null)
     .map((d) => d.house);
@@ -302,8 +250,7 @@ export default function HousePositions({
             }
             aria-pressed={allOpen}
             disabled={expandable.length === 0}
-            className={`${button} ${allOpen ? "text-patina" : "text-bone-faint"
-              } disabled:cursor-default disabled:opacity-50`}
+            className={`${button} ${allOpen ? "text-patina" : "text-bone-faint"} disabled:cursor-default disabled:opacity-50`}
           >
             {allOpen ? "Collapse rulers" : "Expand rulers"}
           </button>

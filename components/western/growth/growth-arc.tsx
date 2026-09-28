@@ -11,6 +11,7 @@ import type { Pole, Trajectory } from "@/lib/growth";
 import GrowthRoad from "@/components/western/growth/growth-road";
 import GrowthCrossing from "@/components/western/growth/growth-crossing";
 import { Panel, SectionHead } from "@/components/western/growth/growth-field";
+import ArchetypeGloss from "@/components/western/growth/archetype-gloss";
 
 import {
   SHOWN,
@@ -60,9 +61,12 @@ import {
 export default function GrowthArc({
   t,
   onOpen,
+  onBrowse,
 }: {
   t: Trajectory;
   onOpen: (chapter: ChapterKey) => void;
+  /** Opens the archetype browser — every sign × house, not just these two. */
+  onBrowse: () => void;
 }) {
   const toColor = bodyColor("North Node");
 
@@ -77,6 +81,15 @@ export default function GrowthArc({
         name="Arc"
         title="Where you are going"
         onOpen={() => onOpen("arc")}
+        aside={
+          <button
+            type="button"
+            onClick={onBrowse}
+            className={`${T.micro} rounded-sm border border-rule px-4 py-2.5 text-bone-soft transition-colors hover:border-patina-dim hover:text-bone`}
+          >
+            All Archetypes
+          </button>
+        }
       />
 
       <Panel className="mt-8">
@@ -88,6 +101,14 @@ export default function GrowthArc({
             to={t.arc.into}
             fromDetail={<PoleDetail pole={t.from} />}
             toDetail={<PoleDetail pole={t.to} />}
+            fromNotes={
+              t.arc.fromGloss ? <ArchetypeGloss gloss={t.arc.fromGloss} /> : undefined
+            }
+            toNotes={
+              t.arc.intoGloss ? (
+                <ArchetypeGloss gloss={t.arc.intoGloss} color={toColor} />
+              ) : undefined
+            }
             boxed
             toColor={toColor}
             onFrom={() => onOpen("arc")}
@@ -170,8 +191,8 @@ function PoleDetail({ pole }: { pole: Pole }) {
   const ruler = pole.rulerPlacement;
 
   return (
-    <div className="space-y-2.5">
-      <p className={`flex flex-wrap items-baseline gap-x-2.5 ${T.phrase}`}>
+    <div className="space-y-2.5 text-center">
+      <p className={`flex flex-wrap items-baseline justify-center gap-x-2.5 ${T.phrase}`}>
         <span className="glyph text-bone-soft">{signGlyph(pole.sign)}</span>
         <span>{pole.sign}</span>
         <span className={`${T.micro} text-bone-faint`}>{prime(pole.degree)}</span>
@@ -186,7 +207,7 @@ function PoleDetail({ pole }: { pole: Pole }) {
         </p>
       ) : null}
 
-      <p className={`flex flex-wrap items-baseline gap-x-2.5 ${T.read}`}>
+      <p className={`flex flex-wrap items-baseline justify-center gap-x-2.5 ${T.read}`}>
         <span className={`${T.micro} text-bone-faint`}>Ruler</span>
         <span className="glyph" style={{ color: bodyColor(pole.ruler) }}>
           {bodyGlyph(pole.ruler)}

@@ -83,7 +83,7 @@ export default function HouseDrawer({
                 className="inscription text-[2.5rem] leading-none"
                 style={{ color: typeTone.color }}
               >
-                {cusp.roman}
+                {cusp.number}
               </span>
               <div>
                 <p className="inscription text-[0.8125rem] text-bone-faint">

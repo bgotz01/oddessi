@@ -104,6 +104,41 @@ export function Prose({ children }: { children: ReactNode }) {
 }
 
 /**
+ * Body copy that reads as a list. The vendored tables write a paragraph of
+ * four long sentences where each sentence is its own point, so a passage with
+ * more than one sentence is set one sentence per bullet. A single sentence
+ * stays prose — a list of one is just a paragraph with a dash in front.
+ *
+ * Split at render time rather than in the tables, which stay byte-identical to
+ * arc.
+ */
+export function Points({ text }: { text: string }) {
+  const sentences = text
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(/(?<=[.!?])\s+(?=[A-Z"“(])/);
+  if (sentences.length < 2) return <Prose>{text}</Prose>;
+  return <Bullets items={sentences} />;
+}
+
+/** Body-size points, one per line, behind the same dash as `ListColumn`. */
+export function Bullets({ items }: { items: string[] }) {
+  if (items.length === 0) return null;
+  return (
+    <ul className="space-y-2">
+      {items.map((s) => (
+        <li key={s} className="flex gap-3">
+          <span className="datum text-[0.625rem] leading-7 text-patina-dim">
+            —
+          </span>
+          <span className="text-[1.1875rem] leading-relaxed text-bone">{s}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
  * One of the paired lists the tables come in — strengths against challenges,
  * opportunities against tips. `tone` is the only place a list gets colour:
  * patina for what the placement gives, ember for what it costs.

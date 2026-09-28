@@ -89,11 +89,14 @@ export function SectionHead({
   name,
   title,
   onOpen,
+  aside,
 }: {
   index: string;
   name: string;
   title: string;
   onOpen: () => void;
+  /** Another control, set to the left of Details. */
+  aside?: ReactNode;
 }) {
   return (
     <header className="flex flex-col gap-5 border-b border-rule pb-6 @2xl:flex-row @2xl:items-end @2xl:justify-between @2xl:gap-10">
@@ -104,13 +107,16 @@ export function SectionHead({
         <h2 className={`mt-2.5 ${T.title}`}>{title}</h2>
       </div>
 
-      <button
-        type="button"
-        onClick={onOpen}
-        className={`${T.micro} shrink-0 self-start rounded-sm border border-patina-dim px-4 py-2.5 text-patina transition-colors hover:border-patina hover:bg-patina-deep @2xl:self-end`}
-      >
-        Details →
-      </button>
+      <div className="flex shrink-0 gap-3 self-start @2xl:self-end">
+        {aside}
+        <button
+          type="button"
+          onClick={onOpen}
+          className={`${T.micro} rounded-sm border border-patina-dim px-4 py-2.5 text-patina transition-colors hover:border-patina hover:bg-patina-deep`}
+        >
+          Details →
+        </button>
+      </div>
     </header>
   );
 }

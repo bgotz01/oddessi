@@ -36,7 +36,7 @@ import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 import { SIGN } from "./signs";
 import { HOUSE } from "./houses";
 import { BODY_VERBS } from "./bodies";
-import { archetypeFor } from "./archetypes";
+import { archetypeFor, archetypeGlossFor } from "./archetypes";
 import { archetypeQuestionsFor } from "./archetype-questions";
 import { axisConversionsFor } from "./conversions";
 import { deriveCrossing } from "./crossing";
@@ -159,6 +159,8 @@ export function trajectory(
   const arc = {
     from: archetypeFor(from.sign, from.house) ?? origin.quality,
     into: archetypeFor(to.sign, to.house) ?? movement.quality,
+    fromGloss: archetypeGlossFor(from.sign, from.house),
+    intoGloss: archetypeGlossFor(to.sign, to.house),
   };
 
   /**

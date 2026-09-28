@@ -9,8 +9,8 @@ import GrowthRulership from "@/components/western/growth/growth-rulership";
 import GrowthArc from "@/components/western/growth/growth-arc";
 import GrowthConversion from "@/components/western/growth/growth-conversion";
 import GrowthResistance from "@/components/western/growth/growth-resistance";
-import GrowthTailwinds from "@/components/western/growth/growth-tailwinds";
 import GrowthDrawer from "@/components/western/growth/growth-drawer";
+import ArchetypeBrowser from "@/components/western/growth/archetype-browser";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import { useScoring } from "@/components/scoring-context";
@@ -49,7 +49,8 @@ import { T, type ChapterKey } from "@/components/western/growth/growth-ui";
  *     01  growth-arc           where you are going
  *     02  growth-conversion    how existing competence becomes new capacity
  *     03  growth-resistance    what pulls you back
- *     04  growth-tailwinds     what the chart can recruit
+ *     04  growth-tailwinds     what the chart can recruit — drawer only; the
+ *                              section is off the page, the tab and chat keep it
  *
  * The seven analytical layers the model computes (movement, arena, questions,
  * conversion, deep pattern, resistance, expression) are not deleted by that
@@ -90,6 +91,7 @@ function Growth({ chart, t }: { chart: Chart; t: Trajectory }) {
   const { setPageContext, send, setOpen } = useChat();
   const pathname = usePathname();
   const [chapter, setChapter] = useState<ChapterKey | null>(null);
+  const [browsing, setBrowsing] = useState(false);
 
   const rulership = config.rulership;
 
@@ -254,7 +256,11 @@ function Growth({ chart, t }: { chart: Chart; t: Trajectory }) {
           section can be reordered or reused without carrying a margin that
           only made sense in one arrangement. No rule between them: each
           section header carries its own. */}
-      <GrowthArc t={t} onOpen={setChapter} />
+      <GrowthArc
+        t={t}
+        onOpen={setChapter}
+        onBrowse={() => setBrowsing(true)}
+      />
 
       <div className="mt-24">
         <GrowthConversion t={t} onOpen={setChapter} />
@@ -262,10 +268,6 @@ function Growth({ chart, t }: { chart: Chart; t: Trajectory }) {
 
       <div className="mt-24">
         <GrowthResistance t={t} onOpen={setChapter} />
-      </div>
-
-      <div className="mt-24">
-        <GrowthTailwinds t={t} onOpen={setChapter} />
       </div>
 
       {t.irregularAxis ? (
@@ -326,6 +328,17 @@ function Growth({ chart, t }: { chart: Chart; t: Trajectory }) {
           onClose={() => setChapter(null)}
           onAsk={(text: string) => {
             setChapter(null);
+            ask(text);
+          }}
+        />
+      ) : null}
+
+      {browsing ? (
+        <ArchetypeBrowser
+          t={t}
+          onClose={() => setBrowsing(false)}
+          onAsk={(text: string) => {
+            setBrowsing(false);
             ask(text);
           }}
         />

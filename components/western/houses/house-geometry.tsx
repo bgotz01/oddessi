@@ -81,7 +81,7 @@ function AxisRow({
       {/* Left house */}
       <div className="flex min-w-0 items-baseline gap-2">
         <span className="datum shrink-0 text-[0.5625rem] text-bone-faint">
-          {left.roman}
+          {left.number}
         </span>
 
         <span className="datum truncate text-[0.6875rem] tracking-[0.12em] text-bone-soft uppercase">
@@ -152,7 +152,7 @@ function AxisRow({
         </span>
 
         <span className="datum shrink-0 text-[0.5625rem] text-bone-faint">
-          {right.roman}
+          {right.number}
         </span>
       </div>
     </div>
