@@ -2,7 +2,10 @@
 
 import { useEffect } from "react";
 import { planetMeta } from "@/lib/bodies";
-import { HOUSE_DEFINITIONS, HOUSE_NAMES } from "@/lib/astrology/standard-definitions";
+import { getHouseCategory, getHouseTitle, type House } from "@/lib/astrology/house-categories";
+import { HouseTags, ThemeColumn } from "@/components/western/houses/meaning-label";
+import { houseTypeStyle } from "@/lib/house-types";
+import { houseInfo } from "@/lib/interpretation";
 import { getCycleInterpretation } from "@/lib/cycle-interpretations";
 import { ARCS } from "@/lib/cycles/arcs-data";
 import type { CycleRowData } from "@/components/western/cycles/cycle-row";
@@ -59,12 +62,15 @@ export default function CycleDrawer({
 }) {
   const meta = planetMeta(cycle.planet);
   const color = meta?.color ?? "var(--color-patina)";
-  const houseName = cycle.houseNumber ? HOUSE_NAMES[cycle.houseNumber] : null;
+  const houseName = cycle.houseNumber ? getHouseTitle(cycle.houseNumber as House) : null;
   const interp = cycle.houseNumber
     ? getCycleInterpretation(cycle.planet, cycle.houseNumber)
     : undefined;
   const actions = PLANET_ACTIONS[cycle.planet];
-  const territory = cycle.houseNumber ? HOUSE_DEFINITIONS[cycle.houseNumber] : undefined;
+  const territory = cycle.houseNumber
+    ? getHouseCategory(cycle.houseNumber as House)
+    : undefined;
+  const houseTone = houseTypeStyle(cycle.houseNumber ? houseInfo(cycle.houseNumber)?.element : undefined).color;
   // The developmental arc for this planet and house, where one is written.
   const houseArc = ARCS.find((a) => a.planet === cycle.planet)?.houses.find(
     (h) => h.house === cycle.houseNumber,
@@ -137,32 +143,36 @@ export default function CycleDrawer({
 
         {/* Body — bullets only */}
         <div className="px-6 py-7 space-y-7">
-          {interp && (
+          {actions && <Bullets label={`What ${cycle.planet} does`} items={actions} />}
+
+          {/* The house it crosses: the transit's headline, the house's tags, then
+              the house read both ways — the same split as the houses drawer,
+              since a transit can land on either side. */}
+          {(interp || territory) && (
             <section>
-              <h3 className="inscription mb-3 text-[1.125rem] text-bone">{interp.headline}</h3>
-              <div className="flex flex-wrap gap-x-3 gap-y-1.5">
-                {interp.themes.map((t, i) => (
-                  <div key={t} className="flex items-center gap-3">
-                    <span
-                      className="datum text-[0.75rem] tracking-[0.2em] uppercase"
-                      style={{ color }}
-                    >
-                      {t}
-                    </span>
-                    {i < interp.themes.length - 1 && (
-                      <span
-                        className="h-1 w-1 rounded-full"
-                        style={{ backgroundColor: color, opacity: 0.5 }}
-                      />
-                    )}
+              {interp && (
+                <>
+                  {/* Where the planet is acting, kept quiet: the headline below
+                      is the planet's reading of this house, not the house's name. */}
+                  {cycle.houseNumber ? (
+                    <p className="mb-1 text-[0.9375rem] text-bone-faint italic">
+                      in House {cycle.houseNumber}
+                    </p>
+                  ) : null}
+                  <h3 className="inscription mb-3 text-[1.125rem] text-bone">{interp.headline}</h3>
+                </>
+              )}
+              {territory && (
+                <>
+                  <HouseTags tags={territory.keywords} color={houseTone} />
+                  <div className="mt-6 grid gap-8 sm:grid-cols-2">
+                    <ThemeColumn label="External" items={territory.coreThemes.external} tone="patina" />
+                    <ThemeColumn label="Internal" items={territory.coreThemes.internal} tone="ember" />
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </section>
           )}
-
-          {actions && <Bullets label={`What ${cycle.planet} does`} items={actions} />}
-          {territory && <Bullets label="Where it acts" items={territory} />}
 
           {houseArc && (
             <>

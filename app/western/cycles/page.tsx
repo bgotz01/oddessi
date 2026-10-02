@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PageTitle, SectionHeading } from "@/components/primitives";
 import PlanetArchetypes from "@/components/western/macro/planet-archetypes";
+import HouseArchetypes from "@/components/western/cycles/house-archetypes";
 import CycleRow, { type CycleRowData } from "@/components/western/cycles/cycle-row";
 import CycleDrawer from "@/components/western/cycles/cycle-drawer";
 import JupiterLongCycle from "@/components/western/cycles/jupiter-long-cycle";
@@ -77,11 +78,6 @@ export default function CyclesPage() {
 
       />
 
-      <section className="mb-16">
-        <SectionHeading aside="5 slow planets">Planet Archetypes</SectionHeading>
-        <PlanetArchetypes layout="columns" />
-      </section>
-
       <SectionHeading
         aside={state.status === "ready" ? `${state.data.cycles.length} in force` : undefined}
       >
@@ -114,7 +110,15 @@ export default function CyclesPage() {
         </section>
       )}
 
+      <section className="mt-16">
+        <SectionHeading aside="5 slow planets">Planet Archetypes</SectionHeading>
+        <PlanetArchetypes layout="columns" />
+      </section>
 
+      <section className="mt-16">
+        <SectionHeading aside="12 houses">House Archetypes</SectionHeading>
+        <HouseArchetypes />
+      </section>
 
       <JupiterLongCycle />
       <SaturnLongCycle />

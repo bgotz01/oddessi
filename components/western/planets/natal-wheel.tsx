@@ -12,6 +12,7 @@ import type { Chart, Placement, HouseCusp, Aspect } from "@/lib/charts";
 import { bodyColor } from "@/lib/bodies";
 import { BODY_GLYPH, SIGN_GLYPH } from "@/lib/symbols";
 import { houseInfo, signOnCusp } from "@/lib/interpretation";
+import { getHouseCategory, type House } from "@/lib/astrology/house-categories";
 import type { HouseInfo, SignHouseInterpretation } from "@/lib/interpretation";
 
 // ─── Geometry helpers ────────────────────────────────────────────────────────
@@ -330,8 +331,8 @@ function WheelDrawer({
                   </p>
                 </DrawerSection>
 
-                <DrawerSection label="Life areas">
-                  <TagList items={content.info.lifeAreas} />
+                <DrawerSection label="Keywords">
+                  <TagList items={getHouseCategory(content.houseNum as House).keywords} />
                 </DrawerSection>
 
                 {/* Planets in this house */}
@@ -660,7 +661,7 @@ export function NatalWheel({ chart }: { chart: Chart }) {
         body: tenants.length
           ? `${tenants.map((t) => t.body).join(", ")} in this house.`
           : "No planets occupy this house.",
-        tags: info?.keywords.slice(0, 5),
+        tags: getHouseCategory(houseNum as House).keywords,
       },
     });
   }, [byHouse, cuspByHouse]);

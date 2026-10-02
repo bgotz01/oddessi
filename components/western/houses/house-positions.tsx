@@ -4,10 +4,11 @@ import { useState } from "react";
 import type { Chart, HouseCusp, Placement } from "@/lib/charts";
 import { tenantsOf } from "@/lib/charts";
 import { type HouseDominance } from "@/lib/dominance";
-import { getHouseTitle } from "@/lib/astrology/house-categories";
+import { getHouseMeanings, getHouseTitle } from "@/lib/astrology/house-categories";
 import type { House } from "@/lib/astrology/house-categories";
 import { HOUSE_TYPES, houseTypeStyle } from "@/lib/house-types";
 import { houseInfo } from "@/lib/interpretation";
+import MeaningLabel from "@/components/western/houses/meaning-label";
 import { bodyGlyph, signGlyph } from "@/lib/symbols";
 
 /**
@@ -41,6 +42,7 @@ function HouseBox({
   tenants,
   dominance,
   showScores,
+  showReadings,
   selected,
   onSelect,
   openRuler,
@@ -50,6 +52,7 @@ function HouseBox({
   tenants: Placement[];
   dominance: HouseDominance | undefined;
   showScores: boolean;
+  showReadings: boolean;
   selected: boolean;
   onSelect: () => void;
   openRuler: boolean;
@@ -60,46 +63,41 @@ function HouseBox({
   const tone = houseTypeStyle(type);
   // Rank, not the score toggle, decides the highlight.
   const top3 = dominance !== undefined && dominance.rank <= 3;
+  const reading = getHouseMeanings(cusp.number as House);
 
   return (
     <div
-      className={`relative flex flex-col bg-surface transition-colors ${top3
-        ? "border border-ember-dim"
-        : selected
-          ? "border border-patina-dim"
-          : "border border-rule"
-        }`}
+      className={`relative grid grid-rows-subgrid bg-surface transition-colors ${
+        showReadings ? "row-span-6" : "row-span-4"
+      } ${top3 ? "border border-ember-dim" : selected ? "border border-patina-dim" : "border border-rule"}`}
+      // Type bar, drawn as the top border so it costs no row of its own. Runs
+      // the full width so the four cards of a type line up as a set even when
+      // they are scattered across the grid.
+      style={{ borderTopWidth: 3, borderTopColor: tone.color }}
     >
-      {/* Type bar. Runs the full width so the four cards of a type line up as a
-          set even when they are scattered across the grid. */}
-      <span
-        aria-hidden
-        className="block h-[3px] w-full"
-        style={{ background: tone.color }}
-      />
-
       {/* Rank flag for the three loudest houses. */}
       {top3 ? (
-        <span className="datum absolute top-[3px] right-0 border-b border-l border-ember-dim bg-void px-2 py-1 text-[0.6875rem] text-ember">
+        <span className="datum absolute top-0 right-0 z-10 border-b border-l border-ember-dim bg-void px-2 py-1 text-[0.6875rem] text-ember">
           {dominance.rank}
         </span>
       ) : null}
 
+      {/* The card and the button are both subgrids of the wall, so every zone
+          sits on a track shared by the whole row: a long meaning in one card
+          moves the sign line in all six, and the foot is always the last
+          track. */}
       <button
         type="button"
         onClick={onSelect}
         aria-pressed={selected}
-        className="flex flex-1 flex-col px-4 py-5 text-center transition-colors hover:bg-surface-alt"
+        className={`grid grid-rows-subgrid px-4 pt-5 pb-5 text-center transition-colors hover:bg-surface-alt ${
+          showReadings ? "row-span-6" : "row-span-4"
+        }`}
       >
         {/* Zone 1 — which house, in its type's hue. Kept off ember even at the
             top of the ranking: the numeral answers "what kind", the frame and
-            the flag answer "how heavy".
-
-            Fixed height, with the type row pushed to its foot. House titles run
-            to one or two lines, and letting that decide where the rest of the
-            card begins is what made the grid look ragged — every zone below
-            here now starts on the same line in all twelve cards. */}
-        <span className="flex min-h-[4.5rem] flex-col">
+            the flag answer "how heavy". */}
+        <span className="flex flex-col">
           <span
             className="inscription text-[1.5rem] leading-none"
             style={{ color: tone.color }}
@@ -113,12 +111,30 @@ function HouseBox({
           <span className="inscription mt-3 text-[0.625rem] leading-snug tracking-[0.04em] text-bone">
             {getHouseTitle(cusp.number as House)}
           </span>
-
-
         </span>
 
-        {/* Zone 2 — the sign on the cusp. Patina marks the symbolic layer. */}
-        <span className="mt-5 flex min-h-[4.25rem] flex-col justify-center border-t border-rule pt-5">
+        {/* Zones 2 and 3 — what the house means, directly under its name, as
+            two tracks of their own so every External starts on one line across
+            the row and every Internal on the next. */}
+        {showReadings ? (
+          <>
+            <span className="mt-2 flex flex-col items-center border-t border-rule pt-5">
+              <MeaningLabel tone="text-patina">External</MeaningLabel>
+              <span className="mt-2.5 block text-[1rem] leading-[1.35] text-balance text-bone">
+                {reading.external}
+              </span>
+            </span>
+            <span className="flex flex-col items-center pt-2">
+              <MeaningLabel tone="text-ember">Internal</MeaningLabel>
+              <span className="mt-2.5 block text-[1rem] leading-[1.35] text-balance text-bone-soft italic">
+                {reading.internal}
+              </span>
+            </span>
+          </>
+        ) : null}
+
+        {/* Zone 4 — the sign on the cusp. Patina marks the symbolic layer. */}
+        <span className="mt-2 flex flex-col justify-center border-t border-rule pt-5">
           <span className="flex items-center justify-center gap-2">
             <span className="glyph text-[1.625rem] text-patina">
               {signGlyph(cusp.sign)}
@@ -132,9 +148,10 @@ function HouseBox({
           </span>
         </span>
 
-        {/* Zone 3 — tenants, as filled chips so the zone reads as a group. */}
+        {/* Zone 5 — tenants, as filled chips so the zone reads as a group. The
+            track exists even when empty, so the foot keeps its place. */}
         {tenants.length > 0 ? (
-          <span className="mt-5 flex flex-wrap justify-center gap-1.5 border-t border-rule pt-5">
+          <span className="mt-2 flex flex-wrap content-start justify-center gap-1.5 border-t border-rule pt-5">
             {tenants.map((t) => (
               <span
                 key={t.body}
@@ -150,11 +167,15 @@ function HouseBox({
               </span>
             ))}
           </span>
-        ) : null}
+        ) : (
+          <span aria-hidden />
+        )}
 
-        {/* Zone 4 — the score, stacked so the numeral carries alone. */}
+        {/* Foot — score and ruler, on the last track and packed to its bottom,
+            so the ruler is always the final line of the card. */}
+        <span className="flex flex-col justify-end">
         {showScores && dominance ? (
-          <span className="mt-auto block border-t border-rule pt-5">
+          <span className="mt-2 block border-t border-rule pt-5">
             <span
               className={`datum block text-[1.25rem] leading-none ${top3 ? "text-ember" : "text-bone-soft"
                 }`}
@@ -166,7 +187,7 @@ function HouseBox({
             </span>
           </span>
         ) : null}
-        {/* Zone 5 — ruler, shown when expanded. Mirrors the sign zone above:
+        {/* Ruler, shown when expanded. Mirrors the sign zone above:
             body glyph + name on top, placement detail below. Sits inside the
             button so the card stays one tap target. */}
         {dominance && openRuler ? (
@@ -190,6 +211,7 @@ function HouseBox({
             )}
           </span>
         ) : null}
+        </span>
       </button>
     </div>
   );
@@ -214,6 +236,7 @@ export default function HousePositions({
   onEditScoring?: () => void;
 }) {
   const [showScores, setShowScores] = useState(true);
+  const [showReadings, setShowReadings] = useState(false);
   const [openRulers, setOpenRulers] = useState<ReadonlySet<number>>(
     () => new Set(dominance.filter((d) => d.rulerPlacement !== null).map((d) => d.house))
   );
@@ -253,6 +276,14 @@ export default function HousePositions({
             className={`${button} ${allOpen ? "text-patina" : "text-bone-faint"} disabled:cursor-default disabled:opacity-50`}
           >
             {allOpen ? "Collapse rulers" : "Expand rulers"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowReadings((v) => !v)}
+            aria-pressed={showReadings}
+            className={`${button} ${showReadings ? "text-patina" : "text-bone-faint"}`}
+          >
+            {showReadings ? "Hide meanings" : "Show meanings"}
           </button>
           <button
             type="button"
@@ -298,6 +329,7 @@ export default function HousePositions({
             tenants={tenantsOf(chart.placements, cusp.number)}
             dominance={byHouse.get(cusp.number)}
             showScores={showScores}
+            showReadings={showReadings}
             selected={selected === cusp.number}
             onSelect={() => onSelect(cusp.number)}
             openRuler={openRulers.has(cusp.number)}

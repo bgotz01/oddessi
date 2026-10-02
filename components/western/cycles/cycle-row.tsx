@@ -1,6 +1,6 @@
 import type { Band } from "@/lib/band";
 import { planetMeta } from "@/lib/bodies";
-import { HOUSE_NAMES } from "@/lib/astrology/standard-definitions";
+import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 
 /**
  * One planet, one row, on its own time scale.
@@ -91,7 +91,7 @@ export default function CycleRow({
   const color = meta?.color ?? "var(--color-patina)";
 
   const planetRole = meta?.description ?? null;
-  const houseName = cycle.houseNumber ? HOUSE_NAMES[cycle.houseNumber] : null;
+  const houseName = cycle.houseNumber ? getHouseTitle(cycle.houseNumber as House) : null;
 
   const start = Date.parse(band.start);
   const span = Date.parse(band.end) - start;

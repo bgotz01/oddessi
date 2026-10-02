@@ -1,7 +1,7 @@
 //lib/astrology/interpretations/houses.ts
 
 import { Planet } from '@/types/astrology';
-import { getHouseTitle } from '@/lib/astrology/house-categories';
+import { getHouseTitle, getHouseType } from '@/lib/astrology/house-categories';
 
 // House enum for type safety
 export enum House {
@@ -73,7 +73,7 @@ export const HOUSE_INFO: Record<House, HouseInfo> = {
         description: "Your core identity, physical appearance, first impressions, and how you instinctively approach life. This is your 'mask' to the world and your natural way of being. The Ascendant (rising sign) is the cusp of this house and represents your outer personality and life approach.",
         lifeAreas: ["Identity", "Appearance", "First Impressions", "Self-Expression", "Personal Style", "Physical Body", "Life Approach", "Personality Mask"],
         keywords: ["Self", "Identity", "Appearance", "Personality", "First Impressions", "Approach to Life", "Ascendant", "Physical Presence"],
-        element: "Angular",
+        element: getHouseType(1),
         modality: "Personal"
     },
     [House.Second]: {
@@ -82,7 +82,7 @@ export const HOUSE_INFO: Record<House, HouseInfo> = {
         description: "Your personal values, money, possessions, self-worth, and material resources. This house governs what you value most, how you earn and spend money, your relationship with material security, and your sense of self-worth. It also relates to your talents and natural abilities that can generate income.",
         lifeAreas: ["Money", "Possessions", "Self-Worth", "Values", "Resources", "Material Security", "Talents", "Earning Ability", "Personal Assets"],
         keywords: ["Money", "Possessions", "Values", "Self-Worth", "Resources", "Material World", "Security", "Talents", "Assets"],
-        element: "Succedent",
+        element: getHouseType(2),
         modality: "Personal"
     },
     [House.Third]: {
@@ -91,7 +91,7 @@ export const HOUSE_INFO: Record<House, HouseInfo> = {
         description: "Communication, learning, siblings, neighbors, short trips, and your immediate environment. This house governs how you think, learn, and share information. It includes your relationship with siblings, your local community, short-distance travel, and all forms of communication including writing, speaking, and digital media.",
         lifeAreas: ["Communication", "Learning", "Siblings", "Local Environment", "Short Trips", "Daily Interactions", "Writing", "Teaching", "Neighbors", "Mental Processes"],
         keywords: ["Communication", "Learning", "Siblings", "Local Travel", "Information", "Daily Life", "Writing", "Teaching", "Neighbors", "Mental Activity"],
-        element: "Cadent",
+        element: getHouseType(3),
         modality: "Personal"
     },
     [House.Fourth]: {
@@ -100,7 +100,7 @@ export const HOUSE_INFO: Record<House, HouseInfo> = {
         description: "Home, family, roots, emotional foundation, and your private life. This house represents your deepest emotional needs, your relationship with family (especially mother/maternal figures), your home environment, and your sense of belonging. The IC (Imum Coeli) is the cusp of this house and represents your emotional foundation and ancestral roots.",
         lifeAreas: ["Home", "Family", "Roots", "Emotional Security", "Private Life", "Foundation", "Ancestry", "Mother", "Real Estate", "Inner Self"],
         keywords: ["Home", "Family", "Roots", "Foundation", "Private Life", "Emotional Security", "Ancestry", "IC", "Inner World", "Belonging"],
-        element: "Angular",
+        element: getHouseType(4),
         modality: "Personal"
     },
     [House.Fifth]: {
@@ -109,7 +109,7 @@ export const HOUSE_INFO: Record<House, HouseInfo> = {
         description: "Creativity, romance, children, fun, self-expression, and what brings you joy. This house governs your creative talents, romantic relationships, connection with children (your own or others'), recreational activities, hobbies, and all forms of self-expression that bring pleasure and fulfillment to your life.",
         lifeAreas: ["Creativity", "Romance", "Children", "Fun", "Self-Expression", "Joy", "Entertainment", "Hobbies", "Recreation", "Artistic Talents"],
         keywords: ["Creativity", "Romance", "Children", "Fun", "Joy", "Self-Expression", "Play", "Art", "Entertainment", "Pleasure"],
-        element: "Succedent",
+        element: getHouseType(5),
         modality: "Personal"
     },
     [House.Sixth]: {
@@ -118,7 +118,7 @@ export const HOUSE_INFO: Record<House, HouseInfo> = {
         description: "Daily work, health, service, routines, and practical responsibilities. This house governs your work environment, health and wellness practices, daily routines, service to others, and your approach to practical matters. It also relates to pets, employees, and your general attitude toward duty and responsibility.",
         lifeAreas: ["Work", "Health", "Service", "Daily Routines", "Responsibilities", "Practical Matters", "Pets", "Employees", "Wellness", "Duty"],
         keywords: ["Work", "Health", "Service", "Routine", "Responsibility", "Practical Life", "Wellness", "Daily Tasks", "Duty", "Efficiency"],
-        element: "Cadent",
+        element: getHouseType(6),
         modality: "Personal"
     },
     [House.Seventh]: {
@@ -127,7 +127,7 @@ export const HOUSE_INFO: Record<House, HouseInfo> = {
         description: "Marriage, business partnerships, open enemies, and one-on-one relationships. This house represents your approach to committed partnerships, how you relate to others as equals, legal matters, and what you seek in a life partner. The Descendant is the cusp of this house and represents your ideal partner and how you relate to others.",
         lifeAreas: ["Marriage", "Partnerships", "Relationships", "Cooperation", "Open Enemies", "Others", "Legal Matters", "Contracts", "Equality", "Balance"],
         keywords: ["Partnerships", "Marriage", "Relationships", "Others", "Cooperation", "Balance", "Descendant", "Legal", "Contracts", "Equality"],
-        element: "Angular",
+        element: getHouseType(7),
         modality: "Interpersonal"
     },
     [House.Eighth]: {
@@ -136,7 +136,7 @@ export const HOUSE_INFO: Record<House, HouseInfo> = {
         description: "Shared money, taxes, death, rebirth, transformation, and deep psychology. This house governs joint finances, investments, insurance, taxes, inheritance, and other people's money. It also represents psychological transformation, sexuality, occult interests, and profound life changes that lead to personal rebirth and regeneration. Forced transformation rather than chosen growth—you don't opt in to 8th-house cycles. They arrive.",
         lifeAreas: ["Shared Resources", "Transformation", "Psychology", "Death/Rebirth", "Taxes", "Intimacy", "Investments", "Insurance", "Inheritance", "Occult"],
         keywords: ["Transformation", "Shared Resources", "Psychology", "Rebirth", "Intimacy", "Hidden", "Investments", "Taxes", "Regeneration", "Deep Change"],
-        element: "Succedent",
+        element: getHouseType(8),
         modality: "Interpersonal"
     },
     [House.Ninth]: {
@@ -145,7 +145,7 @@ export const HOUSE_INFO: Record<House, HouseInfo> = {
         description: "Higher education, philosophy, religion, long-distance travel, and wisdom. This house represents your quest for meaning, higher learning, spiritual beliefs, foreign cultures, publishing, legal matters, and your personal philosophy of life. It governs universities, teachers, mentors, and your relationship with wisdom and truth.",
         lifeAreas: ["Higher Education", "Philosophy", "Religion", "Travel", "Wisdom", "Publishing", "Legal Matters", "Foreign Cultures", "Teaching", "Spirituality"],
         keywords: ["Philosophy", "Higher Learning", "Travel", "Wisdom", "Religion", "Expansion", "Foreign", "Publishing", "Teaching", "Meaning"],
-        element: "Cadent",
+        element: getHouseType(9),
         modality: "Interpersonal"
     },
     [House.Tenth]: {
@@ -154,7 +154,7 @@ export const HOUSE_INFO: Record<House, HouseInfo> = {
         description: "Career, public image, reputation, authority, and life direction. This house represents your professional life, public reputation, relationship with authority figures, and your contribution to society. The Midheaven (MC) is the cusp of this house and represents your career path, public image, and life goals.",
         lifeAreas: ["Career", "Reputation", "Authority", "Public Image", "Life Direction", "Achievement", "Status", "Professional Goals", "Social Standing", "Legacy"],
         keywords: ["Career", "Reputation", "Authority", "Public Image", "Achievement", "Status", "MC", "Professional", "Goals", "Recognition"],
-        element: "Angular",
+        element: getHouseType(10),
         modality: "Universal"
     },
     [House.Eleventh]: {
@@ -163,7 +163,7 @@ export const HOUSE_INFO: Record<House, HouseInfo> = {
         description: "Friends, groups, hopes, dreams, social networks, and future goals. This house represents your friendships, group associations, social causes, hopes and wishes for the future, and your role in the larger community. It governs social networks, humanitarian interests, and collective endeavors.",
         lifeAreas: ["Friends", "Groups", "Hopes", "Dreams", "Social Networks", "Future Goals", "Community", "Humanitarian Causes", "Collective Endeavors", "Wishes"],
         keywords: ["Friends", "Groups", "Hopes", "Dreams", "Social Networks", "Future", "Community", "Humanitarian", "Collective", "Wishes"],
-        element: "Succedent",
+        element: getHouseType(11),
         modality: "Universal"
     },
     [House.Twelfth]: {
@@ -172,7 +172,7 @@ export const HOUSE_INFO: Record<House, HouseInfo> = {
         description: "Spirituality, subconscious, hidden things, sacrifice, and transcendence. This house represents your connection to the divine, subconscious patterns, hidden enemies, self-undoing, charitable service, and spiritual growth. It governs meditation, dreams, psychic abilities, and your relationship with the collective unconscious.",
         lifeAreas: ["Spirituality", "Subconscious", "Hidden", "Sacrifice", "Transcendence", "Service", "Dreams", "Meditation", "Psychic Abilities", "Collective Unconscious"],
         keywords: ["Spirituality", "Subconscious", "Hidden", "Sacrifice", "Transcendence", "Mystical", "Dreams", "Service", "Psychic", "Divine"],
-        element: "Cadent",
+        element: getHouseType(12),
         modality: "Universal"
     }
 };

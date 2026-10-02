@@ -1,7 +1,8 @@
 //lib/astrology/interpretations/life-cycles.ts
 
 import { Planet } from '@/types/astrology';
-import { HOUSE_DEFINITIONS, PLANET_DEFINITIONS, getHouseName } from '../standard-definitions';
+import { PLANET_DEFINITIONS } from '../standard-definitions';
+import { getHouseCoreThemes, getHouseTitle, type House } from '../house-categories';
 
 export interface LifeCycleInterpretation {
     title: string;
@@ -21,10 +22,9 @@ export interface LifeCycleInterpretation {
 // Helper function to create fallback interpretation when we don't have a bespoke one
 function createFallbackInterpretation(planet: Planet, houseNumber: number): LifeCycleInterpretation | null {
     const planetDef = PLANET_DEFINITIONS[planet];
-    const houseDef = HOUSE_DEFINITIONS[houseNumber];
-    const houseName = getHouseName(houseNumber);
-
-    if (!planetDef || !houseDef || !houseName) return null;
+    if (!planetDef || houseNumber < 1 || houseNumber > 12) return null;
+    const houseDef = getHouseCoreThemes(houseNumber as House);
+    const houseName = getHouseTitle(houseNumber as House);
 
     const ordinalSuffix = (n: number) => {
         const suffixes = ['th', 'st', 'nd', 'rd'];

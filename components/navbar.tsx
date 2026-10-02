@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useChat } from "@/components/chat-provider";
+import { ModelSettingsButton } from "@/components/model-settings";
 
 const NAV = [
   { href: "/council", label: "Council" },
@@ -48,6 +49,8 @@ export default function Navbar() {
         >
           Interface
         </button>
+
+        <ModelSettingsButton />
       </nav>
     </header>
   );

@@ -111,8 +111,8 @@ export const MARKETS_PLUTO_ERAS: readonly MarketsPlutoEra[] = [
     catalysts: [
       {
         year: 1983, period: "1980s",
-        title: "Junk-bond finance",
-        description: ["Drexel / Milken high-yield market", "Bidders without balance sheets can buy companies"],
+        title: "Financial deregulation",
+        description: ["Rate caps, fixed commissions & bank walls come down", "Junk bonds & LBOs let bidders without balance sheets buy companies"],
         unlocks: ["Control of almost any company becomes financeable"],
       },
       {

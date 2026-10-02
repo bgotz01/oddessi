@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Cinzel, Cormorant_Garamond, IBM_Plex_Mono } from "next/font/google";
 import { ChartProvider } from "@/components/chart-context";
 import { ChatProvider } from "@/components/chat-provider";
+import { ModelSettingsProvider } from "@/components/model-settings";
 import ChatModal from "@/components/chat-modal";
 import Navbar from "@/components/navbar";
 import Sidebar from "@/components/sidebar";
@@ -46,12 +47,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex h-dvh flex-col overflow-hidden bg-void text-bone">
         <ChartProvider charts={charts}>
           <ChatProvider>
-            <Navbar />
-            <div className="flex min-h-0 flex-1">
-              <Sidebar />
-              <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>
-            </div>
-            <ChatModal />
+            <ModelSettingsProvider>
+              <Navbar />
+              <div className="flex min-h-0 flex-1">
+                <Sidebar />
+                <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>
+              </div>
+              <ChatModal />
+            </ModelSettingsProvider>
           </ChatProvider>
         </ChartProvider>
       </body>

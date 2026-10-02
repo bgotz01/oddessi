@@ -7,6 +7,10 @@ import {
   getCycleInterpretation,
   type TransitInterpretation,
 } from "@/lib/cycle-interpretations";
+import { HouseTags } from "@/components/western/houses/meaning-label";
+import { getHouseCategory, type House } from "@/lib/astrology/house-categories";
+import { houseTypeStyle } from "@/lib/house-types";
+import { houseInfo } from "@/lib/interpretation";
 
 /**
  * The planet × house the drawer is open on.
@@ -227,20 +231,12 @@ export default function WesternCycleDrawer({
               </p>
             </Block>
 
-            {interp.themes.length > 0 ? (
-              <Block title="Themes">
-                <div className="flex flex-wrap gap-x-5 gap-y-1.5">
-                  {interp.themes.map((t) => (
-                    <span
-                      key={t}
-                      className="datum text-[0.625rem] tracking-[0.22em] uppercase text-bone-faint"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              </Block>
-            ) : null}
+            <Block title="Themes">
+              <HouseTags
+                tags={getHouseCategory(target.house as House).keywords}
+                color={houseTypeStyle(houseInfo(target.house)?.element).color}
+              />
+            </Block>
 
             <Block title="What it brings / what it costs">
               <Pair>

@@ -1,11 +1,11 @@
-//components/industry/marketsp-pluto-timeline.tsx
+//components/industry/markets-pluto-timeline.tsx
 "use client";
 
 import { useState } from "react";
 import { MARKETS_PLUTO_ERAS as eras } from "@/lib/industry/markets-pluto-eras-data";
 import MarketsPlutoDrawer, { catalystTag } from "@/components/industry/markets-pluto-drawer";
 
-const ROWS = 6;
+const ROWS = 4;
 
 export default function MarketsPlutoTimeline() {
   const START = eras[0].startYear;
@@ -22,53 +22,56 @@ export default function MarketsPlutoTimeline() {
         <div role="region" aria-label="Explore the Pluto eras" tabIndex={0} className="overflow-x-auto pb-3">
           {/* Subgrid keeps each row aligned across eras, sized to its tallest cell */}
           <div
-            className="grid min-w-[880px]"
+            className="grid min-w-[1010px]"
             style={{
-              gridTemplateColumns: eras.map((era) => `${era.endYear - era.startYear}fr`).join(" "),
+              gridTemplateColumns: `128px ${eras.map((era) => `${era.endYear - era.startYear}fr`).join(" ")}`,
               gridTemplateRows: `repeat(${ROWS}, auto)`,
             }}
           >
+            {/* Row labels, once for all eras */}
+            <div className="sticky left-0 z-10 row-span-4 grid grid-rows-subgrid border-r border-rule bg-void">
+              <span />
+              <span className="border-t border-rule px-3 py-3 text-left"><span className="datum block text-[0.625rem] uppercase tracking-widest text-bone-faint">Organized through</span></span>
+              <span className="border-t border-rule px-3 py-3 text-left"><span className="datum block text-[0.625rem] uppercase tracking-widest text-bone-faint">Catalysts</span></span>
+              <span className="border-t border-rule px-3 py-3 text-left"><span className="datum block text-[0.625rem] uppercase tracking-widest text-bone-faint">Manifestations</span></span>
+            </div>
             {eras.map((era, i) => {
               const active = selectedIndex === i;
               return (
-                <button
+                <div
                   key={era.sign}
-                  type="button"
-                  aria-haspopup="dialog"
-                  aria-expanded={active}
-                  onClick={() => setSelectedIndex(i)}
-                  className="group row-span-6 grid min-w-0 cursor-pointer grid-rows-subgrid border-r border-rule text-center transition-colors last:border-r-0 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-patina"
+                  className="row-span-4 grid min-w-0 grid-rows-subgrid border-r border-rule text-center transition-colors last:border-r-0"
                   style={{ backgroundColor: `${era.color}${active ? "20" : "08"}` }}
                 >
-                  <span className="block pb-3">
+                  {/* Only the header opens the reading */}
+                  <button
+                    type="button"
+                    aria-haspopup="dialog"
+                    aria-expanded={active}
+                    aria-label={`Pluto in ${era.sign}, ${era.startYear}–${era.endYear}: ${era.headline}. Open the reading.`}
+                    onClick={() => setSelectedIndex(i)}
+                    className="group flex cursor-pointer flex-col justify-start pb-3 transition-colors hover:bg-white/[0.03] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-patina"
+                  >
                     <span className="mb-3 block h-2 transition-[filter] group-hover:brightness-125" style={{ backgroundColor: era.color }} />
-                    <span className="datum block text-xs text-bone-soft">{era.startYear}–{era.endYear}</span>
-                    <span className="mt-2 flex items-center justify-center gap-2 text-lg text-bone"><span className="glyph text-2xl" style={{ color: era.color }} aria-hidden="true">{era.symbol}</span>{era.sign}</span>
-                  </span>
-                  <span className="block px-3 pb-3">
-                    <span className="datum block text-[0.625rem] uppercase tracking-widest text-bone-faint">{era.domain}</span>
-                    <span className="mt-1 block text-sm leading-snug text-bone-faint">{era.theme}</span>
-                  </span>
-                  <span className="flex flex-col items-center justify-center border-t border-rule px-3 py-3">
-                    <span className="datum mb-1 block text-[0.625rem] uppercase tracking-widest text-bone-faint">Capital organized through</span>
-                    <span className="text-xl font-semibold leading-tight" style={{ color: era.color }}>{era.headline}</span>
+                    <span className="datum block text-[0.625rem] uppercase tracking-widest text-bone"><span className="glyph mr-1.5 text-base normal-case" style={{ color: era.color }} aria-hidden="true">{era.symbol}</span>{era.sign} · {era.startYear}–{era.endYear}</span>
+                    <span className="datum block text-[0.625rem] uppercase tracking-widest mt-1.5 px-3 text-bone-faint">{era.domain} · <span className="normal-case tracking-normal">{era.theme}</span></span>
+                  </button>
+                  <span className="block border-t border-rule px-3 py-3">
+                    <span className="block text-lg font-semibold leading-tight" style={{ color: era.color }}>{era.headline}</span>
                     <span className="mt-1 block text-sm italic text-bone-soft">{era.archetype}</span>
                   </span>
                   <span className="block border-t border-rule px-3 py-3">
-                    <span className="datum block text-[0.625rem] uppercase tracking-widest text-bone-faint">Manifestations</span>
-                    {era.manifestations.map((item) => <span key={item.title} className="mt-1 block text-sm leading-snug text-bone-soft">{item.title}</span>)}
-                  </span>
-                  <span className="block border-t border-rule px-3 py-3">
-                    <span className="datum block text-[0.625rem] uppercase tracking-widest text-bone-faint">Enabling catalyst</span>
                     {era.catalysts.map((catalyst) => (
-                      <span key={catalyst.title} className="mt-2 block text-sm leading-snug text-bone-soft">
+                      <span key={catalyst.title} className="block text-sm leading-snug text-bone [&:not(:first-child)]:mt-2">
                         <span className="datum block text-[0.625rem]" style={{ color: era.color }}>{catalystTag(catalyst, era)}</span>
                         {catalyst.title}
                       </span>
                     ))}
                   </span>
-                  <span className="datum block self-end pb-3 pt-1 text-[0.625rem] uppercase tracking-widest" style={{ color: era.color }}>{active ? "Reading →" : "Read era →"}</span>
-                </button>
+                  <span className="block self-start border-t border-rule px-3 py-3">
+                    {era.manifestations.map((item) => <span key={item.title} className="block text-sm leading-snug text-bone-soft [&:not(:first-child)]:mt-1">{item.title}</span>)}
+                  </span>
+                </div>
               );
             })}
           </div>

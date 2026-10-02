@@ -7,8 +7,10 @@ import type { HouseCusp, Placement } from "@/lib/charts";
 import type { HouseDominance } from "@/lib/dominance";
 import { easeLabel, type HouseEase } from "@/lib/ease";
 import { useScoring } from "@/components/scoring-context";
-import { bodyInHouse } from "@/lib/interpretation";
+import { bodyInHouse, houseInfo } from "@/lib/interpretation";
 import { bodyGlyph, signGlyph } from "@/lib/symbols";
+import { HouseTags, ThemeColumn } from "@/components/western/houses/meaning-label";
+import { houseTypeStyle } from "@/lib/house-types";
 
 /**
  * The full reading for one house: what the house is, what it weighs, the sign
@@ -315,7 +317,18 @@ export default function HouseReading({
         <p className="mb-3 text-[1.1875rem] leading-relaxed text-patina italic">
           {house.essence}
         </p>
-        <Bullets items={house.coreThemes} />
+        {/* The keywords span both sides; the core themes beneath are split
+            like the wall's cards — the house in the world, and inwardly. */}
+        <HouseTags
+          tags={house.keywords}
+          color={houseTypeStyle(houseInfo(cusp.number)?.element).color}
+        />
+        <div className="mt-6">
+          <Pair>
+            <ThemeColumn label="External" items={house.coreThemes.external} tone="patina" />
+            <ThemeColumn label="Internal" items={house.coreThemes.internal} tone="ember" />
+          </Pair>
+        </div>
       </div>
 
       {dominance ? (

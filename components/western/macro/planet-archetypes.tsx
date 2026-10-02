@@ -30,10 +30,10 @@ interface PlanetArchetype {
 const ARCHETYPES: PlanetArchetype[] = [
   {
     name: "Jupiter",
-    tagline: "Expansion, luck, optimism, wisdom, and abundance.",
+    tagline: "Expansion, exploration, opportunity, wisdom, and abundance.",
     house: "9th",
     houseDesc: "philosophy, travel, and higher mind",
-    keywords: ["Expansion", "Wisdom", "Optimism", "Abundance", "Faith"],
+    keywords: ["Expansion", "Exploration", "Opportunity", "Wisdom", "Faith"],
     meanings: [
       {
         label: "Expansion and Growth",
@@ -55,10 +55,10 @@ const ARCHETYPES: PlanetArchetype[] = [
   },
   {
     name: "Saturn",
-    tagline: "Discipline, structure, responsibility, boundaries, and time.",
+    tagline: "Structure, discipline, responsibility, limitation, and maturity.",
     house: "10th",
     houseDesc: "career, public status, and authority",
-    keywords: ["Discipline", "Structure", "Karma", "Boundaries", "Maturity"],
+    keywords: ["Structure", "Discipline", "Responsibility", "Limitation", "Maturity"],
     meanings: [
       {
         label: "Discipline and Responsibility",
@@ -80,10 +80,10 @@ const ARCHETYPES: PlanetArchetype[] = [
   },
   {
     name: "Uranus",
-    tagline: "Rebellion, innovation, sudden change, liberation, and eccentricity.",
+    tagline: "Disruption, innovation, liberation, sudden change, and individuality.",
     house: "11th",
     houseDesc: "community, networks, and hopes for the future",
-    keywords: ["Revolution", "Innovation", "Liberation", "Shock", "Individuality"],
+    keywords: ["Disruption", "Innovation", "Liberation", "Change", "Individuality"],
     meanings: [
       {
         label: "Revolution and Rebellion",
@@ -105,10 +105,10 @@ const ARCHETYPES: PlanetArchetype[] = [
   },
   {
     name: "Neptune",
-    tagline: "Dreams, imagination, spirituality, illusion, and dissolution.",
+    tagline: "Idealization, imagination, spirituality, illusion, and dissolution.",
     house: "12th",
     houseDesc: "the hidden, the collective unconscious, and endings",
-    keywords: ["Spirituality", "Imagination", "Dreams", "Illusion", "Dissolution"],
+    keywords: ["Idealization", "Imagination", "Spirituality", "Illusion", "Dissolution"],
     meanings: [
       {
         label: "Spirituality and Mysticism",
@@ -126,10 +126,10 @@ const ARCHETYPES: PlanetArchetype[] = [
   },
   {
     name: "Pluto",
-    tagline: "Transformation, power, regeneration, rebirth, and the subconscious.",
+    tagline: "Transformation, power, destruction, rebirth, and regeneration.",
     house: "8th",
     houseDesc: "shared resources, intimacy, and transformation",
-    keywords: ["Transformation", "Power", "Rebirth", "Shadow", "Generations"],
+    keywords: ["Transformation", "Power", "Destruction", "Rebirth", "Shadow"],
     meanings: [
       {
         label: "Transformation and Rebirth",
@@ -301,8 +301,8 @@ function ArchetypeColumn({
         </span>
       </span>
       <span className="text-[0.9375rem] leading-snug text-bone">{role}</span>
-      <span className="mt-1 flex flex-wrap content-start gap-1.5">
-        {planet.keywords.slice(0, 3).map((kw) => (
+      <span className="mt-1 flex flex-col items-start gap-1.5">
+        {planet.keywords.slice(0, 5).map((kw) => (
           <span
             key={kw}
             className="datum rounded border px-2 py-0.5 text-[0.625rem] tracking-[0.12em] uppercase"

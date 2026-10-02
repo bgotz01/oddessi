@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageTitle } from "@/components/primitives";
 import MarketsPlutoTimeline from "@/components/industry/markets-pluto-timeline";
+import MarketsPlutoInversion from "@/components/industry/markets-pluto-inversion";
 
 export const metadata: Metadata = {
   title: "Pluto Eras in Markets | Oddessi",
@@ -18,6 +19,7 @@ export default function MarketsPlutoPage() {
         </div>
       </div>
       <MarketsPlutoTimeline />
+      <MarketsPlutoInversion />
     </div>
   );
 }
