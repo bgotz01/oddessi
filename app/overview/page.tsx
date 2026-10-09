@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Timeline from "@/components/timeline";
 import { PageTitle, SectionHeading } from "@/components/primitives";
-import PlanetArchetypes from "@/components/western/macro/planet-archetypes";
+import AstrologyGuide from "@/components/overview/astrology-guide";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import { useJson } from "@/lib/use-json";
@@ -169,11 +169,6 @@ export default function OverviewPage() {
               only page where they can be seen against each other."
       />
 
-      <section className="mb-16">
-        <SectionHeading>Planet Archetypes</SectionHeading>
-        <PlanetArchetypes />
-      </section>
-
       {!chart ? (
         <p className="text-bone-soft">No chart selected.</p>
       ) : loading ? (
@@ -218,6 +213,10 @@ export default function OverviewPage() {
           ) : null}
         </section>
       )}
+
+      {/* Reference, not reading: needs no chart, so it sits below the axis
+          rather than pushing it off the first screen. */}
+      <AstrologyGuide />
     </div>
   );
 }

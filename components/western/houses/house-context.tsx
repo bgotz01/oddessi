@@ -1,108 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import type { Chart } from "@/lib/charts";
-import { houseCircuits } from "@/lib/dominance";
-import { useScoring } from "@/components/scoring-context";
 import { HOUSE_TYPE_EXPLANATIONS } from "@/lib/astrology/houses/houses";
 import { HOUSE_TYPES, houseTypeStyle } from "@/lib/house-types";
-import { bodyGlyph } from "@/lib/symbols";
 
 /**
- * The explanatory sections that sit between the grid and the readings: which
- * houses are wired to each other, and what angular / succedent / cadent
- * actually means. (What each body does to a house moved to the Planets page, as
+ * The explanatory section beside the grid: what angular / succedent / cadent
+ * actually means. (The rulership circuits live in `house-circuits`; what each
+ * body does to a house is on the Planets page, as
  * `components/western/planets/planetary-influences`.)
  *
- * These are constants, not readings — nothing here depends on the chart except
- * the circuits. They exist so the grid above is legible to someone who has not
- * already memorised the system.
+ * These are constants, not readings — nothing here depends on the chart. They
+ * exist so the grid above is legible to someone who has not already memorised
+ * the system.
  */
-
-export function HouseCircuits({ chart }: { chart: Chart }) {
-  // Rulership is configurable, and a circuit is made of rulers — reading them
-  // by a different table than the scores would put the two views in conflict.
-  const { config } = useScoring();
-  const circuits = houseCircuits(chart, config);
-  if (circuits.length === 0) return null;
-
-  return (
-    <div className="border-t border-rule">
-      <p className="py-4 text-[0.9375rem] font-light text-bone-soft">
-        Where the rulers chase each other in a closed ring. These life areas do
-        not move independently — pull on one and the others follow.
-      </p>
-
-      <div className="flex flex-col gap-6">
-        {circuits.map((circuit) => (
-          <div
-            key={circuit.houses.join("-")}
-            className="border border-rule bg-surface px-8 py-8"
-          >
-            {/* Badge */}
-            <div className="mb-6 flex justify-center">
-              <span className="datum border border-rule px-3 py-1 text-[0.5625rem] tracking-[0.2em] text-bone-faint uppercase">
-                {circuit.houses.length}-house circuit
-              </span>
-            </div>
-
-            {/* Circuit diagram — centered */}
-            <div className="flex flex-wrap items-center justify-center gap-y-6">
-              {circuit.houses.map((house, i) => (
-                <span key={house} className="flex items-center">
-                  {/* House node */}
-                  <span className="flex flex-col items-center gap-1.5 px-2">
-                    <span className="inscription text-[2rem] leading-none text-patina">
-                      {house}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="glyph text-[1rem] text-bone-soft">
-                        {bodyGlyph(circuit.rulers[i])}
-                      </span>
-                      <span className="datum text-[0.625rem] tracking-[0.14em] text-bone-soft uppercase">
-                        {circuit.rulers[i]}
-                      </span>
-                    </span>
-                  </span>
-
-                  {/* Arrow */}
-                  <span className="datum mx-3 text-[0.75rem] tracking-tight text-rule select-none">
-                    →
-                  </span>
-                </span>
-              ))}
-
-              {/* Closing node — back to start */}
-              <span className="flex flex-col items-center gap-1.5 px-2 opacity-40">
-                <span className="inscription text-[2rem] leading-none text-patina">
-                  {circuit.houses[0]}
-                </span>
-                <span className="datum text-[0.625rem] tracking-[0.14em] text-bone-faint uppercase">
-                  closes
-                </span>
-              </span>
-            </div>
-
-            {/* Description */}
-            <p className="mx-auto mt-8 max-w-2xl text-center text-[1.0625rem] leading-relaxed font-light text-bone-soft">
-              {circuit.houses.length === 2
-                ? `${circuit.rulers[0]} runs house ${circuit.houses[0]} but lives in
-                   house ${circuit.houses[1]}, and ${circuit.rulers[1]} runs house
-                   ${circuit.houses[1]} but lives in house ${circuit.houses[0]}.
-                   Each is a guest in the other's rooms, so neither area can be
-                   settled without settling both.`
-                : `${circuit.rulers[0]} runs house ${circuit.houses[0]} from house
-                   ${circuit.houses[1]}, whose ruler ${circuit.rulers[1]} sits in
-                   house ${circuit.houses[2]}, whose ruler ${circuit.rulers[2]}
-                   sits back in house ${circuit.houses[0]}. A closed three-step
-                   circuit.`}
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export function HouseTypeGuide() {
   return (

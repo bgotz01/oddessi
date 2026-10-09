@@ -3,6 +3,7 @@
 // Change here, change everywhere.
 
 export type ElementKey = "fire" | "earth" | "air" | "water";
+export type ModalityKey = "cardinal" | "fixed" | "mutable";
 export type SignKey =
   | "aries" | "taurus" | "gemini" | "cancer"
   | "leo" | "virgo" | "libra" | "scorpio"
@@ -22,6 +23,18 @@ export const ELEMENTS: Record<ElementKey, { theme: string }> = {
   water: { theme: "Integration" },
 };
 
+/**
+ * How a sign operates, independent of its element. Four elements by three
+ * modalities gives the twelve signs exactly once each.
+ */
+export const MODALITIES: Record<ModalityKey, { principle: string }> = {
+  cardinal: { principle: "Initiate" },
+  fixed: { principle: "Sustain" },
+  mutable: { principle: "Adapt" },
+};
+
+export const MODALITY_ORDER: ModalityKey[] = ["cardinal", "fixed", "mutable"];
+
 export interface CanonicalSign {
   glyph: string;
   label: string;       // display name
@@ -30,22 +43,130 @@ export interface CanonicalSign {
   // How this sign expresses its element's theme, so signs sharing an element
   // stay distinct (Libra: connection between two; Aquarius: among many).
   mode: string;
+  // Three words under the domain, filling in what the one word compresses.
+  keywords: string[];
+  modality: ModalityKey;
+  // Not rendered. The sign's constructive face, its excess, and what joins
+  // the two — handed to the chat through page context, never drawn as cards.
+  strength: string;
+  shadow: string;
+  development: string;
 }
 
 export const SIGNS: Record<SignKey, CanonicalSign> = {
-  aries: { glyph: "♈", label: "Aries", element: "fire", domain: "Initiation", mode: "Action to begin" },
-  taurus: { glyph: "♉", label: "Taurus", element: "earth", domain: "Stability", mode: "Material to hold" },
-  gemini: { glyph: "♊", label: "Gemini", element: "air", domain: "Exchange", mode: "Connection through information" },
-  cancer: { glyph: "♋", label: "Cancer", element: "water", domain: "Security", mode: "Integration through care" },
-  leo: { glyph: "♌", label: "Leo", element: "fire", domain: "Expression", mode: "Action to express" },
-  virgo: { glyph: "♍", label: "Virgo", element: "earth", domain: "Systems", mode: "Material to refine" },
-  libra: { glyph: "♎", label: "Libra", element: "air", domain: "Relationships", mode: "Connection between two" },
-  scorpio: { glyph: "♏", label: "Scorpio", element: "water", domain: "Power", mode: "Integration through intensity" },
-  sagittarius: { glyph: "♐", label: "Sagittarius", element: "fire", domain: "Expansion", mode: "Action to expand" },
-  capricorn: { glyph: "♑", label: "Capricorn", element: "earth", domain: "Structure", mode: "Material to structure" },
-  aquarius: { glyph: "♒", label: "Aquarius", element: "air", domain: "Networks", mode: "Connection among many" },
-  pisces: { glyph: "♓", label: "Pisces", element: "water", domain: "Unity", mode: "Integration of everything" },
+  aries: {
+    glyph: "♈", label: "Aries", element: "fire", domain: "Initiation", mode: "Action to begin", keywords: ["Courage", "Impulse", "Independence"],
+    modality: "cardinal",
+    strength: "Courage to go first",
+    shadow: "Impatience, aggression, starting without finishing",
+    development: "Initiative that stays for the follow-through",
+  },
+  taurus: {
+    glyph: "♉", label: "Taurus", element: "earth", domain: "Stability", mode: "Material to hold", keywords: ["Patience", "Comfort", "Persistence"],
+    modality: "fixed",
+    strength: "Patience and steady building",
+    shadow: "Stubbornness, possessiveness, inertia",
+    development: "Security that can still change",
+  },
+  gemini: {
+    glyph: "♊", label: "Gemini", element: "air", domain: "Exchange", mode: "Connection through information", keywords: ["Curiosity", "Versatility", "Communication"],
+    modality: "mutable",
+    strength: "A quick, curious, connecting mind",
+    shadow: "Scattered, superficial, inconsistent",
+    development: "Curiosity that commits to depth",
+  },
+  cancer: {
+    glyph: "♋", label: "Cancer", element: "water", domain: "Security", mode: "Integration through care", keywords: ["Nurture", "Belonging", "Protection"],
+    modality: "cardinal",
+    strength: "Care and protective loyalty",
+    shadow: "Moodiness, clinging, defensiveness",
+    development: "Care that does not need to control",
+  },
+  leo: {
+    glyph: "♌", label: "Leo", element: "fire", domain: "Expression", mode: "Action to express", keywords: ["Confidence", "Creativity", "Generosity"],
+    modality: "fixed",
+    strength: "Warmth, creativity, generous presence",
+    shadow: "Vanity, need for applause, pride",
+    development: "Expression that does not depend on being seen",
+  },
+  virgo: {
+    glyph: "♍", label: "Virgo", element: "earth", domain: "Systems", mode: "Material to refine", keywords: ["Analysis", "Service", "Craft"],
+    modality: "mutable",
+    strength: "Skill, discernment, useful service",
+    shadow: "Criticism, worry, perfectionism",
+    development: "Precision in service of what matters",
+  },
+  libra: {
+    glyph: "♎", label: "Libra", element: "air", domain: "Relationships", mode: "Connection between two", keywords: ["Balance", "Harmony", "Diplomacy"],
+    modality: "cardinal",
+    strength: "Fairness, grace, diplomacy",
+    shadow: "Indecision, people-pleasing, conflict avoided",
+    development: "Balance that includes its own needs",
+  },
+  scorpio: {
+    glyph: "♏", label: "Scorpio", element: "water", domain: "Power", mode: "Integration through intensity", keywords: ["Depth", "Intensity", "Transformation"],
+    modality: "fixed",
+    strength: "Depth, focus, emotional courage",
+    shadow: "Control, suspicion, vindictiveness",
+    development: "Power used to transform rather than to hold",
+  },
+  sagittarius: {
+    glyph: "♐", label: "Sagittarius", element: "fire", domain: "Expansion", mode: "Action to expand", keywords: ["Adventure", "Belief", "Freedom"],
+    modality: "mutable",
+    strength: "Optimism, vision, the search for meaning",
+    shadow: "Overreach, dogma, restlessness",
+    development: "Belief tested against experience",
+  },
+  capricorn: {
+    glyph: "♑", label: "Capricorn", element: "earth", domain: "Structure", mode: "Material to structure", keywords: ["Ambition", "Discipline", "Mastery"],
+    modality: "cardinal",
+    strength: "Discipline, responsibility, long-range building",
+    shadow: "Rigidity, coldness, status over substance",
+    development: "Authority earned and shared",
+  },
+  aquarius: {
+    glyph: "♒", label: "Aquarius", element: "air", domain: "Networks", mode: "Connection among many", keywords: ["Originality", "Reform", "Community"],
+    modality: "fixed",
+    strength: "Originality and commitment to the collective",
+    shadow: "Detachment, contrarianism, aloofness",
+    development: "Independence that stays connected",
+  },
+  pisces: {
+    glyph: "♓", label: "Pisces", element: "water", domain: "Unity", mode: "Integration of everything", keywords: ["Compassion", "Imagination", "Surrender"],
+    modality: "mutable",
+    strength: "Compassion, imagination, spiritual openness",
+    shadow: "Escapism, confusion, self-sacrifice",
+    development: "Sensitivity with boundaries",
+  },
 };
+
+/**
+ * The six oppositions, each a single theme seen from its two ends. Defined
+ * once here; a sign's opposite is read off this list rather than stored on
+ * the sign, so the two can never disagree.
+ */
+export interface SignAxis {
+  signs: [SignKey, SignKey];
+  /** The two ends of the theme, in the same order as `signs`. */
+  tension: [string, string];
+}
+
+export const AXES: SignAxis[] = [
+  { signs: ["aries", "libra"], tension: ["Independence", "Partnership"] },
+  { signs: ["taurus", "scorpio"], tension: ["Possession", "Sharing"] },
+  { signs: ["gemini", "sagittarius"], tension: ["Information", "Meaning"] },
+  { signs: ["cancer", "capricorn"], tension: ["Private security", "Public responsibility"] },
+  { signs: ["leo", "aquarius"], tension: ["Individual expression", "Collective participation"] },
+  { signs: ["virgo", "pisces"], tension: ["Precision", "Surrender"] },
+];
+
+/** The axis a sign sits on, oriented so that sign comes first. */
+export function axisOf(key: SignKey): SignAxis {
+  const axis = AXES.find((a) => a.signs.includes(key))!;
+  return axis.signs[0] === key
+    ? axis
+    : { signs: [axis.signs[1], axis.signs[0]], tension: [axis.tension[1], axis.tension[0]] };
+}
 
 /** Canonical sign order */
 export const SIGN_ORDER: SignKey[] = [
@@ -53,6 +174,15 @@ export const SIGN_ORDER: SignKey[] = [
   "leo", "virgo", "libra", "scorpio",
   "sagittarius", "capricorn", "aquarius", "pisces",
 ];
+
+/**
+ * A sign by its display name ("Aries"), as charts and the house tables spell
+ * it. Lets those pages borrow the canonical domain word instead of keeping
+ * their own.
+ */
+export function signByLabel(label: string): CanonicalSign | undefined {
+  return SIGNS[label.toLowerCase() as SignKey];
+}
 
 /** Signs grouped by element, in zodiac order */
 export const SIGNS_BY_ELEMENT: Record<ElementKey, SignKey[]> = {

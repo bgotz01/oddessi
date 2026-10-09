@@ -176,6 +176,53 @@ export interface ActiveCycle {
    * rather than only from the explorer.
    */
   next: UpcomingTransit[];
+  /**
+   * Every pass inside the shown transit's envelope, in date order — the
+   * retrograde excursions into the neighbouring houses included, so the drawer
+   * can say which house the planet is in on any date of this transit.
+   */
+  timeline: HousePass[];
+}
+
+/**
+ * One stretch in one house. `motion` reads the step from the pass before it:
+ * a first crossing is an ingress, a step back a house is the retrograde, and
+ * a step forward into a house already visited is the direct re-entry.
+ */
+export interface HousePass {
+  house: string;
+  houseNumber: number | null;
+  start: string;
+  end: string;
+  motion: "ingress" | "retrograde" | "re-entry";
+}
+
+/** Flatten rows into date-ordered passes and name each step. */
+function passTimeline(rows: Row[], from: string, to: string): HousePass[] {
+  const passes = rows
+    .flatMap((r) =>
+      buildSegments(r.startDate, r.endDate, r.interpretation).map((s) => ({
+        house: subtitleFor(r),
+        houseNumber: r.houseNumber,
+        ...s,
+      })),
+    )
+    .filter((p) => p.end > from && p.start < to)
+    .sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+
+  const seen = new Set<number | null>();
+  return passes.map((p, i) => {
+    const prev = passes[i - 1]?.houseNumber;
+    const back =
+      prev != null && p.houseNumber != null && (prev + 10) % 12 + 1 === p.houseNumber;
+    const motion: HousePass["motion"] = back
+      ? "retrograde"
+      : seen.has(p.houseNumber)
+        ? "re-entry"
+        : "ingress";
+    seen.add(p.houseNumber);
+    return { ...p, motion };
+  });
 }
 
 /**
@@ -271,6 +318,26 @@ export async function fetchActiveHouseTransits(
 
   const GAP_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
+  // Rows for the drawer's pass table, which starts at the shown house's
+  // ingress and so reaches back before now. Pluto's current house can have
+  // begun decades ago; bounded per planet in passTimeline, not here.
+  const timelineRows = (await prisma.lifeCycleCache.findMany({
+    where: {
+      chartId,
+      type: "house-transit",
+      planet: { in: PLANET_NAMES },
+      endDate: {
+        gte: new Date(
+          Math.min(
+            now.getTime(),
+            ...[...rows, ...prevByPlanet.values()].map((r) => r.startDate.getTime()),
+          ),
+        ),
+      },
+    },
+    orderBy: [{ startDate: "asc" }],
+  })) as unknown as Row[];
+
   const cycles: ActiveCycle[] = [];
 
   for (const planet of PLANET_NAMES) {
@@ -315,6 +382,17 @@ export async function fetchActiveHouseTransits(
       .sort((a, b) => Date.parse(a.ingress) - Date.parse(b.ingress))
       .slice(0, AHEAD_PER_PLANET);
 
+    // The shown transit only: its envelope, first ingress to final exit. The
+    // neighbouring houses appear where a retrograde carries the planet over a
+    // cusp and back; the house after is left to its own transit.
+    const from = iso(row.startDate);
+    const to = iso(row.endDate);
+    const timeline = passTimeline(
+      timelineRows.filter((r) => r.planet === planet),
+      from,
+      to,
+    );
+
     cycles.push({
       band: toBand(row),
       planet,
@@ -332,6 +410,7 @@ export async function fetchActiveHouseTransits(
         passes,
         significance: r.significance,
       })),
+      timeline,
     });
   }
 

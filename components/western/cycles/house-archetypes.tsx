@@ -55,6 +55,9 @@ function HouseCard({ house, lens }: { house: HouseCategory; lens: Lens }) {
         <span className="inscription mt-3 text-[0.625rem] leading-snug tracking-[0.04em] text-bone">
           {house.title}
         </span>
+        <span className="mt-1.5 text-[0.875rem] leading-snug text-balance text-bone-faint lowercase italic">
+          {house.internalThemes.join(" & ")}
+        </span>
       </span>
 
       <span

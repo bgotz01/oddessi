@@ -5,15 +5,14 @@ import { PageTitle, SectionHeading } from "@/components/primitives";
 import HousePositions from "@/components/western/houses/house-positions";
 import HouseDrawer from "@/components/western/houses/house-drawer";
 import ScoringDetails from "@/components/scoring-details";
-import {
-  HouseCircuits,
-  ReadingTheGrid,
-} from "@/components/western/houses/house-context";
+import { ReadingTheGrid } from "@/components/western/houses/house-context";
+import { HouseCircuits } from "@/components/western/houses/house-circuits";
 import { useChart } from "@/components/chart-context";
 import { useChat } from "@/components/chat-provider";
 import type { Chart } from "@/lib/charts";
 import { tenantsOf } from "@/lib/charts";
-import { dominanceMode, houseCircuits, houseDominance, prominence } from "@/lib/dominance";
+import { dominanceMode, houseDominance, prominence, rulerGraph } from "@/lib/dominance";
+import { readCircuit, readSelfRuled } from "@/lib/astrology/circuit-interpretations";
 import { useScoring } from "@/components/scoring-context";
 import ScoringEditor from "@/components/scoring-editor";
 import ChartPresets from "@/components/chart-presets";
@@ -173,8 +172,28 @@ function Houses({ chart }: { chart: Chart }) {
           })),
         };
       }),
-      // Mutual reception loops, shown further down the same page.
-      circuits: houseCircuits(chart),
+      // The ruler graph, shown further down the same page — read by the live
+      // rulership table, as the section itself is. Each house points at the
+      // house its ruler sits in; every chain ends in a loop. `circuits` are
+      // loops of two or more (with `signReception` when the rulers also sit
+      // in each other's signs), `selfRuled` are loops of one, and `feeders`
+      // are the houses whose chains drain into each loop. Each reading has
+      // three layers: `theme` (hand-written only for the six opposite-house
+      // axes, otherwise composed), `dynamic` (one line per direction, carried
+      // by that direction's ruler — a manner, never a verdict on whether the
+      // link works) and `integration`, which is not on screen and is yours to
+      // use. Integration describes a possible synthesis; do not turn it into
+      // advice or instructions. Everything here is a template — deepen it
+      // with the rulers' placements and the houses' full meanings rather than
+      // repeating it.
+      rulers: (() => {
+        const g = rulerGraph(chart, config);
+        return {
+          map: g.links,
+          circuits: g.circuits.map((c) => ({ ...c, reading: readCircuit(c) })),
+          selfRuled: g.selfRuled.map((sr) => ({ ...sr, reading: readSelfRuled(sr, g.links, config) })),
+        };
+      })(),
       // The convention in force, verbatim. It is user-editable, so the chat
       // must read the live tables rather than assume the shipped defaults.
       scoring: {
@@ -228,7 +247,7 @@ function Houses({ chart }: { chart: Chart }) {
       </section>
 
       <section className="mb-16">
-        <SectionHeading aside="mutual reception">House Circuits</SectionHeading>
+        <SectionHeading aside="where the rulers lead">House Circuits</SectionHeading>
         <HouseCircuits chart={chart} />
       </section>
 
@@ -249,6 +268,7 @@ function Houses({ chart }: { chart: Chart }) {
           dominance={byHouse.get(drawerCusp.number)}
           scores={scores}
           ease={easeOf.get(drawerCusp.number)}
+          aspects={chart.aspects}
           onClose={() => setDrawerHouse(null)}
           onPrev={() => stepDrawer(-1)}
           onNext={() => stepDrawer(1)}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useChart } from "@/components/chart-context";
 import { formatBirth } from "@/lib/charts";
@@ -13,7 +13,68 @@ import { BODY_GLYPH, signGlyph } from "@/lib/symbols";
 export default function ChartSelector() {
   const { chart, charts, selectChart } = useChart();
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [cursor, setCursor] = useState(0);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? charts.filter((c) => c.name.toLowerCase().includes(q)) : charts;
+  }, [charts, query]);
+
+  // On open: clear the filter and put the cursor on the current chart.
+  const openList = () => {
+    setQuery("");
+    setCursor(Math.max(0, charts.findIndex((c) => c.id === chart?.id)));
+    setOpen(true);
+  };
+
+  useEffect(() => {
+    if (open) searchRef.current?.focus();
+  }, [open]);
+
+  // Keep the cursor row visible inside the scrolling list.
+  useEffect(() => {
+    if (!open) return;
+    listRef.current
+      ?.querySelector<HTMLElement>(`[data-index="${cursor}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [cursor, open, filtered]);
+
+  const close = () => {
+    setOpen(false);
+    triggerRef.current?.focus();
+  };
+
+  const choose = (id: string) => {
+    selectChart(id);
+    close();
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setCursor((i) => Math.min(filtered.length - 1, i + 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setCursor((i) => Math.max(0, i - 1));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      setCursor(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      setCursor(filtered.length - 1);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const c = filtered[cursor];
+      if (c) choose(c.id);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      close();
+    }
+  };
 
   if (!chart) {
     return (
@@ -41,17 +102,25 @@ export default function ChartSelector() {
       <p className="eyebrow mb-2">Chart</p>
 
       {/* Custom dropdown — matches sidebar nav style */}
-      <div className="relative">
+      <div
+        className="relative"
+        onBlur={(e) => {
+          // Close when focus leaves the whole dropdown area
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            setOpen(false);
+          }
+        }}
+      >
         <button
           ref={triggerRef}
           type="button"
           aria-haspopup="listbox"
           aria-expanded={open}
-          onClick={() => setOpen((v) => !v)}
-          onBlur={(e) => {
-            // Close when focus leaves the whole dropdown area
-            if (!e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) {
-              setOpen(false);
+          onClick={() => (open ? setOpen(false) : openList())}
+          onKeyDown={(e) => {
+            if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+              e.preventDefault();
+              openList();
             }
           }}
           className="datum flex w-full items-center justify-between border border-rule bg-surface px-2 py-1.5 text-[0.6875rem] text-bone-soft transition-colors hover:border-patina-dim hover:text-bone focus:outline-none focus:ring-1 focus:ring-patina"
@@ -78,31 +147,61 @@ export default function ChartSelector() {
 
         {open && (
           <div
-            role="listbox"
-            aria-label="Select chart"
             className="absolute left-0 right-0 top-full z-50 border border-rule bg-surface"
+            onKeyDown={onKeyDown}
           >
-            {charts.map((c) => {
-              const active = c.id === chart.id;
-              return (
-                <button
-                  key={c.id}
-                  role="option"
-                  aria-selected={active}
-                  type="button"
-                  onClick={() => {
-                    selectChart(c.id);
-                    setOpen(false);
-                  }}
-                  className={`datum flex w-full items-center border-l-2 px-3 py-2 text-left text-[0.6875rem] transition-colors ${active
-                      ? "border-patina bg-surface-alt text-patina"
-                      : "border-transparent text-bone-soft hover:border-rule hover:bg-surface-alt hover:text-bone"
-                    }`}
-                >
-                  {c.name}
-                </button>
-              );
-            })}
+            {/* Filter — the list can run long; typing narrows it. */}
+            <div className="border-b border-rule">
+              <input
+                ref={searchRef}
+                type="text"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setCursor(0);
+                }}
+                placeholder={`Search ${charts.length} charts`}
+                aria-label="Search charts"
+                className="datum w-full bg-transparent px-3 py-2 text-[0.6875rem] text-bone placeholder:text-bone-faint focus:outline-none"
+              />
+            </div>
+
+            <div
+              ref={listRef}
+              role="listbox"
+              aria-label="Select chart"
+              className="max-h-64 overflow-y-auto overscroll-contain"
+            >
+              {filtered.length === 0 && (
+                <p className="datum px-3 py-2 text-[0.6875rem] text-bone-faint">No match</p>
+              )}
+              {filtered.map((c, i) => {
+                const active = c.id === chart.id;
+                const cursored = i === cursor;
+                return (
+                  <button
+                    key={c.id}
+                    data-index={i}
+                    role="option"
+                    aria-selected={active}
+                    type="button"
+                    tabIndex={-1}
+                    // Keep focus in the search box so blur doesn't close the list mid-click.
+                    onMouseDown={(e) => e.preventDefault()}
+                    onMouseEnter={() => setCursor(i)}
+                    onClick={() => choose(c.id)}
+                    className={`datum flex w-full items-center border-l-2 px-3 py-2 text-left text-[0.6875rem] transition-colors ${active
+                        ? "border-patina bg-surface-alt text-patina"
+                        : cursored
+                          ? "border-rule bg-surface-alt text-bone"
+                          : "border-transparent text-bone-soft"
+                      }`}
+                  >
+                    <span className="truncate">{c.name}</span>
+                  </button>
+                );
+              })}
+            </div>
 
             {/* Divider + Add New */}
             <div className="border-t border-rule">

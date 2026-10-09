@@ -1,6 +1,6 @@
 import type { Band } from "@/lib/band";
 import { planetMeta } from "@/lib/bodies";
-import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
+import { getHouseInternalThemes, getHouseTitle, type House } from "@/lib/astrology/house-categories";
 
 /**
  * One planet, one row, on its own time scale.
@@ -13,6 +13,12 @@ import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 const TRACK_TOP = 20; // px from top of track to bar centre-line — leaves room for year labels above
 const BAR_H = 10; // px — height of the solid segment bars
 const MIN_LABEL_GAP = 2; // % — only suppress labels that would literally overlap
+const MIN_GAP_LABEL = 4; // % — narrowest retrograde gap that gets its house named
+
+function ordinal(n: number): string {
+  const suffix = n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th";
+  return `${n}${suffix}`;
+}
 
 function monthLabel(iso: string): string {
   return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", {
@@ -73,6 +79,14 @@ export interface CycleRowData {
     end?: string;
     passes?: { start: string; end: string }[];
   }[];
+  /** Every pass inside this transit's envelope, retrograde excursions included. */
+  timeline?: {
+    house: string;
+    houseNumber: number | null;
+    start: string;
+    end: string;
+    motion: "ingress" | "retrograde" | "re-entry";
+  }[];
 }
 
 export default function CycleRow({
@@ -92,6 +106,9 @@ export default function CycleRow({
 
   const planetRole = meta?.description ?? null;
   const houseName = cycle.houseNumber ? getHouseTitle(cycle.houseNumber as House) : null;
+  // House titles mostly name the outer arena; the house's broad inner themes
+  // ride beside them in italics so a row does not read as purely external.
+  const innerFocus = cycle.houseNumber ? getHouseInternalThemes(cycle.houseNumber as House) : null;
 
   const start = Date.parse(band.start);
   const span = Date.parse(band.end) - start;
@@ -145,6 +162,16 @@ export default function CycleRow({
                 )}
                 {houseName && (
                   <span className="text-bone-soft">{houseName}</span>
+                )}
+                {/* Read as one phrase with the title: "Home & Family, emotional
+                    foundations & belonging". */}
+                {innerFocus && (
+                  <>
+                    <span className="text-bone-faint">, </span>
+                    <span className="font-[family-name:var(--font-body)] text-[0.9375rem] tracking-normal lowercase text-bone-faint italic">
+                      {innerFocus}
+                    </span>
+                  </>
                 )}
               </p>
             )}
@@ -266,6 +293,32 @@ export default function CycleRow({
           );
         })}
 
+
+        {/* The house the planet is in during each gap — the retrograde
+            excursions over a cusp. Skipped where the gap is too narrow. */}
+        {(cycle.timeline ?? [])
+          .filter((p) => p.houseNumber != null && p.houseNumber !== cycle.houseNumber)
+          .map((p) => {
+            const left = pos(p.start);
+            const width = pos(p.end) - left;
+            if (width < MIN_GAP_LABEL) return null;
+            return (
+              <div
+                key={`gap-${p.start}`}
+                className="datum absolute flex items-center justify-center text-[0.6875rem] whitespace-nowrap"
+                style={{
+                  top: `${TRACK_TOP}px`,
+                  left: `${left}%`,
+                  width: `${width}%`,
+                  height: `${BAR_H}px`,
+                  color,
+                }}
+                title={`House ${p.houseNumber}: ${fullDateLabel(p.start)} – ${fullDateLabel(p.end)}`}
+              >
+                {ordinal(p.houseNumber!)}
+              </div>
+            );
+          })}
 
         {/* Boundary date labels */}
         {labels.map((l) => {

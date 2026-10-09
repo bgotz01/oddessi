@@ -23,7 +23,7 @@ const PLANET_ACTIONS: Record<string, string[]> = {
 };
 
 /** A labelled bullet list — the drawer's one building block. */
-function Bullets({
+export function Bullets({
   label,
   items,
   mark,
@@ -49,6 +49,94 @@ function Bullets({
           </li>
         ))}
       </ul>
+    </section>
+  );
+}
+
+function shortDate(iso: string): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
+/** Months to one decimal under two years, whole years above. */
+function length(start: string, end: string): string {
+  const days = (Date.parse(end) - Date.parse(start)) / 86_400_000;
+  if (days < 60) return `${Math.round(days)}d`;
+  const months = days / 30.44;
+  return months < 24 ? `${Math.round(months)}mo` : `${(months / 12).toFixed(1)}y`;
+}
+
+const MOTION_LABEL: Record<NonNullable<CycleRowData["timeline"]>[number]["motion"], string> = {
+  ingress: "Enters",
+  retrograde: "℞ Back",
+  "re-entry": "Re-enters",
+};
+
+/**
+ * Every pass, in date order: which house the planet is in between which two
+ * dates. Retrograde steps back are ember; the pass in force now is lit.
+ */
+function PassTable({
+  timeline,
+  color,
+}: {
+  timeline: NonNullable<CycleRowData["timeline"]>;
+  color: string;
+}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const head = "datum pb-2 pr-3 text-[0.625rem] uppercase tracking-[0.14em] text-bone-faint font-normal";
+  return (
+    <section>
+      <p className="eyebrow mb-3 text-[0.75rem] text-bone">Dates</p>
+      <table className="w-full border-collapse text-left">
+        <thead>
+          <tr>
+            <th className={head}>House</th>
+            <th className={head}>From</th>
+            <th className={head}>To</th>
+            <th className={head}>Motion</th>
+            <th className={`${head} hidden pr-0 text-right sm:table-cell`}>Length</th>
+          </tr>
+        </thead>
+        <tbody>
+          {timeline.map((p) => {
+            const current = p.start <= today && today < p.end;
+            const past = p.end <= today;
+            const retro = p.motion === "retrograde";
+            return (
+              <tr
+                key={`${p.houseNumber}-${p.start}`}
+                className={`border-t border-rule-faint ${past ? "opacity-50" : ""}`}
+                style={current ? { background: `color-mix(in srgb, ${color} 12%, transparent)` } : undefined}
+              >
+                <td className="py-2 pr-3 align-top">
+                  <span className="datum text-[0.8125rem]" style={{ color: current ? color : undefined }}>
+                    {p.houseNumber ?? "—"}
+                  </span>
+                </td>
+                <td className="datum py-2 pr-3 align-top text-[0.8125rem] text-bone sm:whitespace-nowrap">
+                  {shortDate(p.start)}
+                </td>
+                <td className="datum py-2 pr-3 align-top text-[0.8125rem] text-bone sm:whitespace-nowrap">
+                  {shortDate(p.end)}
+                </td>
+                <td
+                  className={`datum py-2 pr-3 align-top text-[0.75rem] whitespace-nowrap ${retro ? "text-ember" : "text-bone-soft"}`}
+                >
+                  {MOTION_LABEL[p.motion]}
+                </td>
+                <td className="datum hidden py-2 align-top text-right text-[0.75rem] text-bone-faint sm:table-cell">
+                  {length(p.start, p.end)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </section>
   );
 }
@@ -141,8 +229,12 @@ export default function CycleDrawer({
 
         </div>
 
-        {/* Body — bullets only */}
+        {/* Body — the dates, then bullets */}
         <div className="px-6 py-7 space-y-7">
+          {cycle.timeline && cycle.timeline.length > 0 && (
+            <PassTable timeline={cycle.timeline} color={color} />
+          )}
+
           {actions && <Bullets label={`What ${cycle.planet} does`} items={actions} />}
 
           {/* The house it crosses: the transit's headline, the house's tags, then

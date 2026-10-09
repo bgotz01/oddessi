@@ -46,9 +46,12 @@ const NAV: NavGroup[] = [
           { href: "/western/macro/neptune", label: "Neptune" },
           { href: "/western/macro/uranus", label: "Uranus" },
           { href: "/western/macro/pluto", label: "Pluto" },
-          { href: "/western/macro/framework", label: "Framework" },
         ],
       },
+      // Its own entry rather than a child of Astrology: the sign and
+      // outer-planet vocabulary it lays out is what Music and Markets read
+      // through too, so it belongs to the whole group, not one row of it.
+      { href: "/western/framework", label: "Framework" },
       {
         href: "/industry/music",
         label: "Music",
@@ -119,6 +122,7 @@ const NAV: NavGroup[] = [
         children: [
           { href: "/western/cycles/explorer", label: "Explorer" },
           { href: "/western/cycles/guide", label: "Guide" },
+          { href: "/western/cycles/sun", label: "Sun" },
         ],
       },
     ],
@@ -140,6 +144,12 @@ const NAV: NavGroup[] = [
       // of the other two — the nesting under Western Cycles is an explorer for
       // the same transits, and this is a different reading.
       { href: "/numerology/pinnacles", label: "Pinnacles" },
+    ],
+  },
+  {
+    label: "Subtle Body",
+    items: [
+      { href: "/chakras", label: "Chakras" },
     ],
   },
   {

@@ -80,6 +80,12 @@ function ColumnLayout() {
                     <p className="mt-2.5 pl-[1.7rem] text-[1rem] leading-snug text-bone">
                       {s.domain}
                     </p>
+
+                    <ul className="mt-1.5 pl-[1.7rem] text-[0.875rem] leading-snug text-bone-faint">
+                      {s.keywords.map((k) => (
+                        <li key={k}>{k}</li>
+                      ))}
+                    </ul>
                   </div>
                 );
               })}
@@ -157,6 +163,9 @@ function RowLayout() {
             <div className="flex items-center px-5 py-4">
               <span className="text-[1rem] text-bone">
                 {s.domain}
+              </span>
+              <span className="ml-3 text-[0.875rem] text-bone-faint">
+                {s.keywords.join(" · ")}
               </span>
             </div>
           </div>

@@ -3,29 +3,153 @@
 "use client";
 
 import { useState } from "react";
-import { planetMeta, type SlowPlanet } from "@/lib/bodies";
+import { BODY } from "@/lib/bodies";
 
 /**
- * A static reference panel for the five slow outer planets — what each one
- * rules archetypally, before any transit or era reading is applied.
+ * A static reference panel for the planets — what each one rules
+ * archetypally, before any transit or era reading is applied. The five slow
+ * outer planets by default; `bodies="all"` adds the personal five.
  *
  * The panel collapses each planet into a header row; expanding it reveals the
  * core meanings without leaving the page. This keeps the macro page from
  * bloating while still answering "wait, what does Uranus actually rule?"
  * inline.
  *
- * Glyph, colour and the one-line role come from `lib/bodies.ts`, the same
- * source the Cycles pages read, so the two never drift apart.
+ * Glyph, colour and the one-line role come from `BODY` in `lib/bodies.ts`, the
+ * same source the Planets and Cycles pages read, so they never drift apart.
  */
 
+type Planet =
+  | "Sun" | "Moon" | "Mercury" | "Venus" | "Mars"
+  | "Jupiter" | "Saturn" | "Uranus" | "Neptune" | "Pluto";
+
+/** Glyph, colour and role for a planet, in the shape the three faces read. */
+function planetMeta(name: Planet) {
+  const { glyph = "·", color, role } = BODY[name];
+  return { glyph, color, description: role };
+}
+
 interface PlanetArchetype {
-  name: SlowPlanet;
+  name: Planet;
   tagline: string;
   house: string;
   houseDesc: string;
   keywords: string[];
   meanings: { label: string; body: string }[];
 }
+
+/**
+ * The five fast, personal planets. Kept apart from the slow five because the
+ * Cycles and Macro pages only ever read the slow ones; the overview guide is
+ * the one place that wants all ten.
+ */
+const PERSONAL: PlanetArchetype[] = [
+  {
+    name: "Sun",
+    tagline: "Identity, vitality, purpose, will, and self-expression.",
+    house: "5th",
+    houseDesc: "creativity, play, romance, and self-expression",
+    keywords: ["Identity", "Vitality", "Purpose", "Will", "Expression"],
+    meanings: [
+      {
+        label: "Core Identity",
+        body: "The Sun is the centre of the chart — who you are becoming, the conscious self you grow into over a lifetime.",
+      },
+      {
+        label: "Vitality and Will",
+        body: "It rules life force, confidence, and the steady drive to direct your energy toward what matters to you.",
+      },
+      {
+        label: "Purpose and Recognition",
+        body: "It shows where you want to shine, be seen, and feel that your life means something.",
+      },
+    ],
+  },
+  {
+    name: "Moon",
+    tagline: "Emotion, instinct, memory, comfort, and belonging.",
+    house: "4th",
+    houseDesc: "home, family, roots, and inner foundations",
+    keywords: ["Emotion", "Instinct", "Memory", "Comfort", "Belonging"],
+    meanings: [
+      {
+        label: "Emotional Nature",
+        body: "The Moon governs your feelings, moods, and the reactions that arrive before thought does.",
+      },
+      {
+        label: "Needs and Security",
+        body: "It shows what you need to feel safe, nourished, and at home — in a place and in yourself.",
+      },
+      {
+        label: "Memory and the Past",
+        body: "It rules habit, childhood, the mother, and the patterns you carry forward without noticing.",
+      },
+    ],
+  },
+  {
+    name: "Mercury",
+    tagline: "Thought, communication, learning, trade, and connection.",
+    house: "3rd & 6th",
+    houseDesc: "communication and learning, and of daily work and routine",
+    keywords: ["Thought", "Communication", "Learning", "Trade", "Curiosity"],
+    meanings: [
+      {
+        label: "Mind and Perception",
+        body: "Mercury rules how you think, notice, sort, and make sense of what comes in.",
+      },
+      {
+        label: "Communication",
+        body: "It governs speech, writing, messages, and the way you explain yourself to others.",
+      },
+      {
+        label: "Exchange and Movement",
+        body: "It rules trade, short journeys, siblings, and the busy traffic of everyday life.",
+      },
+    ],
+  },
+  {
+    name: "Venus",
+    tagline: "Love, beauty, pleasure, value, and harmony.",
+    house: "2nd & 7th",
+    houseDesc: "money and possessions, and of partnership",
+    keywords: ["Love", "Beauty", "Pleasure", "Value", "Harmony"],
+    meanings: [
+      {
+        label: "Love and Attraction",
+        body: "Venus shows what you are drawn to, how you love, and what you find beautiful in another.",
+      },
+      {
+        label: "Values and Money",
+        body: "It rules what you value, what you earn and spend, and your sense of worth.",
+      },
+      {
+        label: "Art and Pleasure",
+        body: "It governs taste, art, comfort, and the enjoyment of the senses.",
+      },
+    ],
+  },
+  {
+    name: "Mars",
+    tagline: "Drive, action, desire, courage, and conflict.",
+    house: "1st",
+    houseDesc: "the self, the body, and how you meet the world",
+    keywords: ["Drive", "Action", "Desire", "Courage", "Conflict"],
+    meanings: [
+      {
+        label: "Drive and Action",
+        body: "Mars is the engine of the chart — the energy to start, push, and go after what you want.",
+      },
+      {
+        label: "Courage and Conflict",
+        body: "It rules competition, anger, self-defence, and the willingness to fight for something.",
+      },
+      {
+        label: "Desire",
+        body: "It governs physical drive, ambition, and the raw wanting behind your choices.",
+      },
+    ],
+  },
+];
 
 const ARCHETYPES: PlanetArchetype[] = [
   {
@@ -151,6 +275,11 @@ const ARCHETYPES: PlanetArchetype[] = [
   },
 ];
 
+/** Mercury and Venus each rule two houses. */
+function houseWord(planet: PlanetArchetype) {
+  return planet.house.includes("&") ? "Houses" : "House";
+}
+
 function ArchetypeRow({ planet }: { planet: PlanetArchetype }) {
   const [open, setOpen] = useState(false);
   const { glyph, color, description: role } = planetMeta(planet.name)!;
@@ -184,7 +313,7 @@ function ArchetypeRow({ planet }: { planet: PlanetArchetype }) {
             </span>
             <span className="whitespace-nowrap text-[0.9375rem] text-bone">{role}</span>
             <span className="datum hidden whitespace-nowrap text-[0.8125rem] text-bone-faint sm:block">
-              {planet.house} House
+              {planet.house} {houseWord(planet)}
             </span>
           </div>
           <p className="mt-1 text-[0.9375rem] leading-snug text-bone-soft">
@@ -257,8 +386,8 @@ function ArchetypeRow({ planet }: { planet: PlanetArchetype }) {
           {/* House note */}
           <p className="datum mt-5 border-t border-rule-faint pt-4 text-[0.8125rem] text-bone-faint">
             Natural ruler of the{" "}
-            <span className="text-bone">{planet.house} house</span> — the house
-            of {planet.houseDesc}.
+            <span className="text-bone">{planet.house} {houseWord(planet).toLowerCase()}</span> — the{" "}
+            {houseWord(planet).toLowerCase()} of {planet.houseDesc}.
           </p>
         </div>
       )}
@@ -348,8 +477,8 @@ function ArchetypeDetail({ planet }: { planet: PlanetArchetype }) {
       </div>
 
       <p className="datum mt-6 border-t border-rule-faint pt-4 text-[0.8125rem] text-bone-faint">
-        Natural ruler of the <span className="text-bone">{planet.house} house</span> — the house
-        of {planet.houseDesc}.
+        Natural ruler of the <span className="text-bone">{planet.house} {houseWord(planet).toLowerCase()}</span> — the{" "}
+        {houseWord(planet).toLowerCase()} of {planet.houseDesc}.
       </p>
     </div>
   );
@@ -361,17 +490,21 @@ function ArchetypeDetail({ planet }: { planet: PlanetArchetype }) {
  */
 export default function PlanetArchetypes({
   layout = "rows",
+  bodies = "slow",
 }: {
   layout?: "rows" | "columns";
+  /** `slow` is the five outer planets; `all` puts the personal five first. */
+  bodies?: "slow" | "all";
 }) {
-  const [selected, setSelected] = useState<SlowPlanet | null>(null);
+  const [selected, setSelected] = useState<Planet | null>(null);
+  const planets = bodies === "all" ? [...PERSONAL, ...ARCHETYPES] : ARCHETYPES;
 
   if (layout === "columns") {
-    const detail = ARCHETYPES.find((p) => p.name === selected);
+    const detail = planets.find((p) => p.name === selected);
     return (
       <div>
         <div className="grid grid-cols-2 gap-x-3 gap-y-3 md:grid-cols-3 lg:grid-cols-5">
-          {ARCHETYPES.map((planet) => (
+          {planets.map((planet) => (
             <ArchetypeColumn
               key={planet.name}
               planet={planet}
@@ -387,7 +520,7 @@ export default function PlanetArchetypes({
 
   return (
     <div className="border-y border-rule">
-      {ARCHETYPES.map((planet) => (
+      {planets.map((planet) => (
         <ArchetypeRow key={planet.name} planet={planet} />
       ))}
     </div>

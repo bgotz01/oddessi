@@ -143,7 +143,7 @@ export function compare(chart: Chart, reading: Reading): ComparisonRow[] {
     western: {
       answer: westElement,
       basis:
-        "Ten bodies and the Ascendant, weighted by role — lights heaviest, outers lightest because a whole cohort shares them.",
+        "The ten planets, one vote each.",
     },
     chinese: {
       answer: eastPhase,
@@ -227,7 +227,7 @@ export function comparisonContext(chart: Chart, reading: Reading) {
       modalities: west.modalities.map((m) => ({ modality: m.key, sharePercent: m.share })),
       missing: [...west.missingElements, ...west.missingModalities],
       weighting:
-        "Ten bodies plus the Ascendant. Sun, Moon, Ascendant 10; Mercury, Venus, Mars 8; Jupiter, Saturn 6; Uranus, Neptune, Pluto 4 (generational); nodes, Chiron and the Midheaven 0.",
+        "The ten planets, one vote each. Ascendant, Midheaven, nodes, Chiron and Lilith are not counted.",
       counted: west.counted.map((c) => `${c.body} in ${c.sign} (${c.weight})`),
       dominantHouses: [...houses]
         .sort((a, b) => b.score - a.score)

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import HouseReading from "@/components/western/houses/house-reading";
 import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
-import type { HouseCusp, Placement } from "@/lib/charts";
+import type { Aspect, HouseCusp, Placement } from "@/lib/charts";
 import type { HouseDominance } from "@/lib/dominance";
 import type { HouseEase } from "@/lib/ease";
 import { houseTypeStyle } from "@/lib/house-types";
@@ -21,6 +21,7 @@ export default function HouseDrawer({
   dominance,
   scores,
   ease,
+  aspects,
   onClose,
   onPrev,
   onNext,
@@ -34,6 +35,8 @@ export default function HouseDrawer({
   scores?: number[];
   /** The second axis, shown beside weight. */
   ease?: HouseEase;
+  /** The chart's aspects, for the copyable placements list. */
+  aspects?: Aspect[];
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
@@ -128,6 +131,7 @@ export default function HouseDrawer({
             dominance={dominance}
             scores={scores}
             ease={ease}
+            aspects={aspects}
             onExplainWeight={onExplainWeight}
           />
         </div>

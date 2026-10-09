@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SectionHeading } from "@/components/primitives";
 import { useChart } from "@/components/chart-context";
 import NewChartForm from "@/components/new-chart-form";
 import ChartManageModal from "@/components/ChartManageModal";
 import { BODY_GLYPH, signGlyph } from "@/lib/symbols";
+import { copyText } from "@/lib/clipboard";
 import { getHouseTitle, type House } from "@/lib/astrology/house-categories";
 
 // ── inline editable field ─────────────────────────────────────────────────────
@@ -65,9 +66,15 @@ function EditableField({
         <button
           type="button"
           onClick={startEdit}
-          className="datum group flex items-center gap-1.5 text-left text-[0.8125rem] text-bone"
+          className="datum group flex max-w-full min-w-0 items-center gap-1.5 text-left text-[0.8125rem] text-bone"
         >
-          <span>{value || <span className="text-bone-faint">—</span>}</span>
+          <span className="min-w-0 break-words">
+            {value
+              ? value.split("/").map((part, i) => (
+                  <Fragment key={i}>{i > 0 && <>/<wbr /></>}{part}</Fragment>
+                ))
+              : <span className="text-bone-faint">—</span>}
+          </span>
           <svg
             width="10" height="10" viewBox="0 0 10 10" fill="none"
             aria-hidden="true"
@@ -96,31 +103,10 @@ export default function BirthChartPage() {
   const [copied, setCopied] = useState(false);
   const [copiedCusps, setCopiedCusps] = useState(false);
 
-  function copyText(text: string, done: () => void) {
-    const fallback = () => {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      ta.style.cssText = "position:fixed;top:0;left:0;opacity:0";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-    };
-    // Signal "copied" immediately — don't wait on the promise, which the
-    // browser may hold until the document regains focus (several seconds).
-    done();
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(text).catch(fallback);
-    } else {
-      fallback();
-    }
-  }
-
   function copyPlacements() {
     if (!chart) return;
     const lines = chart.placements.map((p) =>
-      `${p.body}: ${p.sign} ${p.degree}${p.house ? ` (${p.house})` : ""}`
+      `${p.body}${p.retrograde ? " ℞" : ""}: ${p.sign} ${p.degree}${p.house ? ` (${p.house})` : ""}`
     );
     const text = `${chart.name} — Birth Chart Placements\n\n${lines.join("\n")}`;
     copyText(text, () => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
@@ -389,7 +375,14 @@ export default function BirthChartPage() {
               <span className={`glyph text-lg ${p.isAngle ? "text-ember" : "text-patina"}`}>
                 {BODY_GLYPH[p.body] ?? "·"}
               </span>
-              <span className="inscription text-[0.6875rem] text-bone">{p.body}</span>
+              <span className="inscription text-[0.6875rem] text-bone">
+                {p.body}
+                {p.retrograde ? (
+                  <span className="datum ml-2 text-[0.625rem] text-ember" title="Retrograde">
+                    ℞
+                  </span>
+                ) : null}
+              </span>
               <span className="hidden md:block">
                 <span className="glyph mr-2 text-bone-faint">{signGlyph(p.sign)}</span>
                 <span className="text-[0.9375rem] font-light italic text-bone-soft">{p.sign}</span>

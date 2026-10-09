@@ -274,6 +274,29 @@ function BodyRow({
 }
 
 /**
+ * The table as plain text, one body per line, carrying the same columns the
+ * rows show — for pasting elsewhere.
+ */
+export function bodiesText(placements: Placement[]): string {
+  return placements
+    .filter((p) => !p.isAngle)
+    .map((p) => {
+      const archetype = bodyInSign(p.body, p.sign)?.meaning;
+      const element = signMeta(p.sign)?.element;
+      return [
+        `${p.body}${p.retrograde ? " ℞" : ""}: ${p.sign} ${p.degree}`,
+        p.house ? `house ${p.house}` : null,
+        archetype,
+        element,
+        dignityOf(p.body, p.sign),
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    })
+    .join("\n");
+}
+
+/**
  * The Bodies table — the full list of planetary placements with expandable
  * readings. Extracted so it can be embedded anywhere a chart is in scope.
  */

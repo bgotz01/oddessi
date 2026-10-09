@@ -26,6 +26,9 @@ export function getHouseType(house: House): HouseType {
 export interface HouseCategory {
     house: House;
     title: string; // Short title for UI display
+    // One or two broad inner themes to sit beside the title, which mostly names
+    // the outer arena — "Inner World & Retreat" beside "The Unconscious & Surrender".
+    internalThemes: string[];
     essence: string; // The house in one first-person line — "Who I am."
     keywords: string[]; // Five one-word tags spanning both readings — the general layer
     // Every house reads two ways: literally, as the people, money, places and
@@ -41,6 +44,7 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     1: {
         house: 1,
         title: "Self & Identity",
+        internalThemes: ["Self-Image", "Independence"],
         essence: "Who I am.",
         keywords: ["Self", "Body", "Identity", "Initiative", "Presence"],
         external: "Body, appearance, physical presence, first impressions",
@@ -61,6 +65,7 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     2: {
         house: 2,
         title: "Money & Values",
+        internalThemes: ["Self-Worth", "Stability"],
         essence: "What is mine.",
         keywords: ["Money", "Possessions", "Values", "Self-Worth", "Security"],
         external: "Money, possessions, income, material resources",
@@ -81,6 +86,7 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     3: {
         house: 3,
         title: "Mind & Communication",
+        internalThemes: ["Perception", "Learning"],
         essence: "What I think.",
         keywords: ["Mind", "Communication", "Learning", "Siblings", "Neighborhood"],
         external: "Siblings, neighbors, local environment, short trips, writing and speaking",
@@ -101,6 +107,7 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     4: {
         house: 4,
         title: "Home & Family",
+        internalThemes: ["Emotional Foundations", "Belonging"],
         essence: "Where I belong.",
         keywords: ["Home", "Family", "Roots", "Ancestry", "Belonging"],
         external: "Home, family, ancestry, property, private life",
@@ -121,6 +128,7 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     5: {
         house: 5,
         title: "Creativity & Pleasure",
+        internalThemes: ["Joy", "Self-Expression"],
         essence: "What I create.",
         keywords: ["Creativity", "Romance", "Children", "Play", "Self-Expression"],
         external: "Children, dating, hobbies, art, entertainment",
@@ -141,6 +149,7 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     6: {
         house: 6,
         title: "Work & Health",
+        internalThemes: ["Duty", "Improvement"],
         essence: "How I live each day.",
         keywords: ["Work", "Health", "Routine", "Service", "Duty"],
         external: "Daily work, service, routines, health and illness",
@@ -161,6 +170,7 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     7: {
         house: 7,
         title: "Relationships & Partnership",
+        internalThemes: ["Projection", "Reciprocity"],
         essence: "Who I join with.",
         keywords: ["Partnership", "Marriage", "Contracts", "Rivals", "Projection"],
         external: "Marriage, partners, contracts, rivals and adversaries",
@@ -181,6 +191,7 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     8: {
         house: 8,
         title: "Intimacy & Shared Resources",
+        internalThemes: ["Trust", "Transformation"],
         essence: "What is ours.",
         keywords: ["Intimacy", "Shared Money", "Death", "Power", "Transformation"],
         external: "Shared money, debt, taxes, inheritance, sex, death",
@@ -202,6 +213,7 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     9: {
         house: 9,
         title: "Beliefs & Exploration",
+        internalThemes: ["Meaning", "Faith"],
         essence: "What I believe.",
         keywords: ["Belief", "Travel", "Higher Education", "Philosophy", "Truth"],
         external: "Foreign travel, higher education, publishing, law and religion",
@@ -222,6 +234,7 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     10: {
         house: 10,
         title: "Career & Public Life",
+        internalThemes: ["Vocation", "Ambition"],
         essence: "What I become known for.",
         keywords: ["Career", "Status", "Reputation", "Authority", "Ambition"],
         external: "Career, status, authority, reputation, public achievements",
@@ -242,6 +255,7 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     11: {
         house: 11,
         title: "Friends & Networks",
+        internalThemes: ["Ideals", "Aspiration"],
         essence: "Who I connect with.",
         keywords: ["Friends", "Groups", "Networks", "Ideals", "Future"],
         external: "Friends, groups, organizations, networks, gains",
@@ -262,6 +276,7 @@ export const HOUSE_CATEGORIES: Record<House, HouseCategory> = {
     12: {
         house: 12,
         title: "Inner World & Retreat",
+        internalThemes: ["The Unconscious", "Surrender"],
         essence: "What exists beneath the surface.",
         keywords: ["Solitude", "Retreat", "Unconscious", "Surrender", "Transcendence"],
         external: "Retreat, institutions, isolation, seclusion, things occurring out of sight",
@@ -301,6 +316,11 @@ export function getHouseMeanings(house: House): { external: string; internal: st
 }
 
 /** Every core theme, external first — for callers that want one flat list. */
+/** The broad inner themes as one line — "Trust & Transformation". */
+export function getHouseInternalThemes(house: House): string {
+    return HOUSE_CATEGORIES[house].internalThemes.join(" & ");
+}
+
 export function getHouseCoreThemes(house: House): string[] {
     const { external, internal } = HOUSE_CATEGORIES[house].coreThemes;
     return [...external, ...internal];

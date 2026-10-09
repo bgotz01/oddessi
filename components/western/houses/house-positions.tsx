@@ -4,12 +4,17 @@ import { useState } from "react";
 import type { Chart, HouseCusp, Placement } from "@/lib/charts";
 import { tenantsOf } from "@/lib/charts";
 import { type HouseDominance } from "@/lib/dominance";
-import { getHouseMeanings, getHouseTitle } from "@/lib/astrology/house-categories";
+import {
+  getHouseInternalThemes,
+  getHouseMeanings,
+  getHouseTitle,
+} from "@/lib/astrology/house-categories";
 import type { House } from "@/lib/astrology/house-categories";
 import { HOUSE_TYPES, houseTypeStyle } from "@/lib/house-types";
 import { houseInfo } from "@/lib/interpretation";
 import MeaningLabel from "@/components/western/houses/meaning-label";
 import { bodyGlyph, signGlyph } from "@/lib/symbols";
+import { signByLabel } from "@/lib/astrology/macro/zodiac-framework-data";
 
 /**
  * The twelve houses as a wall of boxes — the fastest read of a chart's shape,
@@ -111,6 +116,11 @@ function HouseBox({
           <span className="inscription mt-3 text-[0.625rem] leading-snug tracking-[0.04em] text-bone">
             {getHouseTitle(cusp.number as House)}
           </span>
+          {/* The title mostly names the outer arena; the broad inner themes sit
+              beneath it in italics, as in the Cycles rows. */}
+          <span className="mt-1.5 text-[0.875rem] leading-snug text-balance text-bone-faint lowercase italic">
+            {getHouseInternalThemes(cusp.number as House)}
+          </span>
         </span>
 
         {/* Zones 2 and 3 — what the house means, directly under its name, as
@@ -143,7 +153,12 @@ function HouseBox({
               {cusp.sign}
             </span>
           </span>
-          <span className="datum mt-1.5 block text-[0.6875rem] text-bone-faint">
+          {/* The sign's one word from the guide, so a sign is called the same
+              thing on the wall as everywhere else. */}
+          <span className="mt-1.5 block text-[0.875rem] text-bone-soft italic">
+            {signByLabel(cusp.sign)?.domain}
+          </span>
+          <span className="datum mt-1 block text-[0.6875rem] text-bone-faint">
             {cusp.degree}
           </span>
         </span>
@@ -155,7 +170,7 @@ function HouseBox({
             {tenants.map((t) => (
               <span
                 key={t.body}
-                title={`${t.body} in ${t.sign} ${t.degree}`}
+                title={`${t.body} in ${t.sign} ${t.degree}${t.retrograde ? " · retrograde" : ""}`}
                 className="flex items-center gap-1.5 border border-rule-faint bg-surface-alt px-2 py-1"
               >
                 <span className="glyph text-[0.9375rem] text-patina">
@@ -164,6 +179,9 @@ function HouseBox({
                 <span className="datum text-[0.5625rem] tracking-[0.1em] text-bone-soft uppercase">
                   {t.body}
                 </span>
+                {t.retrograde ? (
+                  <span className="datum text-[0.5625rem] text-ember">℞</span>
+                ) : null}
               </span>
             ))}
           </span>

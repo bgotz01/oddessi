@@ -63,6 +63,8 @@ export default function CyclesPage() {
         // "current" would misdate everything downstream of it.
         notYetBegun: c.upcoming ?? false,
         next: c.next ?? [],
+        // Every pass in date order, retrogrades named — the drawer's table.
+        timeline: c.timeline ?? [],
       })),
     });
 

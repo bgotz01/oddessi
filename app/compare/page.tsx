@@ -234,9 +234,7 @@ function ComparisonView({ chart, reading }: { chart: Chart; reading: Reading }) 
               />
             ))}
             <p className="datum mt-4 text-[0.6875rem] leading-relaxed text-bone-faint">
-              Ten bodies and the Ascendant, weighted by role — the lights
-              heaviest, the outers lightest because a whole generation shares
-              them. Qualities of temperament, fixed to each sign.
+              The ten planets, one vote each. Qualities of temperament, fixed to each sign.
             </p>
           </div>
 

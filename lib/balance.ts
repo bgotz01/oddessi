@@ -18,39 +18,45 @@
 
 import type { Chart } from "@/lib/charts";
 import { signMeta, type SignElement, type SignModality } from "@/lib/symbols";
+import { DEFAULT_SCORING } from "@/lib/scoring";
 
 /**
- * Weight by body, mirroring `BODY_WEIGHT` in `lib/dominance.ts` so the two
- * measurements can't disagree about what a Jupiter is worth. The reasoning is
- * the same there and here: the lights carry a chart, the personal planets are
- * where a life is actually lived, and the outers are generational — everyone
- * born within a few years shares their sign, so a chart that is "60 % Water"
- * because of Neptune and Pluto is really just a cohort being counted.
+ * How the bodies are counted. The page offers all three side by side, because
+ * each answers a slightly different question and none is the "true" balance.
  *
- * One addition dominance does not make: the Ascendant, at full weight. There it
- * is excluded because angles are not tenants of houses. Here it is the chart's
- * whole orientation and the conventional element tally has always counted it.
- * The Midheaven stays at zero — it is a direction the life points in rather
- * than something the person is made of.
+ * - `equal`: one planet, one vote. The ten bodies each count once, so the
+ *   percentages read as a plain count of signs — two planets in Earth always
+ *   outweigh one in Fire. The default, and what the compare page shows.
+ * - `weighted`: the ten bodies weighted by role, using the same table as house
+ *   dominance (`lib/scoring.ts`) so the two can't disagree about what a Jupiter
+ *   is worth — lights 10, personal planets 8, social 6, outers 4.
+ * - `points`: one vote each, plus the Ascendant and both nodes. They are
+ *   positions rather than bodies, but plenty of readers count them.
+ *
+ * The Midheaven, Chiron and Lilith are never counted.
  */
-const BODY_WEIGHT: Record<string, number> = {
-  Sun: 10,
-  Moon: 10,
-  Ascendant: 10,
-  Mercury: 8,
-  Venus: 8,
-  Mars: 8,
-  Jupiter: 6,
-  Saturn: 6,
-  Uranus: 4,
-  Neptune: 4,
-  Pluto: 4,
-  Midheaven: 0,
-  "North Node": 0,
-  "South Node": 0,
-  Chiron: 0,
-  Lilith: 0,
-};
+export type BalanceMode = "equal" | "weighted" | "points";
+
+const PLANETS = [
+  "Sun",
+  "Moon",
+  "Mercury",
+  "Venus",
+  "Mars",
+  "Jupiter",
+  "Saturn",
+  "Uranus",
+  "Neptune",
+  "Pluto",
+];
+const POINTS = ["Ascendant", "North Node", "South Node"];
+
+function weightOf(body: string, mode: BalanceMode): number {
+  if (PLANETS.includes(body)) {
+    return mode === "weighted" ? (DEFAULT_SCORING.weight.body[body] ?? 0) : 1;
+  }
+  return mode === "points" && POINTS.includes(body) ? 1 : 0;
+}
 
 /** Canonical order. Shares are always returned in it, never sorted by size. */
 export const ELEMENTS: SignElement[] = ["Fire", "Earth", "Air", "Water"];
@@ -100,7 +106,7 @@ function heaviest<K extends string>(shares: Share<K>[]): K[] {
   return shares.filter((s) => s.weight === top).map((s) => s.key);
 }
 
-export function balance(chart: Chart): Balance {
+export function balance(chart: Chart, mode: BalanceMode = "equal"): Balance {
   const elementWeight: Record<SignElement, number> = {
     Fire: 0,
     Earth: 0,
@@ -118,7 +124,7 @@ export function balance(chart: Chart): Balance {
   let total = 0;
 
   for (const placement of chart.placements) {
-    const weight = BODY_WEIGHT[placement.body] ?? 0;
+    const weight = weightOf(placement.body, mode);
     const meta = signMeta(placement.sign);
 
     if (weight === 0 || !meta) {

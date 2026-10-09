@@ -324,59 +324,162 @@ export function modeNote(d: HouseDominance): string {
 }
 
 /**
- * Mutual reception loops: house A's ruler lives in house B, whose ruler lives
- * back in house A. The two life areas cannot be moved independently.
+ * The ruler graph: every house points at exactly one other house — the one its
+ * ruler sits in. House A's ruler is the ruler of the sign on A's cusp; follow
+ * that planet to wherever it is placed and you arrive at the next house.
+ *
+ * Because each house has exactly one way out, every chain must end in a loop.
+ * A loop of one is a self-ruled house (its ruler is at home in it); a loop of
+ * two or more is a circuit. Every other house is a feeder: its chain runs
+ * downstream until it reaches one of those loops. So the loops are where the
+ * chart's rulership finally comes to rest, and what feeds them says how much of
+ * the chart is resting there.
+ */
+export interface RulerLink {
+  house: number;
+  /** The sign on the cusp, which picks the ruler. */
+  cuspSign: string;
+  ruler: string;
+  /** Where the ruler actually sits. */
+  rulerSign: string;
+  rulerDegree: string;
+  /** The house the ruler sits in — where this house's affairs are carried. */
+  livesIn: number;
+}
+
+export function rulerMap(chart: Chart, config: Config = DEFAULTS): RulerLink[] {
+  const links: RulerLink[] = [];
+  for (const cusp of chart.houses) {
+    const cuspSign = signOfLongitude(cusp.longitude);
+    const ruler = rulerOfSign(cuspSign, config.rulership);
+    const placement = chart.placements.find(
+      (p) => p.body === ruler && !p.isAngle,
+    );
+    if (placement?.houseNumber == null) continue;
+    links.push({
+      house: cusp.number,
+      cuspSign,
+      ruler,
+      rulerSign: placement.sign,
+      rulerDegree: placement.degree,
+      livesIn: placement.houseNumber,
+    });
+  }
+  return links;
+}
+
+/**
+ * A closed loop of rulers: house A's ruler lives in B, B's in C, … and the last
+ * one's back in A. The areas cannot be moved independently. Any length — two is
+ * the common case, but the graph allows longer.
  */
 export interface Circuit {
   houses: number[];
   rulers: string[];
+  /** One link per house, in loop order — the evidence for each arrow. */
+  links: RulerLink[];
+  /**
+   * Two-house loops only: the two rulers also sit in each other's *signs*, which
+   * is mutual reception in the strict, classical sense. A house circuit alone is
+   * the looser, house-level version of the same idea.
+   */
+  signReception: boolean;
+  /** Houses outside the loop whose chains run into it, nearest first. */
+  feeders: number[];
 }
 
-export function houseCircuits(
-  chart: Chart,
-  config: Config = DEFAULTS,
-): Circuit[] {
-  const map = new Map<number, { ruler: string; livesIn: number }>();
-  for (const cusp of chart.houses) {
-    const ruler = rulerOfSign(signOfLongitude(cusp.longitude), config.rulership);
-    const placement = chart.placements.find(
-      (p) => p.body === ruler && !p.isAngle,
-    );
-    if (placement?.houseNumber != null) {
-      map.set(cusp.number, { ruler, livesIn: placement.houseNumber });
+/** A house whose ruler sits in it — a loop of one. */
+export interface SelfRuled {
+  link: RulerLink;
+  feeders: number[];
+}
+
+export interface RulerGraph {
+  links: RulerLink[];
+  circuits: Circuit[];
+  selfRuled: SelfRuled[];
+}
+
+export function rulerGraph(chart: Chart, config: Config = DEFAULTS): RulerGraph {
+  const links = rulerMap(chart, config);
+  const byHouse = new Map(links.map((l) => [l.house, l]));
+
+  // Find every loop. Walk from each house until a house repeats; if the walk
+  // closed on itself, the repeated stretch is a loop.
+  const loopOf = new Map<number, string>();
+  const loops = new Map<string, number[]>();
+  for (const start of byHouse.keys()) {
+    const path: number[] = [];
+    let at: number | undefined = start;
+    while (at !== undefined && !path.includes(at) && !loopOf.has(at)) {
+      path.push(at);
+      at = byHouse.get(at)?.livesIn;
     }
+    if (at === undefined || loopOf.has(at)) continue;
+    const ring = path.slice(path.indexOf(at));
+    // Start each loop at its lowest house, so it reads the same every time.
+    const lowest = ring.indexOf(Math.min(...ring));
+    const ordered = [...ring.slice(lowest), ...ring.slice(0, lowest)];
+    const key = ordered.join("-");
+    loops.set(key, ordered);
+    for (const h of ordered) loopOf.set(h, key);
   }
+
+  // Every house not on a loop drains into one. Record the distance so feeders
+  // can be listed nearest first.
+  const feeders = new Map<string, { house: number; steps: number }[]>();
+  for (const start of byHouse.keys()) {
+    if (loopOf.has(start)) continue;
+    let at: number | undefined = start;
+    let steps = 0;
+    while (at !== undefined && !loopOf.has(at) && steps <= 12) {
+      at = byHouse.get(at)?.livesIn;
+      steps++;
+    }
+    const key = at === undefined ? undefined : loopOf.get(at);
+    if (!key) continue;
+    const list = feeders.get(key) ?? [];
+    list.push({ house: start, steps });
+    feeders.set(key, list);
+  }
+  const feedersOf = (key: string) =>
+    (feeders.get(key) ?? [])
+      .sort((a, b) => a.steps - b.steps || a.house - b.house)
+      .map((f) => f.house);
 
   const circuits: Circuit[] = [];
-  const seen = new Set<string>();
-
-  const record = (houses: number[]) => {
-    const key = [...houses].sort((a, b) => a - b).join("-");
-    if (seen.has(key)) return;
-    seen.add(key);
-    circuits.push({
-      houses,
-      rulers: houses.map((h) => map.get(h)!.ruler),
-    });
-  };
-
-  for (const [a, dataA] of map) {
-    const b = dataA.livesIn;
-    const dataB = map.get(b);
-    if (!dataB || a === b) continue;
-
-    // Two-house loop: each ruler is a guest in the other's house.
-    if (dataB.livesIn === a) {
-      record([a, b]);
+  const selfRuled: SelfRuled[] = [];
+  for (const [key, houses] of loops) {
+    // `houses`, `rulers` and `links` share one order — each is read off the
+    // same `houses` array here, and the readings index all three together.
+    const ringLinks = houses.map((h) => byHouse.get(h)!);
+    if (houses.length === 1) {
+      selfRuled.push({ link: ringLinks[0], feeders: feedersOf(key) });
       continue;
     }
-
-    // Three-house loop: A → B → C → A.
-    const c = dataB.livesIn;
-    const dataC = map.get(c);
-    if (!dataC || c === a || c === b) continue;
-    if (dataC.livesIn === a) record([a, b, c]);
+    const [a, b] = ringLinks;
+    circuits.push({
+      houses,
+      rulers: ringLinks.map((l) => l.ruler),
+      links: ringLinks,
+      signReception:
+        houses.length === 2 &&
+        rulerOfSign(a.rulerSign, config.rulership) === b.ruler &&
+        rulerOfSign(b.rulerSign, config.rulership) === a.ruler,
+      feeders: feedersOf(key),
+    });
   }
 
-  return circuits;
+  circuits.sort((x, y) => x.houses[0] - y.houses[0]);
+  selfRuled.sort((x, y) => x.link.house - y.link.house);
+  return { links, circuits, selfRuled };
+}
+
+/**
+ * The loops of two or more houses — kept for callers that only want those.
+ * What a loop means is `lib/astrology/circuit-interpretations`; this file only
+ * says what connects.
+ */
+export function houseCircuits(chart: Chart, config: Config = DEFAULTS): Circuit[] {
+  return rulerGraph(chart, config).circuits;
 }

@@ -1,9 +1,12 @@
 "use client";
 
-import { Block, Bullets, ListColumn, Pair, Panel } from "@/components/study-panel";
-import { getHouseCategory, type House } from "@/lib/astrology/house-categories";
+import { useState } from "react";
+import { Block, Bullets, ListColumn, OpenMark, Pair, Panel } from "@/components/study-panel";
+import { getHouseCategory, getHouseTitle, type House } from "@/lib/astrology/house-categories";
 import { BODY_IN_A_HOUSE, SIGN_MANNER } from "@/lib/house-reading";
-import type { HouseCusp, Placement } from "@/lib/charts";
+import { signByLabel } from "@/lib/astrology/macro/zodiac-framework-data";
+import type { Aspect, HouseCusp, Placement } from "@/lib/charts";
+import { copyText } from "@/lib/clipboard";
 import type { HouseDominance } from "@/lib/dominance";
 import { easeLabel, type HouseEase } from "@/lib/ease";
 import { useScoring } from "@/components/scoring-context";
@@ -291,12 +294,177 @@ function Tenant({ placement, house }: { placement: Placement; house: number }) {
   );
 }
 
+/** One placement as a copyable line. */
+function placementLine(p: Placement): string {
+  return `${p.body}: ${p.sign} ${p.degree}${p.retrograde ? " ℞" : ""}${
+    p.houseNumber ? ` (house ${p.houseNumber})` : ""
+  }`;
+}
+
+/**
+ * The house's essentials as plain lines: the cusp, its ruler and where it
+ * landed, and the tenants. Text first so it can be pasted into a chat or a
+ * note without reformatting.
+ */
+function housePlacementLines(
+  cusp: HouseCusp,
+  tenants: Placement[],
+  dominance: HouseDominance | undefined,
+): string[] {
+  const lines = [`Cusp: ${cusp.sign} ${cusp.degree}`];
+
+  if (dominance) {
+    lines.push(
+      dominance.rulerPlacement
+        ? `Ruler: ${placementLine(dominance.rulerPlacement)}`
+        : `Ruler: ${dominance.ruler} (not in this chart)`,
+    );
+  }
+
+  lines.push(
+    ...(tenants.length === 0
+      ? ["Tenants: none"]
+      : tenants.map((t) => `Tenant — ${placementLine(t)}`)),
+  );
+
+  return lines;
+}
+
+/** Every aspect made by a tenant or by the house's ruler, tightest first. */
+function houseAspectLines(
+  tenants: Placement[],
+  dominance: HouseDominance | undefined,
+  aspects: Aspect[],
+): string[] {
+  const involved = new Set(tenants.map((t) => t.body));
+  if (dominance?.rulerPlacement) involved.add(dominance.ruler);
+  return aspects
+    .filter((a) => involved.has(a.planet1) || involved.has(a.planet2))
+    .sort((a, b) => a.orb - b.orb)
+    .map(
+      (a) =>
+        `${a.planet1} ${a.type.toLowerCase()} ${a.planet2} (orb ${a.orb.toFixed(1)}°)`,
+    );
+}
+
+/** Copies `text()` on click and says so for two seconds. */
+function CopyButton({ label, text }: { label: string; text: () => string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = () =>
+    copyText(text(), () => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      aria-label={label}
+      className="datum flex items-center gap-1 text-[0.625rem] tracking-[0.12em] text-bone-faint uppercase transition-colors hover:text-bone"
+    >
+      {copied ? (
+        "Copied ✓"
+      ) : (
+        <>
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+            <rect x="3.5" y="3.5" width="6" height="6" rx="0.75" stroke="currentColor" strokeWidth="1" />
+            <path d="M2.5 7.5H1.5a.75.75 0 0 1-.75-.75v-6A.75.75 0 0 1 1.5 0h6a.75.75 0 0 1 .75.75v1" stroke="currentColor" strokeWidth="1" />
+          </svg>
+          Copy
+        </>
+      )}
+    </button>
+  );
+}
+
+function Lines({ lines }: { lines: string[] }) {
+  return (
+    <ul className="space-y-1">
+      {lines.map((line) => (
+        <li key={line} className="datum text-[0.75rem] text-bone-soft">
+          {line}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * The house's placements, copyable. The aspects those placements make sit
+ * underneath, closed by default — they run long once the ruler is counted, and
+ * the cusp, ruler and tenants are what you usually want.
+ */
+function PlacementsBlock({
+  cusp,
+  tenants,
+  dominance,
+  aspects,
+}: {
+  cusp: HouseCusp;
+  tenants: Placement[];
+  dominance: HouseDominance | undefined;
+  aspects: Aspect[];
+}) {
+  const [aspectsOpen, setAspectsOpen] = useState(false);
+  const lines = housePlacementLines(cusp, tenants, dominance);
+  const aspectLines = houseAspectLines(tenants, dominance, aspects);
+  const title = `House ${cusp.number} — ${getHouseTitle(cusp.number as House)}`;
+
+  return (
+    <>
+      <Block
+        title="Placements"
+        aside={
+          <CopyButton
+            label="Copy placements"
+            text={() => `${title}\n\n${lines.join("\n")}`}
+          />
+        }
+      >
+        <Lines lines={lines} />
+      </Block>
+
+      {aspectLines.length > 0 ? (
+        <section>
+          <div className="mb-3 flex items-baseline justify-between gap-6 border-b border-rule-faint pb-2">
+            <button
+              type="button"
+              onClick={() => setAspectsOpen((v) => !v)}
+              aria-expanded={aspectsOpen}
+              className="group flex items-baseline gap-1.5 text-left"
+            >
+              <h4 className="eyebrow transition-colors group-hover:text-bone-soft">
+                Aspects
+              </h4>
+              <OpenMark open={aspectsOpen} />
+            </button>
+            {aspectsOpen ? (
+              <CopyButton
+                label="Copy aspects"
+                text={() => `${title} — aspects\n\n${aspectLines.join("\n")}`}
+              />
+            ) : (
+              <span className="datum text-[0.625rem] text-bone-faint">
+                {aspectLines.length}
+              </span>
+            )}
+          </div>
+          {aspectsOpen ? <Lines lines={aspectLines} /> : null}
+        </section>
+      ) : null}
+    </>
+  );
+}
+
 export default function HouseReading({
   cusp,
   tenants,
   dominance,
   scores,
   ease,
+  aspects,
   onExplainWeight,
 }: {
   cusp: HouseCusp;
@@ -306,13 +474,25 @@ export default function HouseReading({
   scores?: number[];
   /** The second axis. Optional so the panel still renders without it. */
   ease?: HouseEase;
+  /** The chart's aspects. When given, a copyable Placements block opens the panel. */
+  aspects?: Aspect[];
   onExplainWeight?: () => void;
 }) {
   const house = getHouseCategory(cusp.number as House);
   const manner = SIGN_MANNER[cusp.sign];
+  const sign = signByLabel(cusp.sign);
 
   return (
     <Panel>
+      {aspects ? (
+        <PlacementsBlock
+          cusp={cusp}
+          tenants={tenants}
+          dominance={dominance}
+          aspects={aspects}
+        />
+      ) : null}
+
       <div>
         <p className="mb-3 text-[1.1875rem] leading-relaxed text-patina italic">
           {house.essence}
@@ -346,6 +526,12 @@ export default function HouseReading({
           title={`${cusp.sign} on the cusp`}
           aside={`${cusp.degree} ${cusp.sign}`}
         >
+          {sign ? (
+            <p className="mb-4 text-[1.0625rem] text-patina italic">
+              {sign.domain}
+              <span className="text-bone-faint not-italic"> — {sign.keywords.join(", ")}</span>
+            </p>
+          ) : null}
           <Bullets items={manner.manner} />
           <div className="mt-6">
             <Pair>
