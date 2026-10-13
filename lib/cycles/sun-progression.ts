@@ -7,9 +7,10 @@ import { birthMsOf, isoAtAge, YEAR_MS } from "@/lib/chart-time";
  *
  * Secondary progression: a day after birth stands for a year of life, so the
  * Sun advances about one degree a year and spends about thirty years in each
- * sign. The rate is the Sun's MEAN daily motion — the real one runs 0.95° in
- * July to 1.02° in January — so an ingress can land a year either side of the
- * age given here. Good enough to name the chapter; not to date its first day.
+ * sign. The real daily motion runs 0.95° in July to 1.02° in January, so a
+ * mean rate puts an ingress up to a year off. Ingresses are instead solved
+ * against the Sun's true motion in the days after birth (see `solarLongitude`),
+ * which dates them to within a few days.
  */
 
 const SIGNS = [
@@ -29,6 +30,31 @@ const SIGNS = [
 
 /** Mean solar motion, degrees per day — so degrees per progressed year. */
 export const SUN_RATE = 0.9856;
+
+const JD_UNIX_EPOCH = 2440587.5;
+const DAY_MS = 86_400_000;
+const RAD = Math.PI / 180;
+
+/**
+ * Apparent geocentric longitude of the Sun, in degrees, NOT wrapped to 360.
+ *
+ * Meeus' low-precision theory (Astronomical Algorithms, ch. 25): good to about
+ * 0.01°. Swiss Ephemeris is server-only and this runs in the browser; it is
+ * only ever used for the Sun's *advance* from the birth instant, where most of
+ * the error cancels, and 0.01° of progressed Sun is about four days of life.
+ * Left unwrapped so a difference across 0° Aries is still a plain subtraction.
+ */
+function solarLongitude(jd: number): number {
+  const T = (jd - 2451545) / 36525;
+  const L0 = 280.46646 + 36000.76983 * T + 0.0003032 * T * T;
+  const M = (357.52911 + 35999.05029 * T - 0.0001537 * T * T) * RAD;
+  const C =
+    (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(M) +
+    (0.019993 - 0.000101 * T) * Math.sin(2 * M) +
+    0.000289 * Math.sin(3 * M);
+  const omega = (125.04 - 1934.136 * T) * RAD;
+  return L0 + C - 0.00569 - 0.00478 * Math.sin(omega);
+}
 
 /** How far ahead the timeline runs. */
 const HORIZON = 90;
@@ -70,15 +96,20 @@ const STAGES: [StageName, number, number][] = [
  *
  * The natal sign starts part-way through, so stages the Sun had already
  * passed at birth are dropped and the one it was born in is cut short.
+ * Boundaries are interpolated across the phase's true span — the Sun's speed
+ * barely changes inside one sign, and this keeps the last stage ending exactly
+ * where the phase does.
  */
 export function stagesOf(phase: SunPhase, age: number): SunStage[] {
   const out: SunStage[] = [];
+  const perDegree =
+    (phase.exitAge - phase.entryAge) / (30 - phase.startDegree);
   for (const [name, lo, hi] of STAGES) {
     if (hi <= phase.startDegree) continue;
     const entryAge =
       phase.entryAge +
-      (Math.max(lo, phase.startDegree) - phase.startDegree) / SUN_RATE;
-    const exitAge = phase.entryAge + (hi - phase.startDegree) / SUN_RATE;
+      (Math.max(lo, phase.startDegree) - phase.startDegree) * perDegree;
+    const exitAge = phase.entryAge + (hi - phase.startDegree) * perDegree;
     out.push({
       phase: name,
       entryAge,
@@ -109,13 +140,31 @@ export function sunProgression(
   const birthMs = birthMsOf(chart.birth.date);
   const age = (now.getTime() - birthMs) / YEAR_MS;
 
+  // A year of life is a day of ephemeris: the progressed Sun at age `a` is
+  // the natal Sun plus however far the real Sun moved in the `a` days after
+  // birth. Anchored on the stored natal longitude, so the birth instant only
+  // has to be close enough to sit on the right stretch of the Sun's orbit.
+  const birthJd = birthMs / DAY_MS + JD_UNIX_EPOCH;
+  const birthSun = solarLongitude(birthJd);
+  const advance = (a: number) => solarLongitude(birthJd + a) - birthSun;
+
+  /** The age the progressed Sun has advanced `deg` degrees — Newton on a near-line. */
+  const ageAt = (deg: number) => {
+    let a = deg / SUN_RATE;
+    for (let pass = 0; pass < 8; pass++) {
+      const step = (deg - advance(a)) / SUN_RATE;
+      a += step;
+      if (Math.abs(step) < 1e-5) break; // ~5 minutes of life
+    }
+    return a;
+  };
+
   const natalIndex = Math.floor(sun.longitude / 30);
-  const firstExit = (30 - (sun.longitude % 30)) / SUN_RATE;
-  const signYears = 30 / SUN_RATE;
+  const toFirstCusp = 30 - (sun.longitude % 30);
 
   const phases: SunPhase[] = [];
   let entry = 0;
-  let exit = firstExit;
+  let exit = ageAt(toFirstCusp);
   for (let i = 0; entry <= HORIZON; i++) {
     const state = age >= exit ? "past" : age >= entry ? "current" : "ahead";
     phases.push({
@@ -129,10 +178,10 @@ export function sunProgression(
       startDegree: i === 0 ? sun.longitude % 30 : 0,
     });
     entry = exit;
-    exit += signYears;
+    exit = ageAt(toFirstCusp + 30 * (i + 1));
   }
 
-  const progressed = (sun.longitude + age * SUN_RATE) % 360;
+  const progressed = (sun.longitude + advance(age)) % 360;
   return {
     natalSign: sun.sign,
     natalDegree: sun.degree,

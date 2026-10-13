@@ -6,7 +6,7 @@ import { SectionHeading } from "@/components/primitives";
 import ZodiacFramework from "@/components/zodiac-framework";
 import PlanetArchetypes from "@/components/western/macro/planet-archetypes";
 import HouseArchetypes from "@/components/western/cycles/house-archetypes";
-import HouseCusps from "@/components/overview/house-cusps";
+import HouseCusps from "@/components/framework/house-cusps";
 
 /**
  * The Western vocabulary on one page: what each sign, planet and house means
@@ -24,8 +24,9 @@ export default function AstrologyGuide() {
       <section className="mb-16">
         <SectionHeading>Planets</SectionHeading>
         <p className="mb-5 max-w-3xl text-[0.9375rem] leading-relaxed text-bone-faint">
-          What is acting. The personal five move fast and describe the person;
-          the outer five move slowly and describe the times.
+          What is acting. The faster a planet, the more personal its sign; the
+          slowest share their sign with a generation, and are read through
+          house and aspect.
         </p>
         <PlanetArchetypes bodies="all" />
       </section>

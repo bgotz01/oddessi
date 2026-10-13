@@ -160,6 +160,21 @@ const roleOf = (body: string) =>
 
 // ─── Readings ────────────────────────────────────────────────────────────────
 
+/**
+ * One house's ruler carrying it into another — the sentence every circuit is
+ * built from, and the one the Framework guide shows for its worked example.
+ */
+export function rulerLine(from: number, to: number, ruler: string): string {
+  return `${subject(ruler)} carries ${phrase(from)} into ${phrase(to)}, ${MANNER[ruler] ?? NEUTRAL}.`;
+}
+
+/** A ruler sitting in the house it rules — ruler and resident at once. */
+export function selfRuledLine(house: number, ruler: string): string {
+  return `${subject(ruler)} rules house ${house} and sits there, concentrating ${
+    roleOf(ruler) ?? "its influence"
+  } on ${phrase(house)}.`;
+}
+
 export function readCircuit(circuit: Circuit): CircuitReading {
   const { houses, rulers } = circuit;
   return {
@@ -175,7 +190,7 @@ export function readCircuit(circuit: Circuit): CircuitReading {
         energy: bodyRole(rulers[i]),
         // The ruler is the subject: it is always singular, and it is the
         // mechanism — the house does not act, its ruler carries it.
-        line: `${subject(rulers[i])} carries ${phrase(from)} into ${phrase(to)}, ${MANNER[rulers[i]] ?? NEUTRAL}.`,
+        line: rulerLine(from, to, rulers[i]),
       };
     }),
     integration:
@@ -191,7 +206,6 @@ export function readSelfRuled(
   config: Config = DEFAULTS,
 ): SelfRuledReading {
   const { link, feeders } = self;
-  const role = roleOf(link.ruler);
   const atHome = rulerOfSign(link.rulerSign, config.rulership) === link.ruler;
   const livesIn = (h: number) => links.find((l) => l.house === h)?.livesIn;
   const direct = feeders.filter((h) => livesIn(h) === link.house);
@@ -201,9 +215,7 @@ export function readSelfRuled(
     theme: `${keyword(link.house)} on Its Own Terms`,
     // Says what self-rulership is — ruler and resident at once — before what
     // it does.
-    dynamic: `${subject(link.ruler)} rules house ${link.house} and sits there, concentrating ${
-      role ?? "its influence"
-    } on ${phrase(link.house)}.`,
+    dynamic: selfRuledLine(link.house, link.ruler),
     // Self-ruled is concentrated, not sealed off — the house still meets the
     // rest of the chart through aspects and through whatever leads into it.
     integration: `A possible synthesis: ${need(link.house)} reinforcing their own priorities — a concentrated focus that can shape other parts of life.`,

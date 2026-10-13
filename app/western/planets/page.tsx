@@ -46,8 +46,9 @@ export default function PlanetsPage() {
 
   function copyBodies() {
     if (!chart) return;
-    const text = `${chart.name} — The Bodies\n\n${bodiesText(chart.placements)}`;
-    copyText(text, () => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    // Placements only — no chart name, so the text can be pasted anywhere
+    // without identifying whose chart it is.
+    copyText(bodiesText(chart.placements), () => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   }
 
   return (
@@ -62,17 +63,6 @@ export default function PlanetsPage() {
       />
 
       <section className="mb-12">
-        <SectionHeading>The Wheel</SectionHeading>
-        <div className="mx-auto max-w-[540px]">
-          <NatalWheel chart={chart} />
-        </div>
-      </section>
-
-      <section className="mb-12">
-        <ElementDistribution chart={chart} />
-      </section>
-
-      <section>
         <SectionHeading
           aside={
             <span className="flex items-center gap-3">
@@ -100,6 +90,17 @@ export default function PlanetsPage() {
           The Bodies
         </SectionHeading>
         <BodiesTable placements={chart.placements} />
+      </section>
+
+      <section className="mb-12">
+        <SectionHeading>The Wheel</SectionHeading>
+        <div className="mx-auto max-w-[540px]">
+          <NatalWheel chart={chart} />
+        </div>
+      </section>
+
+      <section className="mb-12">
+        <ElementDistribution chart={chart} />
       </section>
 
       <PlanetKey />

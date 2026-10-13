@@ -69,7 +69,6 @@ const R_PLANET = 162;
 const R_ASPECT = 100;
 const R_CENTER = 60;
 
-const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
 
 // ─── Colours ────────────────────────────────────────────────────────────────
 
@@ -275,7 +274,7 @@ function WheelDrawer({
                       {content.info.element} · {content.info.modality}
                     </p>
                     <h2 className="inscription mt-1 text-[1.25rem] text-bone">
-                      House {ROMAN[content.houseNum - 1]}
+                      House {content.houseNum}
                     </h2>
                     <p className="mt-0.5 text-[0.9375rem] font-light text-patina">
                       {content.info.name}
@@ -434,7 +433,7 @@ function WheelDrawer({
                             <span className="datum text-[0.6875rem] text-bone-faint">{t.degree}</span>
                             {t.houseNumber && (
                               <span className="datum text-[0.6875rem] text-bone-faint">
-                                House {ROMAN[t.houseNumber - 1]}
+                                House {t.houseNumber}
                               </span>
                             )}
                             {t.retrograde && <span className="datum text-[0.625rem] text-ember">℞</span>}
@@ -523,7 +522,7 @@ function HouseRing({
             <text x={tx} y={ty} textAnchor="middle" dominantBaseline="central"
               fontSize={9} fill={isAngular ? "#6baf9a" : "#a8afbd"} letterSpacing="0.04em"
               style={{ fontFamily: "var(--font-plex-mono, monospace)", pointerEvents: "none" }}>
-              {ROMAN[i]}
+              {i + 1}
             </text>
             <path d={hitPath} fill="white" fillOpacity={0} fillRule="evenodd" stroke="none" className="cursor-pointer"
               onMouseEnter={(e) => onHover(cusp.number, cusp.sign, e)}
@@ -561,7 +560,7 @@ function Planets({ placements, rotation }: { placements: Placement[]; rotation: 
         const tooltipParts = [body];
         if (p) {
           tooltipParts.push(`${p.sign} ${p.degree}`);
-          if (p.houseNumber) tooltipParts.push(`House ${ROMAN[p.houseNumber - 1]}`);
+          if (p.houseNumber) tooltipParts.push(`House ${p.houseNumber}`);
           if (p.retrograde) tooltipParts.push("℞ Retrograde");
         }
         return (
@@ -656,7 +655,7 @@ export function NatalWheel({ chart }: { chart: Chart }) {
       x: e.clientX,
       y: e.clientY,
       content: {
-        title: `House ${ROMAN[houseNum - 1]} · ${info?.name ?? ""}`,
+        title: `House ${houseNum} · ${info?.name ?? ""}`,
         subtitle: cusp ? `${sign} ${cusp.degree}${interp ? ` · ${interp.essence}` : ""}` : undefined,
         body: tenants.length
           ? `${tenants.map((t) => t.body).join(", ")} in this house.`

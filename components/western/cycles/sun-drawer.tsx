@@ -14,6 +14,16 @@ import {
 
 const SUN = BODY.Sun.color;
 
+/** "14 Mar 2028" from an ISO day, read in UTC so it never slips a day. */
+function longDate(iso: string): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 /**
  * One sign of the progressed Sun's walk, explained.
  *
@@ -94,7 +104,7 @@ export default function SunDrawer({
                   {previous ? `Age ${Math.round(phase.entryAge)}` : "Born"}–
                   {Math.round(phase.exitAge)}
                   {" · "}
-                  {phase.start.slice(0, 4)}–{phase.end.slice(0, 4)}
+                  {longDate(phase.start)} – {longDate(phase.end)}
                   {current ? (
                     <span
                       className="ml-2 tracking-[0.22em] uppercase"

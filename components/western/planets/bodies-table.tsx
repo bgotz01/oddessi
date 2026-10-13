@@ -63,7 +63,7 @@ function BodyRow({
   onToggle: () => void;
   anchorRef: (el: HTMLElement | null) => void;
 }) {
-  const { body, sign, degree, house, houseNumber, retrograde } = placement;
+  const { body, sign, degree, houseNumber, retrograde } = placement;
 
   const info = bodyInfo(body);
   const inSign = bodyInSign(body, sign);
@@ -110,7 +110,7 @@ function BodyRow({
             </span>
             {sign}
             <span className="datum ml-2 text-[0.625rem] text-bone-faint">
-              {house}
+              {houseNumber ?? "—"}
             </span>
           </span>
         </span>
@@ -156,7 +156,7 @@ function BodyRow({
           className="datum hidden text-[0.75rem] text-bone-faint md:block"
           title={home?.name}
         >
-          {house}
+          {houseNumber ?? "—"}
         </span>
 
         {/* col 9 — dignity */}
@@ -285,7 +285,7 @@ export function bodiesText(placements: Placement[]): string {
       const element = signMeta(p.sign)?.element;
       return [
         `${p.body}${p.retrograde ? " ℞" : ""}: ${p.sign} ${p.degree}`,
-        p.house ? `house ${p.house}` : null,
+        p.houseNumber ? `house ${p.houseNumber}` : null,
         archetype,
         element,
         dignityOf(p.body, p.sign),

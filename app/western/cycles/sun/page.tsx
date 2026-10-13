@@ -55,11 +55,9 @@ export default function SunProgressionPage() {
     setPageContext({
       _description: "Sun Progression Timeline",
       _note:
-        "Secondary progressed Sun at the mean rate of " +
-        SUN_RATE +
-        "° a year. " +
-        "The true rate varies through the year, so entry ages can be off by about " +
-        "a year — treat them as approximate, never as exact ingress dates.",
+        "Secondary progressed Sun, solved against the Sun's true motion " +
+        "(low-precision solar theory), so ingress dates are good to within a " +
+        "few days. Birth time is not used — the anchor is the stored natal longitude.",
       natalSun: `${sp.natalDegree} ${sp.natalSign}`,
       age: Number(sp.age.toFixed(1)),
       progressedSun: `${sp.progressedDegree.toFixed(1)}° ${sp.progressedSign}`,
@@ -205,7 +203,7 @@ export default function SunProgressionPage() {
           </ol>
 
           <p className="datum mt-4 text-[0.6875rem] text-bone-faint">
-            Mean solar motion — entry ages can fall a year either side.
+            True solar motion — ingress dates are good to within a few days.
           </p>
         </>
       )}

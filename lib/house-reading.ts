@@ -17,28 +17,43 @@
  * tends to do, never a claim that it is good or bad to have.
  */
 
+import type { SignKey } from "@/lib/astrology/macro/zodiac-framework-data";
+
+/**
+ * Not the same as a sign's `strength` / `shadow` in `zodiac-framework-data`.
+ * Those describe the sign in general; these describe the sign *as an approach
+ * to one area of life* — what that approach contributes to a house, and what
+ * it trades away there. Kept as a separate table on purpose.
+ */
 export interface SignManner {
-  /** How the sign runs the area it rules — three fragments. */
-  manner: string[];
-  /** What that manner makes easier. */
-  gives: string[];
-  /** What it costs. */
-  costs: string[];
+  /**
+   * How the sign runs the area it rules — three fragments. The first is the
+   * primary statement, the only one the Framework cards show.
+   */
+  manner: [string, string, string];
+  /** What that approach contributes to the house. */
+  gives: [string, string];
+  /** The trade-off it makes there. */
+  costs: [string, string];
 }
 
-export const SIGN_MANNER: Record<string, SignManner> = {
+/**
+ * Keyed by capitalised sign name, so a missing or misspelt sign fails to
+ * compile. Exported below under a string index, since cusps arrive as strings.
+ */
+const MANNER_BY_SIGN = {
   Aries: {
     manner: [
       "Met head-on — the first move comes before the plan",
-      "Starts fast, tires of upkeep",
-      "Wants to run this area outright",
+      "Quick to initiate, less drawn to maintenance",
+      "Prefers independence over permission",
     ],
     gives: ["Initiative where others hesitate", "Nerve to go first"],
     costs: ["Impatience with slow returns", "Friction from pushing too early"],
   },
   Taurus: {
     manner: [
-      "Built slowly and kept",
+      "Built slowly, preserved carefully",
       "Security before novelty",
       "Values what can be touched and held",
     ],
@@ -51,22 +66,22 @@ export const SIGN_MANNER: Record<string, SignManner> = {
       "Several threads at once",
       "Curiosity ahead of commitment",
     ],
-    gives: ["Adaptability", "Contacts and ideas on demand"],
+    gives: ["Adaptability", "Connects people and ideas"],
     costs: ["Scattered effort", "Slow to settle on one course"],
   },
   Cancer: {
     manner: [
       "Approached through feeling and protection",
-      "Tied up with family, memory and safety",
+      "Guided by memory, belonging and safety",
       "Guarded until trust is earned",
     ],
     gives: ["Care and loyalty", "Instinct for what people need"],
-    costs: ["Moods steer decisions", "Defensive when exposed"],
+    costs: ["Feelings can override judgment", "Defensive when exposed"],
   },
   Leo: {
     manner: [
       "Run as self-expression",
-      "Wants to be seen doing it",
+      "Personal investment seeks recognition",
       "Wholehearted, proud, generous",
     ],
     gives: ["Warmth and presence", "Confidence others follow"],
@@ -75,7 +90,7 @@ export const SIGN_MANNER: Record<string, SignManner> = {
   Virgo: {
     manner: [
       "Analysed, refined, put in order",
-      "Use over display",
+      "Function before appearance",
       "Improvement as the default setting",
     ],
     gives: ["Precision and craft", "Practical problem-solving"],
@@ -88,20 +103,20 @@ export const SIGN_MANNER: Record<string, SignManner> = {
       "Decided by weighing both sides",
     ],
     gives: ["Diplomacy", "An eye for proportion"],
-    costs: ["Indecision", "Peace kept at its own expense"],
+    costs: ["Indecision", "Harmony at the expense of honesty"],
   },
   Scorpio: {
     manner: [
       "Taken deep or not at all",
-      "Control, privacy, intensity",
-      "Trust given slowly, then completely",
+      "Privacy, intensity and guarded trust",
+      "Trust built through depth and loyalty",
     ],
     gives: ["Focus and endurance", "Sees what is hidden"],
     costs: ["Suspicion", "All-or-nothing swings"],
   },
   Sagittarius: {
     manner: [
-      "Treated as an adventure that should mean something",
+      "Explored in search of meaning",
       "Room to move, room to believe",
       "Big picture before detail",
     ],
@@ -112,15 +127,15 @@ export const SIGN_MANNER: Record<string, SignManner> = {
     manner: [
       "Treated as a long climb",
       "Structure, rules and earned standing",
-      "Serious early, easier later",
+      "Responsibility before reward",
     ],
     gives: ["Discipline and patience", "Builds what lasts"],
     costs: ["Carries too much alone", "Enjoyment postponed for duty"],
   },
   Aquarius: {
     manner: [
-      "Run on its own terms, against convention",
-      "Ideas and groups ahead of individuals",
+      "Approached independently, outside convention",
+      "Independent thinking within collective systems",
       "Detached, experimental",
     ],
     gives: ["Originality", "Sees what could change"],
@@ -128,27 +143,34 @@ export const SIGN_MANNER: Record<string, SignManner> = {
   },
   Pisces: {
     manner: [
-      "Felt more than planned",
-      "Soft boundaries, wide imagination",
+      "Guided by intuition and imagination",
+      "Porous boundaries, deep empathy",
       "Drawn to what cannot be measured",
     ],
     gives: ["Compassion and intuition", "Creative sensitivity"],
     costs: ["Drift and avoidance", "Easily absorbed by others"],
   },
-};
+} satisfies Record<Capitalize<SignKey>, SignManner>;
 
-/** What a body puts into whichever house it stands in — two fragments. */
+export const SIGN_MANNER: Record<string, SignManner> = MANNER_BY_SIGN;
+
+/**
+ * What a body puts into whichever house it stands in — two fragments. The
+ * role the body plays in a house, not its full meaning (that is
+ * `PRINCIPLES` and the planet archetypes). The nodes and Chiron are here as
+ * points, as `PRINCIPLES` groups them, not as planets.
+ */
 export const BODY_IN_A_HOUSE: Record<string, string[]> = {
-  Sun: ["Identity and purpose invested here", "Where the chart wants to be seen"],
+  Sun: ["Identity and purpose invested here", "Where identity seeks expression"],
   Moon: ["Feeling, habit and the need for safety", "Where comfort is sought and moods rise"],
   Mercury: ["Thought, talk and trade", "Where the mind stays busy"],
   Venus: ["Affection, taste and what is valued", "Where pleasure and ease are sought"],
-  Mars: ["Drive, heat and competition", "Where effort goes and fights start"],
-  Jupiter: ["Growth, luck and generosity", "Where things expand — sometimes too far"],
-  Saturn: ["Limits, duty and slow work", "Where mastery is demanded and comes late"],
-  Uranus: ["Disruption and independence", "Where the unexpected keeps arriving"],
-  Neptune: ["Ideals, imagination and fog", "Where boundaries blur, for better or worse"],
-  Pluto: ["Power, intensity and renewal", "Where things break down to be rebuilt"],
+  Mars: ["Drive, heat and competition", "Where energy is directed and conflict arises"],
+  Jupiter: ["Growth, opportunity and generosity", "Where things expand — sometimes too far"],
+  Saturn: ["Responsibility, limits and discipline", "Where responsibility and mastery develop through effort"],
+  Uranus: ["Disruption and independence", "Where established patterns are challenged"],
+  Neptune: ["Idealization, imagination and dissolution", "Where boundaries blur, for better or worse"],
+  Pluto: ["Power, intensity and renewal", "Where deep change challenges existing foundations"],
   "North Node": ["The direction of growth", "Unfamiliar ground worth working toward"],
   "South Node": ["Old skills and default habits", "Familiar ground that is easy to fall back on"],
   Chiron: ["An old wound and what it teaches", "Where sensitivity becomes skill"],

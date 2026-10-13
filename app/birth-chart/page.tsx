@@ -106,19 +106,18 @@ export default function BirthChartPage() {
   function copyPlacements() {
     if (!chart) return;
     const lines = chart.placements.map((p) =>
-      `${p.body}${p.retrograde ? " ℞" : ""}: ${p.sign} ${p.degree}${p.house ? ` (${p.house})` : ""}`
+      `${p.body}${p.retrograde ? " ℞" : ""}: ${p.sign} ${p.degree}${p.houseNumber ? ` (house ${p.houseNumber})` : ""}`
     );
-    const text = `${chart.name} — Birth Chart Placements\n\n${lines.join("\n")}`;
-    copyText(text, () => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+    // Placements only — no chart name, so the text can be pasted anywhere.
+    copyText(lines.join("\n"), () => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
   }
 
   function copyCusps() {
     if (!chart) return;
     const lines = chart.houses.map((h) =>
-      `House ${h.number} (${h.roman}) — ${getHouseTitle(h.number as House)}: ${h.sign} ${h.degree}`
+      `House ${h.number} — ${getHouseTitle(h.number as House)}: ${h.sign} ${h.degree}`
     );
-    const text = `${chart.name} — House Cusps\n\n${lines.join("\n")}`;
-    copyText(text, () => { setCopiedCusps(true); setTimeout(() => setCopiedCusps(false), 2000); });
+    copyText(lines.join("\n"), () => { setCopiedCusps(true); setTimeout(() => setCopiedCusps(false), 2000); });
   }
 
   async function patch(fields: Record<string, string | null>) {
@@ -340,8 +339,11 @@ export default function BirthChartPage() {
         </div>
       </section>
 
+      {/* Placements and cusps side by side — the two halves of the chart, read
+          (and copied) together. */}
+      <div className="mb-16 grid items-start gap-x-10 gap-y-12 xl:grid-cols-2">
       {/* Placements */}
-      <section className="mb-16">
+      <section>
         <SectionHeading
           aside={
             <span className="flex items-center gap-3">
@@ -370,12 +372,12 @@ export default function BirthChartPage() {
           {chart.placements.map((p) => (
             <div
               key={p.body}
-              className="grid grid-cols-[2rem_1fr_auto] items-baseline gap-4 border-b border-rule-faint py-3 md:grid-cols-[2rem_10rem_1fr_6rem_4rem]"
+              className="grid grid-cols-[1.25rem_minmax(0,1fr)_7rem_4rem_1.25rem] items-baseline gap-2 border-b border-rule-faint py-1 leading-snug"
             >
-              <span className={`glyph text-lg ${p.isAngle ? "text-ember" : "text-patina"}`}>
+              <span className={`glyph text-[0.9375rem] ${p.isAngle ? "text-ember" : "text-patina"}`}>
                 {BODY_GLYPH[p.body] ?? "·"}
               </span>
-              <span className="inscription text-[0.6875rem] text-bone">
+              <span className="inscription truncate text-[0.625rem] text-bone">
                 {p.body}
                 {p.retrograde ? (
                   <span className="datum ml-2 text-[0.625rem] text-ember" title="Retrograde">
@@ -383,12 +385,12 @@ export default function BirthChartPage() {
                   </span>
                 ) : null}
               </span>
-              <span className="hidden md:block">
-                <span className="glyph mr-2 text-bone-faint">{signGlyph(p.sign)}</span>
-                <span className="text-[0.9375rem] font-light italic text-bone-soft">{p.sign}</span>
+              <span className="truncate">
+                <span className="glyph mr-1.5 text-bone-faint">{signGlyph(p.sign)}</span>
+                <span className="text-[0.875rem] font-light italic text-bone-soft">{p.sign}</span>
               </span>
-              <span className="datum text-[0.75rem] text-bone-faint md:text-right">{p.degree}</span>
-              <span className="datum hidden text-[0.75rem] text-bone-faint md:block md:text-right">{p.house}</span>
+              <span className="datum text-right text-[0.6875rem] text-bone-faint">{p.degree}</span>
+              <span className="datum text-right text-[0.6875rem] text-bone-faint">{p.houseNumber ?? "—"}</span>
             </div>
           ))}
         </div>
@@ -396,7 +398,7 @@ export default function BirthChartPage() {
 
       {/* House Cusps */}
       {chart.houses.length > 0 && (
-        <section className="mb-16">
+        <section>
           <SectionHeading
             aside={
               <span className="flex items-center gap-3">
@@ -425,23 +427,26 @@ export default function BirthChartPage() {
             {chart.houses.map((h) => (
               <div
                 key={h.number}
-                className="grid grid-cols-[2rem_1fr_auto] items-baseline gap-4 border-b border-rule-faint py-3 md:grid-cols-[2rem_1.5rem_10rem_1fr_6rem]"
+                className="grid grid-cols-[1.25rem_minmax(0,1fr)_7rem_4rem] items-baseline gap-2 border-b border-rule-faint py-1 leading-snug"
               >
-                <span className="datum text-[0.75rem] text-bone-faint">{h.number}</span>
-                <span className="inscription text-[0.6875rem] text-bone-faint">{h.roman}</span>
-                <span className="inscription text-[0.6875rem] text-bone">
+                <span className="datum text-[0.6875rem] text-bone-faint">{h.number}</span>
+                <span
+                  className="inscription truncate text-[0.625rem] text-bone"
+                  title={getHouseTitle(h.number as House)}
+                >
                   {getHouseTitle(h.number as House)}
                 </span>
-                <span className="hidden md:block">
-                  <span className="glyph mr-2 text-bone-faint">{signGlyph(h.sign)}</span>
-                  <span className="text-[0.9375rem] font-light italic text-bone-soft">{h.sign}</span>
+                <span className="truncate">
+                  <span className="glyph mr-1.5 text-bone-faint">{signGlyph(h.sign)}</span>
+                  <span className="text-[0.875rem] font-light italic text-bone-soft">{h.sign}</span>
                 </span>
-                <span className="datum text-[0.75rem] text-bone-faint md:text-right">{h.degree}</span>
+                <span className="datum text-right text-[0.6875rem] text-bone-faint">{h.degree}</span>
               </div>
             ))}
           </div>
         </section>
       )}
+      </div>
 
       {showNewChart && <NewChartModal onClose={() => setShowNewChart(false)} />}
       {showManage && <ChartManageModal charts={charts} onClose={() => setShowManage(false)} onReorder={reorderCharts} />}

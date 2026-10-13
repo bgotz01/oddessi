@@ -139,3 +139,58 @@ export const DIGNITY_NOTE: Record<Dignity, string> = {
   Neutral:
     "Neither strengthened nor undercut by the sign. The placement is read on its own terms.",
 };
+
+/**
+ * The four essential dignities as the Framework guide teaches them: name,
+ * a short image, what it means, and one example. Separate from
+ * `DIGNITY_NOTE`, which reads a placement in a chart rather than defining the
+ * term. Each example is checked against `dignityOf` in development, so the
+ * guide can never cite a placement the dignity table disagrees with.
+ */
+export const DIGNITY_GUIDE: {
+  dignity: Exclude<Dignity, "Neutral">;
+  name: string;
+  image: string;
+  meaning: string;
+  example: { body: string; sign: string };
+}[] = [
+  {
+    dignity: "Ruling",
+    name: "Domicile",
+    image: "At home",
+    meaning: "The planet rules the sign and operates on familiar territory.",
+    example: { body: "Mars", sign: "Aries" },
+  },
+  {
+    dignity: "Exaltation",
+    name: "Exaltation",
+    image: "Honored guest",
+    meaning: "The sign elevates or especially supports the planet's expression.",
+    example: { body: "Sun", sign: "Aries" },
+  },
+  {
+    dignity: "Detriment",
+    name: "Detriment",
+    image: "Foreign territory",
+    meaning: "The planet is opposite a sign it rules, requiring a less familiar expression.",
+    example: { body: "Mars", sign: "Libra" },
+  },
+  {
+    dignity: "Fall",
+    name: "Fall",
+    image: "Difficult position",
+    meaning: "The planet is opposite its exaltation, traditionally limiting its ease of expression.",
+    example: { body: "Sun", sign: "Libra" },
+  },
+];
+
+if (process.env.NODE_ENV !== "production") {
+  for (const d of DIGNITY_GUIDE) {
+    const actual = dignityOf(d.example.body, d.example.sign);
+    if (actual !== d.dignity) {
+      throw new Error(
+        `DIGNITY_GUIDE: ${d.example.body} in ${d.example.sign} is ${actual}, not ${d.dignity}`,
+      );
+    }
+  }
+}

@@ -79,7 +79,7 @@ export default function NeptuneEraDrawer({
             <div>
               <p className="eyebrow text-[0.6875rem]">Sign domain</p>
               <p className="mt-1 text-[1.75rem] leading-tight text-bone-soft">{sign.domain}</p>
-              <p className="mt-1 text-[0.9375rem] italic text-bone-faint">{sign.mode}</p>
+              <p className="mt-1 text-[0.9375rem] italic text-bone-faint">{sign.expression}</p>
             </div>
           </div>
           <div className="mt-5 border-t border-rule-faint pt-4">
